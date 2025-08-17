@@ -26,7 +26,7 @@ Developer Builds
 The following libraries are required for all targets:
 
  - Boron 2.0.8
- - Faun 0.1.5 or 0.2
+ - Faun 0.2
     - Vorbis
  - PNG
 
@@ -47,13 +47,13 @@ Ubuntu:
 The Boron interpreter program is needed to build game modules.
 The static binary can be downloaded from the
 [Boron homepage](https://urlan.sourceforge.io/boron/) or from the
-[Module Tools](https://xu4.sourceforge.net/download.php#devel) archive and
+[Module Tools](https://xu4.sourceforge.net/download.html#devel) archive and
 should be installed somewhere in your PATH.
 
 There are three ways the Boron library can be obtained.  It can be built from
 [source](https://sourceforge.net/p/urlan/boron/code/ci/master/tree/)
 or a pre-built x86_64 SDK can be downloaded from the
-[xu4 download](https://xu4.sourceforge.net/download.php#devel) page.
+[xu4 download](https://xu4.sourceforge.net/download.html#devel) page.
 On UNIX systems the following commands will checkout the source using Git,
 properly configure it for xu4, build `libboron.a`, and install it:
 
@@ -65,7 +65,7 @@ If the Boron program has not been installed yet then adding the `install`
 target to the previous make command will do that.
 
 Faun SDKs and source can be downloaded from the
-[Faun Releases](https://github.com/WickedSmoke/faun/releases) page.  The
+[Faun Releases](https://codeberg.org/wickedsmoke/faun/releases) page.  The
 source is also available via the src/faun Git submodule:
 
     git submodule update --init
