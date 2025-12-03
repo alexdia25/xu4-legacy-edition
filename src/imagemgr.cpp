@@ -221,22 +221,23 @@ void ImageMgr::fixupTransparent(Image* img, RGBA color) {
     }
 }
 
-static void swapColors(Image32* img, const RGBA* colorA, const RGBA* colorB) {
+static void swapColors(Image32* img, uint32_t colorA, uint32_t colorB) {
     uint32_t* it  = img->pixels;
     uint32_t* end = it + (img->w * img->h);
-    uint32_t ua, ub;
-
-    ua = *((uint32_t*) colorA);
-    ub = *((uint32_t*) colorB);
 
     while (it != end) {
-        if (*it == ua)
-            *it = ub;
-        else if (*it == ub)
-            *it = ua;
+        if (*it == colorA)
+            *it = colorB;
+        else if (*it == colorB)
+            *it = colorA;
         ++it;
     }
 }
+
+union UColor {
+    RGBA b;
+    uint32_t i;
+};
 
 void ImageMgr::fixupAbacus(Image *im) {
 
@@ -256,10 +257,10 @@ void ImageMgr::fixupAbacus(Image *im) {
     im->fillRect(24, 199, 8,  1, 0, 255, 80); /* green */
 
     if (vgaGraphics) {
-        RGBA light, dark;
-        rgba_set(light, 0x55, 0xff, 0x50, 0xff);
-        rgba_set(dark,  0x58, 0x8d, 0x43, 0xff);
-        swapColors(im, &light, &dark);
+        UColor light, dark;
+        rgba_set(light.b, 0x55, 0xff, 0x50, 0xff);
+        rgba_set(dark.b,  0x58, 0x8d, 0x43, 0xff);
+        swapColors(im, light.i, dark.i);
     }
 }
 
@@ -268,10 +269,10 @@ void ImageMgr::fixupAbacus(Image *im) {
  * south.
  */
 void ImageMgr::fixupDungNS(Image *im) {
-    RGBA blue, green;
-    rgba_set(blue,  0, 0, 0x80, 0xff);
-    rgba_set(green, 0, 0x80, 0, 0xff);
-    swapColors(im, &blue, &green);
+    UColor blue, green;
+    rgba_set(blue.b,  0, 0, 0x80, 0xff);
+    rgba_set(green.b, 0, 0x80, 0, 0xff);
+    swapColors(im, blue.i, green.i);
 }
 
 /**
