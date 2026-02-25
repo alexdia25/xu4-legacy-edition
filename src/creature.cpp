@@ -781,34 +781,33 @@ const Creature* Creature::randomForTile(const Tile *tile) {
        behind this should be moved to monsters.xml or another conf
        file */
 
-    int era;
-    TileId randTile;
+    int baseId, rn;
 
     if (tile->isSailable()) {
-        randTile = xu4.config->creature(PIRATE_ID)->tile.getId();
-        randTile += xu4_random(7);
-        return getByTile(randTile);
+        baseId = PIRATE_ID;
+        rn = xu4_random(7);
     }
     else if (tile->isSwimable()) {
-        randTile = xu4.config->creature(NIXIE_ID)->tile.getId();
-        randTile += xu4_random(5);
-        return getByTile(randTile);
+        baseId = NIXIE_ID;
+        rn = xu4_random(5);
     }
+    else if (tile->isCreatureWalkable()) {
+        int era;
+        int moves = c->saveGame->moves;
+        if (moves < 10000)
+            era = 0x03;         // Easy    orc - snake
+        else if (moves < 30000)
+            era = 0x07;         // Medium  orc - wisp
+        else
+            era = 0x0f;         // Hard    orc - balron
 
-    if (!tile->isCreatureWalkable())
+        baseId = ORC_ID;
+        rn = era & xu4_random(0x10) & xu4_random(0x10);
+    }
+    else
         return NULL;
 
-    //if (c->saveGame->moves > 100000) // FIXME: what's 100,000 moves all about (if anything)?
-    if (c->saveGame->moves > 30000)
-        era = 0x0f;
-    else if (c->saveGame->moves > 20000)
-        era = 0x07;
-    else
-        era = 0x03;
-
-    randTile = xu4.config->creature(ORC_ID)->tile.getId();
-    randTile += era & xu4_random(0x10) & xu4_random(0x10);
-    return getByTile(randTile);
+    return getByTile(xu4.config->creature(baseId)->tile.getId() + rn);
 }
 
 
