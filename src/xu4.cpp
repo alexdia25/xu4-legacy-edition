@@ -13,6 +13,7 @@
 #include <ctime>
 #include "xu4.h"
 #include "config.h"
+#include "docs.h"
 #include "error.h"
 #include "game.h"
 #include "gamebrowser.h"
@@ -252,6 +253,9 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     /* initialize the settings */
     gs->settings = new Settings;
     gs->settings->init(opt->profile);
+
+    /* split the GOG release's ULTIMA4.TXT into separate documents */
+    docsExtract(gs->settings->getUserPath());
 
     /* update the settings based upon command-line arguments */
     if (opt->used & OPT_FULLSCREEN)
