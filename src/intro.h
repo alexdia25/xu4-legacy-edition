@@ -118,6 +118,7 @@ private:
     void drawMapStatic();
     void drawMapAnimated();
     void drawBeasties();
+    void drawMenuCursor();
     void drawBeastie(int beast, int vertoffset, int frame);
     void animateTree(ImageInfo* tree, Symbol frame);
     void drawCard(int card, int x, int y);
@@ -232,6 +233,7 @@ private:
     int beastieSub[2];
     bool beastiesVisible;
     int sleepCycles;
+    int menuSel;            // Console menu cursor on the main menu.
     int scrPos;  /* current position in the script table */
 #ifdef GPU_RENDER
     int mapScissor[4];

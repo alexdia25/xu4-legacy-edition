@@ -25,6 +25,8 @@ Controller::~Controller() {
  * to the virtual keyPressed method.
  */
 bool Controller::notifyKeyPressed(int key) {
+    if (key == U4_PAD_B && ! handlesPadB())
+        key = U4_ESC;
     bool processed = EventHandler::globalKeyHandler(key);
     if (!processed)
         processed = keyPressed(key);

@@ -32,6 +32,7 @@ public:
     virtual bool inputEvent(const InputEvent*);
     virtual void timerFired();
     virtual bool isCombatController() const { return false; }
+    virtual bool handlesPadB() const { return false; }
 
 protected:
     void setDeleteOnPop(bool enable = true) { autoDelete = enable; }

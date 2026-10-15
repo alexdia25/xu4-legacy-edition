@@ -921,6 +921,9 @@ bool CombatController::keyPressed(int key) {
     bool endTurn = true;
 
     switch (key) {
+    case U4_PAD_B:
+        return true;
+
     case U4_UP:
     case U4_DOWN:
     case U4_LEFT:
@@ -936,6 +939,31 @@ bool CombatController::keyPressed(int key) {
     case ' ':
         screenMessage("Pass\n");
         break;
+
+    case U4_ENTER:
+        if (EventHandler::smsMenus()) {
+            // Console style action menu for the current party member.
+            const char* items[7];
+            char keys[8];
+            int n = 0;
+            items[n] = "Attack";     keys[n++] = 'a';
+            items[n] = "Cast Spell"; keys[n++] = 'c';
+            items[n] = "Use Item";   keys[n++] = 'u';
+            items[n] = "Ready";      keys[n++] = 'r';
+            const Tile* tile = map->tileTypeAt(getCurrentPlayer()->coords,
+                                               WITH_GROUND_OBJECTS);
+            if (tile->isChest()) {
+                items[n] = "Get Chest"; keys[n++] = 'g';
+            }
+            items[n] = "Pass";       keys[n++] = ' ';
+            items[n] = "Ztats";      keys[n++] = 'z';
+            keys[n] = '\0';
+            int pick = EventHandler::chooseItem(items, n);
+            if (pick < 0)
+                return true;
+            return keyPressed(keys[pick]);
+        }
+        return EventHandler::defaultKeyHandler(key);
 
     case U4_FKEY:
         if (settings.debug)
