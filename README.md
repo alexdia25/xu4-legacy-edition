@@ -1,3 +1,40 @@
+XU4 Legacy Edition
+==================
+
+XU4 Legacy Edition is a fork of [XU4], the remake of Ultima IV that runs
+the original DOS game data on modern systems.  All credit for XU4 itself
+goes to the original XU4 team (see [AUTHORS](AUTHORS)).  Official XU4
+releases are on the [XU4 download page], and its development continues
+on [Codeberg].
+
+This fork aims to make Ultima IV smoother and easier to get into,
+especially for someone who has just downloaded the free release from
+[GOG].  Planned and in-progress work:
+
+ - **Controller support.**  A platform independent gamepad layer, with a
+   new SDL3 backend (`./configure --sdl3`).
+ - **Console style menus.**  An optional interface modelled on the Sega
+   Master System version: an action menu instead of one key per command,
+   conversation topics that are discovered and listed rather than typed,
+   and pickers for spells, items, numbers and words, so the whole game
+   can be played with a D-pad and two buttons.  Turn it on with
+   Configure > Enhanced Interface Options > Console (SMS) Menus.
+ - **Documents in the game.**  Bringing the out-of-game material (the
+   History of Britannia, the Book of Mystic Wisdom, the cloth map) into
+   the flow of play, so the game can be played without leaving XU4.
+ - **More platforms.**
+
+Like XU4, this fork needs the Ultima IV for DOS data files, which are
+freeware from [GOG].  No game data is stored in this repository.
+
+The original XU4 readme follows.
+
+[XU4]: https://xu4.sourceforge.net/
+[XU4 download page]: https://xu4.sourceforge.net/download.html
+[Codeberg]: https://codeberg.org/xU4/xu4
+[GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
+
+
 XU4
 ===
 
