@@ -830,7 +830,7 @@ void ListPickerController::draw() const {
         else if (i == rows - 1 && n < count - 1)
             more = 'v';
         screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%c%-*.*s%c",
-                     (n == sel) ? CHARSET_PROMPT : ' ',
+                     (n == sel) ? CHARSET_BULLET : ' ',
                      TEXT_AREA_W - 2, TEXT_AREA_W - 2,
                      (n < count) ? items[n] : "", more);
     }

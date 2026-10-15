@@ -105,12 +105,12 @@ static void talkHeard(SmsTalk* st, const char* text)
 static const char* smsFixedWord(const char* stub)
 {
     static const char* table[] = {
-        "ho e", "HO EYO",
-        "nowh", "NOWHERE",
-        "hide", "HIDING",
-        "pris", "PRISONER",
-        "beh.", "BEH...",
-        "sine", "SINNED",
+        "ho e", "Ho Eyo",
+        "nowh", "Nowhere",
+        "hide", "Hiding",
+        "pris", "Prisoner",
+        "beh.", "Beh...",
+        "sine", "Sinned",
         NULL
     };
     for (const char** it = table; *it; it += 2) {
@@ -120,7 +120,18 @@ static const char* smsFixedWord(const char* stub)
     return NULL;
 }
 
-// Find the first word in text starting with stub; return it upper-cased.
+// Capitalize each word to match the fixed menu items ("Name", "Job").
+static void titleCase(std::string& w)
+{
+    bool start = true;
+    for (size_t i = 0; i < w.size(); ++i) {
+        unsigned char c = w[i];
+        w[i] = start ? toupper(c) : tolower(c);
+        start = ! isalpha(c);
+    }
+}
+
+// Find the first word in text starting with stub; return it title-cased.
 static std::string findWord(const char* text, const char* stub)
 {
     size_t slen = strlen(stub);
@@ -132,7 +143,8 @@ static std::string findWord(const char* text, const char* stub)
             strncasecmp(cp, stub, slen) == 0) {
             std::string w;
             while (isalpha((unsigned char) *cp))
-                w += toupper((unsigned char) *cp++);
+                w += *cp++;
+            titleCase(w);
             return w;
         }
     }
@@ -149,8 +161,7 @@ static bool heardPrefix(const std::set<std::string>& words, const char* stub,
     if (it != words.end() && it->compare(0, s.size(), s) == 0) {
         if (found) {
             *found = *it;
-            for (size_t i = 0; i < found->size(); ++i)
-                (*found)[i] = toupper((unsigned char) (*found)[i]);
+            titleCase(*found);
         }
         return true;
     }
