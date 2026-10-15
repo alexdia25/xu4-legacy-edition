@@ -16,6 +16,20 @@ struct Gamepad {
 };
 
 static Gamepad pad;
+static bool padInUse = false;   // A gamepad has been used.
+
+static void sendPadKey(PadKeyFunc sendKey, int key) {
+    padInUse = true;
+    sendKey(key);
+}
+
+/*
+ * Return true once the gamepad has been used.  The console style menus are
+ * used from then on, whichever device is used after that.
+ */
+bool gamepad_inUse() {
+    return padInUse;
+}
 
 // Key sent when each button is pressed.
 static int buttonKey(int b) {
@@ -69,7 +83,7 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
         if (pressed & PAD_BIT(b)) {
             int key = buttonKey(b);
             if (key)
-                sendKey(key);
+                sendPadKey(sendKey, key);
             if (PAD_BIT(b) & DIR_MASK)
                 pad.repeatTime = msec + REPEAT_DELAY;
         }
@@ -81,7 +95,7 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
         pad.repeatTime = msec + REPEAT_RATE;
         for (int b = PAD_UP; b <= PAD_RIGHT; ++b) {
             if (dir & PAD_BIT(b)) {
-                sendKey(buttonKey(b));
+                sendPadKey(sendKey, buttonKey(b));
                 break;
             }
         }

@@ -17,7 +17,8 @@ especially for someone who has just downloaded the free release from
    Master System version: an action menu instead of one key per command,
    conversation topics that are discovered and listed rather than typed,
    and pickers for spells, items, numbers and words, so the whole game
-   can be played with a D-pad and two buttons.  Turn it on with
+   can be played with a D-pad and two buttons.  It switches on by itself
+   when a gamepad is used, or can be turned on for keyboard play with
    Configure > Enhanced Interface Options > Console (SMS) Menus.
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
