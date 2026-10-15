@@ -505,6 +505,11 @@ void itemUse(const char* shortname) {
     unsigned int i;
     const ItemLocation *item = NULL;
 
+    if (! shortname) {
+        screenMessage("None\n");
+        return;
+    }
+
     for (i = 0; i < N_ITEMS; i++) {
         if (items[i].shortname &&
             strcasecmp(items[i].shortname, shortname) == 0) {
@@ -531,6 +536,49 @@ void itemUse(const char* shortname) {
     /* item was not found */
     if (!item)
         screenMessage("\nNot a Usable item!\n");
+}
+
+/**
+ * Prompt for the name of an item to use.  With the console style menus
+ * the owned, usable items are picked from a list.
+ * Returns NULL if the menu was cancelled.
+ */
+const char* itemReadName() {
+    if (! EventHandler::smsMenus())
+        return gameGetInput();
+
+    static char label[N_ITEMS][8];
+    const char* names[N_ITEMS];
+    const char* labels[N_ITEMS];
+    int count = 0;
+
+    for (unsigned int i = 0; i < N_ITEMS; i++) {
+        const ItemLocation* it = &items[i];
+        if (! it->shortname || ! it->useItem || ! it->isItemInInventory)
+            continue;
+        // Use the generic stone & key entries, not each color.
+        if (it->useItem == &useStone && it->data != -1)
+            continue;
+        if (strcmp(it->shortname, "stones") == 0 ||
+            strcmp(it->shortname, "keys") == 0)
+            continue;
+        if (! (*it->isItemInInventory)(it->data))
+            continue;
+
+        snprintf(label[count], sizeof(label[0]), "%s", it->shortname);
+        label[count][0] = toupper(label[count][0]);
+        names[count] = it->shortname;
+        labels[count] = label[count];
+        ++count;
+    }
+
+    if (count == 0)
+        return "";      // Reports "Not a Usable item!"
+    int n = EventHandler::chooseItem(labels, count);
+    if (n < 0)
+        return NULL;
+    screenMessage("%s\n", labels[n]);
+    return names[n];
 }
 
 /**

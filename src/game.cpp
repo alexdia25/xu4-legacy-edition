@@ -1349,7 +1349,7 @@ bool GameController::keyPressed(int key) {
                 /* a little xu4 enhancement: show items in inventory when prompted for an item to use */
                 c->stats->setView(STATS_ITEMS);
             }
-            itemUse(gameGetInput());
+            itemUse(itemReadName());
             if (settings.enhancements)
                 c->stats->setView(STATS_PARTY_OVERVIEW);
             break;
@@ -1570,6 +1570,81 @@ const char* gameGetInput(int maxlen) {
     return EventHandler::readString(maxlen, NULL);
 }
 
+/*
+ * Console style (SMS) pickers used in place of typed letters and numbers.
+ */
+
+static int smsChoosePlayer() {
+    const char* names[8];
+    int count = c->saveGame->members;
+    for (int i = 0; i < count; ++i)
+        names[i] = c->saveGame->players[i].name;
+    return EventHandler::chooseItem(names, count);
+}
+
+/*
+ * Pick a spell.  If mixed is true then only spells with mixtures are listed.
+ * Returns the spell index, or -1 if cancelled or there are none.
+ */
+static int smsChooseSpell(bool mixed) {
+    const char* names[SPELL_MAX];
+    int index[SPELL_MAX];
+    int count = 0;
+    for (int i = 0; i < SPELL_MAX; ++i) {
+        if (mixed && c->saveGame->mixtures[i] < 1)
+            continue;
+        names[count] = spellGetName(i);
+        index[count++] = i;
+    }
+    if (count == 0) {
+        screenMessage("%cNone Mixed!%c\n", FG_GREY, FG_WHITE);
+        return -1;
+    }
+    int n = EventHandler::chooseItem(names, count);
+    return (n < 0) ? -1 : index[n];
+}
+
+// Pick an owned weapon (or hands).  Returns the weapon index or -1.
+static int smsChooseWeapon() {
+    const char* names[WEAP_MAX];
+    int index[WEAP_MAX];
+    int count = 0;
+    for (int i = 0; i < WEAP_MAX; ++i) {
+        const Weapon* w = xu4.config->weapon(i);
+        if (w && (i == WEAP_HANDS || c->saveGame->weapons[i] > 0)) {
+            names[count] = w->getName();
+            index[count++] = i;
+        }
+    }
+    int n = EventHandler::chooseItem(names, count);
+    return (n < 0) ? -1 : index[n];
+}
+
+// Pick an owned armour (or skin).  Returns the armour index or -1.
+static int smsChooseArmor() {
+    const char* names[ARMR_MAX];
+    int index[ARMR_MAX];
+    int count = 0;
+    for (int i = 0; i < ARMR_MAX; ++i) {
+        const Armor* a = xu4.config->armor(i);
+        if (a && (i == ARMR_NONE || c->saveGame->armor[i] > 0)) {
+            names[count] = a->getName();
+            index[count++] = i;
+        }
+    }
+    int n = EventHandler::chooseItem(names, count);
+    return (n < 0) ? -1 : index[n];
+}
+
+/*
+ * Pick from a list, returning the matching character of keys,
+ * or Escape if cancelled.
+ */
+static int smsChooseKey(const char* const* items, const char* keys) {
+    int n = EventHandler::chooseItem(items, strlen(keys));
+    return (n < 0) ? U4_ESC : keys[n];
+}
+
 int gameGetPlayer(bool canBeDisabled, bool canBeActivePlayer) {
     int player;
     if (c->saveGame->members <= 1)
@@ -1584,9 +1659,13 @@ int gameGetPlayer(bool canBeDisabled, bool canBeActivePlayer) {
         }
         else
         {
-            player = EventHandler::choosePlayer();
-            if (player >= 0)
-                c->col--;   // Will display the name in place of the number
+            if (EventHandler::smsMenus())
+                player = smsChoosePlayer();
+            else {
+                player = EventHandler::choosePlayer();
+                if (player >= 0)
+                    c->col--;   // Will display the name in place of the number
+            }
         }
 
         if (player == -1)
@@ -1862,7 +1941,8 @@ void castSpell(int player) {
     // get the spell to cast
     c->stats->setView(STATS_MIXTURES);
     screenMessage("Spell: ");
-    int spell = EventHandler::readAlphaAction('z', "Spell: ");
+    int spell = EventHandler::smsMenus() ? smsChooseSpell(true)
+                : EventHandler::readAlphaAction('z', "Spell: ");
     if (spell == -1)
         return;
 
@@ -1883,7 +1963,15 @@ void castSpell(int player) {
         break;
     case Spell::PARAM_PHASE: {
         screenMessage("To Phase: ");
-        int choice = EventHandler::readChoice("12345678 \033\n");
+        int choice;
+        if (EventHandler::smsMenus()) {
+            static const char* phases[8] = {
+                "Moonglow", "Britain", "Jhelom", "Yew",
+                "Minoc", "Trinsic", "Skara Brae", "Magincia"
+            };
+            choice = smsChooseKey(phases, "12345678");
+        } else
+            choice = EventHandler::readChoice("12345678 \033\n");
         if (choice < '1' || choice > '8')
             screenMessage("None\n");
         else {
@@ -1912,7 +2000,14 @@ void castSpell(int player) {
     case Spell::PARAM_TYPEDIR: {
         screenMessage("Energy type? ");
         EnergyFieldType fieldType = ENERGYFIELD_NONE;
-        char key = EventHandler::readChoice("flps \033\n\r");
+        char key;
+        if (EventHandler::smsMenus()) {
+            static const char* fields[4] = {
+                "Fire", "Lightning", "Poison", "Sleep"
+            };
+            key = smsChooseKey(fields, "flps");
+        } else
+            key = EventHandler::readChoice("flps \033\n\r");
         switch(key) {
         case 'f': fieldType = ENERGYFIELD_FIRE; break;
         case 'l': fieldType = ENERGYFIELD_LIGHTNING; break;
@@ -2596,7 +2691,8 @@ void readyWeapon(int player) {
     // get the weapon to use
     c->stats->setView(STATS_WEAPONS);
     screenMessage("Weapon: ");
-    int weapon = EventHandler::readAlphaAction(WEAP_MAX + 'a' - 1, "Weapon: ");
+    int weapon = EventHandler::smsMenus() ? smsChooseWeapon()
+        : EventHandler::readAlphaAction(WEAP_MAX + 'a' - 1, "Weapon: ");
     c->stats->setView(STATS_PARTY_OVERVIEW);
     if (weapon == -1)
         return;
@@ -2692,12 +2788,19 @@ static void mixReagents() {
             screenMessage("For Spell: ");
             c->stats->setView(STATS_MIXTURES);
 
-            int choice = EventHandler::readChoice("abcdefghijklmnopqrstuvwxyz \033\n\r");
-            if (choice == ' ' || choice == '\033' || choice == '\n' || choice == '\r')
-                break;
-
-            int spell = choice - 'a';
-            screenMessage("\b%s\n", spellGetName(spell));
+            int spell;
+            if (EventHandler::smsMenus()) {
+                spell = smsChooseSpell(false);
+                if (spell < 0)
+                    break;
+            } else {
+                int choice = EventHandler::readChoice("abcdefghijklmnopqrstuvwxyz \033\n\r");
+                if (choice == ' ' || choice == '\033' || choice == '\n' || choice == '\r')
+                    break;
+                spell = choice - 'a';
+                screenMessage("\b");
+            }
+            screenMessage("%s\n", spellGetName(spell));
 
             // ensure the mixtures for the spell isn't already maxed out
             if (c->saveGame->mixtures[spell] == 99) {
@@ -2711,7 +2814,10 @@ static void mixReagents() {
             c->stats->resetReagentsMenu();
 
             c->stats->setView(MIX_REAGENTS);
-            if (xu4.settings->enhancements && xu4.settings->enhancementsOptions.u5spellMixing)
+            // The Ultima V style reagent menu is used with the console
+            // menus as it needs no letter keys.
+            if ((xu4.settings->enhancements && xu4.settings->enhancementsOptions.u5spellMixing) ||
+                EventHandler::smsMenus())
                 done = mixReagentsForSpellU5(spell);
             else
                 done = mixReagentsForSpellU4(spell);
@@ -2932,7 +3038,8 @@ static void wearArmor(int player) {
 
     c->stats->setView(STATS_ARMOR);
     screenMessage("Armour: ");
-    int armor = EventHandler::readAlphaAction(ARMR_MAX + 'a' - 1, "Armour: ");
+    int armor = EventHandler::smsMenus() ? smsChooseArmor()
+        : EventHandler::readAlphaAction(ARMR_MAX + 'a' - 1, "Armour: ");
     c->stats->setView(STATS_PARTY_OVERVIEW);
     if (armor == -1)
         return;

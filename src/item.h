@@ -33,5 +33,6 @@ typedef void (*DestroyAllCreaturesCallback)(void);
 void itemSetDestroyAllCreaturesCallback(DestroyAllCreaturesCallback callback);
 const ItemLocation *itemAtLocation(const Map *map, const Coords &coords);
 void itemUse(const char* shortname);
+const char* itemReadName();
 
 #endif
