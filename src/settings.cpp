@@ -259,6 +259,7 @@ bool Settings::read() {
     enhancementsOptions.textColorization = false;
     enhancementsOptions.c64chestTraps    = true;
     enhancementsOptions.smartEnterKey    = true;
+    enhancementsOptions.smsInterface     = false;
     enhancementsOptions.peerShowsObjects = false;
     enhancementsOptions.u5combat         = false;
     enhancementsOptions.u4TileTransparencyHack = true;
@@ -363,6 +364,8 @@ bool Settings::read() {
             enhancementsOptions.c64chestTraps = toInt(val);
         else if (VALUE("smartEnterKey="))
             enhancementsOptions.smartEnterKey = toInt(val);
+        else if (VALUE("smsInterface="))
+            enhancementsOptions.smsInterface = toInt(val);
 
         /* major enhancement options */
         else if (VALUE("peerShowsObjects="))
@@ -476,6 +479,7 @@ bool Settings::write() {
             "textColorization=%d\n"
             "c64chestTraps=%d\n"
             "smartEnterKey=%d\n"
+            "smsInterface=%d\n"
             "peerShowsObjects=%d\n"
             "u5combat=%d\n"
             "innAlwaysCombat=%d\n"
@@ -495,6 +499,7 @@ bool Settings::write() {
             enhancementsOptions.textColorization,
             enhancementsOptions.c64chestTraps,
             enhancementsOptions.smartEnterKey,
+            enhancementsOptions.smsInterface,
             enhancementsOptions.peerShowsObjects,
             enhancementsOptions.u5combat,
             innAlwaysCombat,

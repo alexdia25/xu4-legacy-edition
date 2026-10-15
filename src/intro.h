@@ -195,6 +195,7 @@ private:
         MI_INTERFACE_04,
         MI_INTERFACE_05,
         MI_INTERFACE_06,
+        MI_INTERFACE_07,
         USE_SETTINGS = 0xFE,
         CANCEL = 0xFF
     };

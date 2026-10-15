@@ -3,6 +3,7 @@
  */
 
 #include <cstring>
+#include <vector>
 #include "context.h"
 #include "party.h"
 #include "u4.h"
@@ -286,8 +287,67 @@ static void lordBritishHeal(char answer) {
     }
 }
 
+/*
+ * SMS style topic menu for Lord British: all of his keywords are listed,
+ * shown as the full word found in his own text (or heard elsewhere).
+ * Return the input string the DOS logic expects; empty for Bye.
+ */
+static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
+                                          int* lastPick)
+{
+    static std::vector<std::string> words;
+    static std::vector<std::string> stubs;
+    std::vector<const char*> items;
+    const char* strings = lb->strings;
+
+    if (words.empty()) {
+        words.push_back("BYE");
+        stubs.push_back("bye");
+        for (int k = 0; k < LB_KEY_COUNT; ++k) {
+            const char* stub = strings + lb->keyword[k];
+            if (! stub[0])
+                continue;
+            std::string w;
+            for (int t = 0; t < LB_KEY_COUNT && w.empty(); ++t)
+                w = findWord(strings + lb->text[t], stub);
+            if (w.empty() && ! heardPrefix(talkHeardWords, stub, &w)) {
+                w = stub;
+                for (size_t i = 0; i < w.size(); ++i)
+                    w[i] = toupper((unsigned char) w[i]);
+            }
+            words.push_back(w);
+            stubs.push_back(stub);
+        }
+        words.push_back("HEALTH");
+        stubs.push_back("heal");
+        words.push_back("HELP");
+        stubs.push_back("help");
+    }
+
+    for (size_t i = 0; i < words.size(); ++i)
+        items.push_back(words[i].c_str());
+
+    int n = EventHandler::chooseItem(&items[0], items.size(), *lastPick);
+    if (n <= 0)
+        return std::string();
+    *lastPick = n;
+    screenMessage("%s\n", items[n]);
+    return stubs[n];
+}
+
+static char smsYesNo()
+{
+    static const char* yesNo[] = { "Yes", "No" };
+    int n;
+    while ((n = EventHandler::chooseItem(yesNo, 2)) < 0)
+        ;
+    screenMessage("%s\n", yesNo[n]);
+    return n ? 'n' : 'y';
+}
+
 static void runTalkLordBritish(const U4TalkLordBritish* lb)
 {
+    int lastPick = 1;
     std::string input;
     const char* in;
     const char* strings = lb->strings;
@@ -353,7 +413,8 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
     }
 
     while (xu4.stage == StagePlay) {
-        input = gameGetInput(16);
+        input = smsInterface() ? lordBritishChooseTopic(lb, &lastPick)
+                               : gameGetInput(16);
         screenCrLf();
         in = input.c_str();
         if (input.empty() || strncasecmp("bye", in, 3) == 0) {
@@ -380,7 +441,8 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
             soundSpeakLine(VOICE_LB, LINE_I_AM_WELL);
             message("\n\n\n\n\n\nHe says: I am\nwell, thank ye.\n"
                     "\nHe asks: Art thou well? ");
-            lordBritishHeal(EventHandler::readChoice("yn \n\033"));
+            lordBritishHeal(smsInterface() ? smsYesNo()
+                            : EventHandler::readChoice("yn \n\033"));
         } else {
             soundSpeakLine(VOICE_LB, LINE_CANNOT_HELP);
             message("\nHe says: I cannot help thee with that.\n");
@@ -399,6 +461,7 @@ static void runTalkHawkwind(const U4TalkHawkwind* hw)
     const char* in;
     int prompt = HW_PROMPT_FIRST;
     int v;
+    int hwPick = 1;
 
 #define HW_STRING(V)    strings + hw->text[V]
 
@@ -424,7 +487,20 @@ static void runTalkHawkwind(const U4TalkHawkwind* hw)
         soundSpeakLine(VOICE_HW, prompt);
         message(HW_STRING(prompt));
         prompt = HW_PROMPT;
-        input = gameGetInput(16);
+        if (smsInterface()) {
+            const char* items[VIRT_MAX + 1];
+            items[0] = "Bye";
+            for (v = 0; v < VIRT_MAX; v++)
+                items[v + 1] = getVirtueName((Virtue) v);
+            int n = EventHandler::chooseItem(items, VIRT_MAX + 1, hwPick);
+            if (n > 0) {
+                hwPick = n;
+                screenMessage("%s\n", items[n]);
+                input = items[n];
+            } else
+                input.clear();
+        } else
+            input = gameGetInput(16);
         in = input.c_str();
         if (input.empty() || strncasecmp("bye", in, 3) == 0 ) {
             soundSpeakLine(VOICE_HW, HW_FAREWELL);

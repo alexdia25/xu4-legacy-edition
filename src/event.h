@@ -147,6 +147,8 @@ public:
     static void waitAnyKeyTimeout();
     static bool wait_msecs(unsigned int msecs);
     static void ignoreInput();
+    static int  chooseItem(const char* const* items, int count,
+                           int start = 0, int maxRows = 8);
 
     /* Static functions */
     static bool timerQueueEmpty();
