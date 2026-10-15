@@ -152,6 +152,9 @@ public:
     static void ignoreInput();
     static int  chooseItem(const char* const* items, int count,
                            int start = 0, int maxRows = 8);
+    static bool smsMenus();
+    static int  chooseNumber(int maxValue);
+    static const char* readLetters(int maxlen);
 
     /* Static functions */
     static bool timerQueueEmpty();

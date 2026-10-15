@@ -13,6 +13,7 @@
 #include "context.h"
 #include "location.h"
 #include "savegame.h"
+#include "settings.h"
 #include "screen.h"
 #include "sound.h"
 #include "textview.h"
@@ -880,6 +881,196 @@ bool ListPickerController::keyPressed(int key) {
 //----------------------------------------------------------------------------
 
 /*
+ * A controller to pick a number with the direction keys.
+ * Up/Right add one, Down/Left subtract one, digits may also be typed.
+ */
+class NumberPickerController : public WaitableController<int> {
+public:
+    NumberPickerController(int maxValue, int x, int y)
+        : maxValue(maxValue), x(x), y(y), num(0) {
+        value = 0;
+    }
+
+    virtual bool keyPressed(int key);
+    void draw() const {
+        screenTextAt(x, y, "%c%d%c   ", '<', num, '>');
+    }
+
+private:
+    int maxValue;
+    int x, y;
+    int num;
+};
+
+bool NumberPickerController::keyPressed(int key) {
+    switch (key) {
+    case U4_UP:
+    case U4_RIGHT:
+        num = (num < maxValue) ? num + 1 : 0;
+        break;
+    case U4_DOWN:
+    case U4_LEFT:
+        num = (num > 0) ? num - 1 : maxValue;
+        break;
+    case U4_ENTER:
+    case U4_KEYPAD_ENTER:
+    case U4_SPACE:
+        value = num;
+        doneWaiting();
+        return true;
+    case U4_ESC:
+        value = 0;
+        doneWaiting();
+        return true;
+    case U4_BACKSPACE:
+        num /= 10;
+        break;
+    default:
+        if (key >= '0' && key <= '9') {
+            int n = num * 10 + key - '0';
+            num = (n <= maxValue) ? n : key - '0';
+        } else
+            return EventHandler::globalKeyHandler(key);
+        break;
+    }
+    draw();
+    return true;
+}
+
+//----------------------------------------------------------------------------
+
+/*
+ * A controller to enter text by picking letters from a grid, so that words
+ * (mantras, virtues, stone colors) can be entered with a gamepad.
+ * The direction keys move, Enter or Space picks a cell, Escape deletes the
+ * last letter (or cancels when there are none).  Typing on a keyboard
+ * still works; Enter then finishes the word.
+ */
+class LetterGridController : public WaitableController<int> {
+public:
+    LetterGridController(int maxlen, int textX, int textY, int line)
+        : maxlen(maxlen), textX(textX), textY(textY), line(line),
+          row(0), col(0), typed(false) {
+        value = 0;
+    }
+
+    virtual bool keyPressed(int key);
+    void draw() const;
+    void drawText() const;
+    const std::string& text() const { return buf; }
+
+    enum { COLS = 7, ROWS = 5 };
+    static int rowLength(int r) { return (r < 3) ? COLS : (r == 3) ? 5 : 3; }
+
+private:
+    void add(int ch) {
+        if ((int) buf.size() < maxlen)
+            buf += (char) ch;
+        else
+            soundInvalidInput();
+    }
+
+    std::string buf;
+    int maxlen;
+    int textX, textY;
+    int line;
+    int row, col;
+    bool typed;
+};
+
+static const char* gridSpecial[3] = { "Spc", "Del", "End" };
+
+void LetterGridController::draw() const {
+    char cell[TEXT_AREA_W + 1];
+    for (int r = 0; r < ROWS; ++r) {
+        memset(cell, ' ', TEXT_AREA_W);
+        cell[TEXT_AREA_W] = '\0';
+        int len = rowLength(r);
+        for (int i = 0; i < len; ++i) {
+            if (r < ROWS - 1) {
+                int x = i * 2;
+                if (r == row && i == col)
+                    cell[x] = CHARSET_BULLET;
+                cell[x + 1] = 'A' + r * COLS + i;
+            } else {
+                int x = i * 5;
+                if (r == row && i == col)
+                    cell[x] = CHARSET_BULLET;
+                memcpy(cell + x + 1, gridSpecial[i], 3);
+            }
+        }
+        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + r, "%s", cell);
+    }
+}
+
+void LetterGridController::drawText() const {
+    screenTextAt(textX, textY, "%s%c%*s", buf.c_str(), '_',
+                 maxlen - (int) buf.size(), "");
+}
+
+bool LetterGridController::keyPressed(int key) {
+    switch (key) {
+    case U4_UP:
+        row = (row > 0) ? row - 1 : ROWS - 1;
+        break;
+    case U4_DOWN:
+        row = (row < ROWS - 1) ? row + 1 : 0;
+        break;
+    case U4_LEFT:
+        col = (col > 0) ? col - 1 : rowLength(row) - 1;
+        break;
+    case U4_RIGHT:
+        col = (col < rowLength(row) - 1) ? col + 1 : 0;
+        break;
+    case U4_ENTER:
+    case U4_KEYPAD_ENTER:
+    case U4_SPACE:
+        if (typed && key != U4_SPACE) {
+            doneWaiting();
+            return true;
+        }
+        if (row < ROWS - 1)
+            add('a' + row * COLS + col);
+        else if (col == 0)
+            add(' ');
+        else if (col == 1) {
+            if (! buf.empty())
+                buf.erase(buf.size() - 1);
+        } else {
+            doneWaiting();
+            return true;
+        }
+        break;
+    case U4_ESC:
+        if (buf.empty()) {
+            value = -1;
+            doneWaiting();
+            return true;
+        }
+        buf.erase(buf.size() - 1);
+        break;
+    case U4_BACKSPACE:
+        if (! buf.empty())
+            buf.erase(buf.size() - 1);
+        break;
+    default:
+        if (key < 0x80 && isalpha(key)) {
+            add(tolower(key));
+            typed = true;
+        } else
+            return EventHandler::globalKeyHandler(key);
+        break;
+    }
+    if (col >= rowLength(row))
+        col = rowLength(row) - 1;
+    draw();
+    drawText();
+    return true;
+}
+
+//----------------------------------------------------------------------------
+
+/*
  * A controller that ignores keypresses
  */
 class IgnoreKeysController : public Controller {
@@ -982,6 +1173,12 @@ int EventHandler::readAlphaAction(char lastValidLetter, const char* prompt)
  */
 char EventHandler::readChoice(const char* choices)
 {
+    if (smsMenus() && strchr(choices, 'y') && strchr(choices, 'n')) {
+        static const char* yesNo[2] = { "Yes", "No" };
+        int n = chooseItem(yesNo, 2);
+        return (n < 0) ? U4_ESC : "yn"[n];
+    }
+
     ReadChoiceController ctrl(choices);
     xu4.eventHandler->pushController(&ctrl);
     return ctrl.waitFor();
@@ -1003,6 +1200,13 @@ Direction EventHandler::readDir()
  */
 int EventHandler::readInt(int maxlen)
 {
+    if (smsMenus()) {
+        int maxValue = 9;
+        while (--maxlen > 0)
+            maxValue = maxValue * 10 + 9;
+        return chooseNumber(maxValue);
+    }
+
     ReadStringController ctrl(maxlen, TEXT_AREA_X + c->col,
                                       TEXT_AREA_Y + c->line,
                               NULL, "0123456789 \n\r\010");
@@ -1018,6 +1222,8 @@ int EventHandler::readInt(int maxlen)
 const char* EventHandler::readString(int maxlen, const char *extraChars)
 {
     assert(size_t(maxlen) < sizeof(xu4.eventHandler->readStringBuf));
+    if (smsMenus())
+        return readLetters(maxlen);
     ReadStringController ctrl(maxlen, TEXT_AREA_X + c->col,
                                       TEXT_AREA_Y + c->line);
     if (extraChars)
@@ -1111,6 +1317,75 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
     c->col = 0;
     screenShowCursor(cursor);
     return n;
+}
+
+/*
+ * Return true if the console (SMS) style menus are enabled.
+ */
+bool EventHandler::smsMenus()
+{
+    return xu4.settings->enhancementsOptions.smsInterface;
+}
+
+/*
+ * Pick a number from 0 to maxValue at the text cursor.
+ * Returns 0 if cancelled.
+ */
+int EventHandler::chooseNumber(int maxValue)
+{
+    bool cursor = screenState()->cursorVisible;
+    screenHideCursor();
+
+    NumberPickerController ctrl(maxValue, TEXT_AREA_X + c->col,
+                                TEXT_AREA_Y + c->line);
+    ctrl.draw();
+    xu4.eventHandler->pushController(&ctrl);
+    int n = ctrl.waitFor();
+
+    screenTextAt(TEXT_AREA_X + c->col, TEXT_AREA_Y + c->line, "%d%*s",
+                 n, 5, "");
+    c->col += snprintf(NULL, 0, "%d", n);
+    screenShowCursor(cursor);
+    return n;
+}
+
+/*
+ * Read a word by picking letters from a grid drawn in the message area.
+ * The word is shown on its own line.  Returns an empty string if cancelled.
+ */
+const char* EventHandler::readLetters(int maxlen)
+{
+    const int rows = LetterGridController::ROWS;
+    if (maxlen > TEXT_AREA_W - 1)
+        maxlen = TEXT_AREA_W - 1;
+
+    // Reserve a line for the word and the grid lines.
+    for (int i = 0; i <= rows; ++i)
+        screenCrLf();
+    int line = c->line - rows;
+
+    bool cursor = screenState()->cursorVisible;
+    screenHideCursor();
+
+    LetterGridController ctrl(maxlen, TEXT_AREA_X, TEXT_AREA_Y + line - 1,
+                              line);
+    ctrl.draw();
+    ctrl.drawText();
+    xu4.eventHandler->pushController(&ctrl);
+    int status = ctrl.waitFor();
+
+    char* buf = xu4.eventHandler->readStringBuf;
+    strcpy(buf, (status < 0) ? "" : ctrl.text().c_str());
+
+    for (int i = 0; i < rows; ++i)
+        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%*s",
+                     TEXT_AREA_W, "");
+    screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line - 1, "%-*s",
+                 TEXT_AREA_W, buf);
+    c->line = line - 1;
+    c->col = strlen(buf);
+    screenShowCursor(cursor);
+    return buf;
 }
 
 /*

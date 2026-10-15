@@ -1053,7 +1053,7 @@ bool CombatController::keyPressed(int key) {
     case 'u':
         screenMessage("Use which item:\n");
         c->stats->setView(STATS_ITEMS);
-        itemUse(gameGetInput());
+        itemUse(itemReadName());
         break;
 
     case 'v':
