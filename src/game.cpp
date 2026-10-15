@@ -1577,14 +1577,6 @@ const char* gameGetInput(int maxlen) {
  * Console style (SMS) pickers used in place of typed letters and numbers.
  */
 
-static int smsChoosePlayer() {
-    const char* names[8];
-    int count = c->saveGame->members;
-    for (int i = 0; i < count; ++i)
-        names[i] = c->saveGame->players[i].name;
-    return EventHandler::chooseItem(names, count);
-}
-
 /*
  * Pick a spell.  If mixed is true then only spells with mixtures are listed.
  * Returns the spell index, or -1 if cancelled or there are none.
@@ -1662,13 +1654,9 @@ int gameGetPlayer(bool canBeDisabled, bool canBeActivePlayer) {
         }
         else
         {
-            if (EventHandler::smsMenus())
-                player = smsChoosePlayer();
-            else {
-                player = EventHandler::choosePlayer();
-                if (player >= 0)
-                    c->col--;   // Will display the name in place of the number
-            }
+            player = EventHandler::choosePlayer();
+            if (player >= 0 && ! EventHandler::smsMenus())
+                c->col--;   // Will display the name in place of the number
         }
 
         if (player == -1)
