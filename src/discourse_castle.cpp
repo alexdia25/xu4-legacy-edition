@@ -301,7 +301,7 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
     const char* strings = lb->strings;
 
     if (words.empty()) {
-        words.push_back("BYE");
+        words.push_back("Bye");
         stubs.push_back("bye");
         for (int k = 0; k < LB_KEY_COUNT; ++k) {
             const char* stub = strings + lb->keyword[k];
@@ -312,15 +312,14 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
                 w = findWord(strings + lb->text[t], stub);
             if (w.empty() && ! heardPrefix(talkHeardWords, stub, &w)) {
                 w = stub;
-                for (size_t i = 0; i < w.size(); ++i)
-                    w[i] = toupper((unsigned char) w[i]);
+                titleCase(w);
             }
             words.push_back(w);
             stubs.push_back(stub);
         }
-        words.push_back("HEALTH");
+        words.push_back("Health");
         stubs.push_back("heal");
-        words.push_back("HELP");
+        words.push_back("Help");
         stubs.push_back("help");
     }
 
