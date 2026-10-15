@@ -362,6 +362,7 @@ bool IntroController::init() {
     beastie2Cycle = 0;
 
     sleepCycles = 0;
+    menuSel = 1;
     scrPos = 0;
 #ifndef GPU_RENDER
     objectStateTable = new IntroObjectState[IntroBinData::INTRO_BASETILE_TABLE_SIZE];
@@ -432,6 +433,23 @@ bool IntroController::keyPressed(int key) {
         break;
 
     case INTRO_MENU:
+        if (EventHandler::smsMenus()) {
+            static const char menuKey[] = "rjica";
+            switch (key) {
+            case U4_UP:
+                menuSel = (menuSel > 0) ? menuSel - 1 : 4;
+                drawMenuCursor();
+                return true;
+            case U4_DOWN:
+                menuSel = (menuSel < 4) ? menuSel + 1 : 0;
+                drawMenuCursor();
+                return true;
+            case U4_ENTER:
+            case U4_SPACE:
+                key = menuKey[menuSel];
+                break;
+            }
+        }
         switch (key) {
         case 'i':
             initiateNewGame();
@@ -507,6 +525,16 @@ bool IntroController::inputEvent(const InputEvent* ev) {
         }
     }
     return true;
+}
+
+/**
+ * Draws the console style cursor beside the main menu items.
+ */
+void IntroController::drawMenuCursor() {
+    if (! EventHandler::smsMenus())
+        return;
+    for (int i = 0; i < 5; ++i)
+        menuArea.textAtFmt(8, 5 + i, "%c", (i == menuSel) ? CHARSET_BULLET : ' ');
 }
 
 /**
@@ -792,6 +820,7 @@ void IntroController::updateScreen() {
         menuArea.textAtKey(10, 7, "Initiate New Game", 0);
         menuArea.textAtKey(10, 8, "Configure", 0);
         menuArea.textAtKey(10, 9, "About", 0);
+        drawMenuCursor();
         drawBeasties();
 
         // draw the cursor last
@@ -844,7 +873,12 @@ void IntroController::initiateNewGame() {
     drawBeasties();
 
     SexType sex;
-    int sexChoice = EventHandler::readChoice("mf");
+    int sexChoice;
+    if (EventHandler::smsMenus()) {
+        static const char* sexes[2] = { "Male", "Female" };
+        sexChoice = EventHandler::chooseInline(&menuArea, sexes, 2) ? 'f' : 'm';
+    } else
+        sexChoice = EventHandler::readChoice("mf");
     if (sexChoice == 'm')
         sex = SEX_MALE;
     else
@@ -1060,7 +1094,12 @@ void IntroController::startQuestions() {
         showText(getQuestion(questionTree[i1], questionTree[i2]));
 
         // wait for an answer
-        int choice = EventHandler::readChoice("ab");
+        int choice;
+        if (EventHandler::smsMenus()) {
+            static const char* ab[2] = { "A", "B" };
+            choice = EventHandler::chooseInline(&questionArea, ab, 2) ? 'b' : 'a';
+        } else
+            choice = EventHandler::readChoice("ab");
 
         // update the question tree
         if (doQuestion(choice == 'a' ? 0 : 1))

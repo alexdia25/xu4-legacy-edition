@@ -995,6 +995,9 @@ bool GameController::keyPressed(int key) {
     bool valid = true;
     int endTurn = 1;
 
+    if (key == U4_PAD_B)
+        return true;
+
     /* Translate context-sensitive action key into a useful command */
     if (key == U4_ENTER) {
         if (settings.enhancementsOptions.smsInterface) {

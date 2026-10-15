@@ -941,39 +941,56 @@ bool NumberPickerController::keyPressed(int key) {
 
 /*
  * A controller to enter text by picking letters from a grid, so that words
- * (mantras, virtues, stone colors) can be entered with a gamepad.
+ * (names, mantras, virtues, stone colors) can be entered with a gamepad.
  * The direction keys move, Enter or Space picks a cell, Escape deletes the
  * last letter (or cancels when there are none).  Typing on a keyboard
  * still works; Enter then finishes the word.
+ *
+ * The grid is drawn in a TextView, or the message area if view is NULL.
  */
 class LetterGridController : public WaitableController<int> {
 public:
-    LetterGridController(int maxlen, int textX, int textY, int line)
-        : maxlen(maxlen), textX(textX), textY(textY), line(line),
+    LetterGridController(int maxlen, int cols, TextView* view,
+                         int textX, int textY, int gridX, int gridY)
+        : maxlen(maxlen), cols(cols), view(view),
+          textX(textX), textY(textY), gridX(gridX), gridY(gridY),
           row(0), col(0), typed(false) {
         value = 0;
+        rows = (26 + cols - 1) / cols + 1;
     }
 
     virtual bool keyPressed(int key);
     void draw() const;
     void drawText() const;
+    void clear() const;
     const std::string& text() const { return buf; }
 
-    enum { COLS = 7, ROWS = 5 };
-    static int rowLength(int r) { return (r < 3) ? COLS : (r == 3) ? 5 : 3; }
-
 private:
+    int rowLength(int r) const {
+        if (r == rows - 1)
+            return 3;
+        int left = 26 - r * cols;
+        return (left < cols) ? left : cols;
+    }
     void add(int ch) {
         if ((int) buf.size() < maxlen)
             buf += (char) ch;
         else
             soundInvalidInput();
     }
+    void textAt(int x, int y, const char* text) const {
+        if (view)
+            view->textAt(x, y, text);
+        else
+            screenTextAt(TEXT_AREA_X + x, TEXT_AREA_Y + y, "%s", text);
+    }
 
     std::string buf;
     int maxlen;
+    int cols, rows;
+    TextView* view;
     int textX, textY;
-    int line;
+    int gridX, gridY;
     int row, col;
     bool typed;
 };
@@ -981,17 +998,18 @@ private:
 static const char* gridSpecial[3] = { "Spc", "Del", "End" };
 
 void LetterGridController::draw() const {
-    char cell[TEXT_AREA_W + 1];
-    for (int r = 0; r < ROWS; ++r) {
-        memset(cell, ' ', TEXT_AREA_W);
-        cell[TEXT_AREA_W] = '\0';
+    char cell[40];
+    int width = cols * 2;
+    for (int r = 0; r < rows; ++r) {
+        memset(cell, ' ', width);
+        cell[width] = '\0';
         int len = rowLength(r);
         for (int i = 0; i < len; ++i) {
-            if (r < ROWS - 1) {
+            if (r < rows - 1) {
                 int x = i * 2;
                 if (r == row && i == col)
                     cell[x] = CHARSET_BULLET;
-                cell[x + 1] = 'A' + r * COLS + i;
+                cell[x + 1] = 'A' + r * cols + i;
             } else {
                 int x = i * 5;
                 if (r == row && i == col)
@@ -999,22 +1017,33 @@ void LetterGridController::draw() const {
                 memcpy(cell + x + 1, gridSpecial[i], 3);
             }
         }
-        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + r, "%s", cell);
+        textAt(gridX, gridY + r, cell);
     }
 }
 
 void LetterGridController::drawText() const {
-    screenTextAt(textX, textY, "%s%c%*s", buf.c_str(), '_',
-                 maxlen - (int) buf.size(), "");
+    char line[40];
+    snprintf(line, sizeof(line), "%s_%*s", buf.c_str(),
+             maxlen - (int) buf.size(), "");
+    textAt(textX, textY, line);
+}
+
+void LetterGridController::clear() const {
+    char line[40];
+    int width = cols * 2;
+    memset(line, ' ', width);
+    line[width] = '\0';
+    for (int r = 0; r < rows; ++r)
+        textAt(gridX, gridY + r, line);
 }
 
 bool LetterGridController::keyPressed(int key) {
     switch (key) {
     case U4_UP:
-        row = (row > 0) ? row - 1 : ROWS - 1;
+        row = (row > 0) ? row - 1 : rows - 1;
         break;
     case U4_DOWN:
-        row = (row < ROWS - 1) ? row + 1 : 0;
+        row = (row < rows - 1) ? row + 1 : 0;
         break;
     case U4_LEFT:
         col = (col > 0) ? col - 1 : rowLength(row) - 1;
@@ -1029,8 +1058,8 @@ bool LetterGridController::keyPressed(int key) {
             doneWaiting();
             return true;
         }
-        if (row < ROWS - 1)
-            add('a' + row * COLS + col);
+        if (row < rows - 1)
+            add('a' + row * cols + col);
         else if (col == 0)
             add(' ');
         else if (col == 1) {
@@ -1067,6 +1096,78 @@ bool LetterGridController::keyPressed(int key) {
     drawText();
     return true;
 }
+
+//----------------------------------------------------------------------------
+
+/*
+ * A controller to pick one of a few short items shown in place at the
+ * cursor of a TextView.  The direction keys cycle, Enter or Space picks,
+ * and typing the first letter of an item picks it directly.
+ */
+class InlineChoiceController : public WaitableController<int> {
+public:
+    InlineChoiceController(TextView* view, const char* const* items,
+                           int count)
+        : view(view), items(items), count(count), sel(0) {
+        x = view->cursorX();
+        y = view->cursorY();
+        width = 0;
+        for (int i = 0; i < count; ++i) {
+            int len = strlen(items[i]);
+            if (len > width)
+                width = len;
+        }
+        value = 0;
+    }
+
+    virtual bool keyPressed(int key) {
+        switch (key) {
+        case U4_UP:
+        case U4_LEFT:
+            sel = (sel > 0) ? sel - 1 : count - 1;
+            break;
+        case U4_DOWN:
+        case U4_RIGHT:
+            sel = (sel < count - 1) ? sel + 1 : 0;
+            break;
+        case U4_ENTER:
+        case U4_KEYPAD_ENTER:
+        case U4_SPACE:
+            value = sel;
+            doneWaiting();
+            return true;
+        default:
+            if (key < 0x80 && isalpha(key)) {
+                for (int i = 0; i < count; ++i) {
+                    if (tolower(items[i][0]) == tolower(key)) {
+                        sel = value = i;
+                        draw();
+                        doneWaiting();
+                        return true;
+                    }
+                }
+            }
+            return EventHandler::globalKeyHandler(key);
+        }
+        draw();
+        return true;
+    }
+
+    void draw() const {
+        view->textAtFmt(x, y, "%c%-*s", CHARSET_BULLET, width, items[sel]);
+    }
+
+    void drawChoice() const {
+        view->textAtFmt(x, y, "%-*s", width + 1, items[value]);
+    }
+
+private:
+    TextView* view;
+    const char* const* items;
+    int count;
+    int sel;
+    int x, y, width;
+};
 
 //----------------------------------------------------------------------------
 
@@ -1243,6 +1344,26 @@ const char* EventHandler::readString(int maxlen, const char *extraChars)
 const char* EventHandler::readStringView(int maxlen, TextView *view,
                                          const char* extraChars) {
     assert(size_t(maxlen) < sizeof(xu4.eventHandler->readStringBuf));
+    if (smsMenus()) {
+        // Letter grid on the lines below the cursor.
+        int x = view->cursorX();
+        int y = view->cursorY();
+        view->hideCursor();
+        LetterGridController ctrl(maxlen, 13, view, x, y,
+                                  (view->columns() - 26) / 2, y + 1);
+        ctrl.draw();
+        ctrl.drawText();
+        xu4.eventHandler->pushController(&ctrl);
+        int status = ctrl.waitFor();
+        ctrl.clear();
+
+        char* buf = xu4.eventHandler->readStringBuf;
+        strcpy(buf, (status < 0) ? "" : ctrl.text().c_str());
+        view->textAtFmt(x, y, "%-*s", maxlen + 1, buf);
+        view->setCursorPos(x + strlen(buf), y);
+        view->showCursor();
+        return buf;
+    }
     ReadStringController ctrl(maxlen, view->cursorX(), view->cursorY(),
                               view);
     if (extraChars)
@@ -1328,6 +1449,22 @@ bool EventHandler::smsMenus()
 }
 
 /*
+ * Pick one of a few short items at the cursor of a TextView.
+ * Returns the item index.
+ */
+int EventHandler::chooseInline(TextView* view, const char* const* items,
+                               int count)
+{
+    view->hideCursor();
+    InlineChoiceController ctrl(view, items, count);
+    ctrl.draw();
+    xu4.eventHandler->pushController(&ctrl);
+    int n = ctrl.waitFor();
+    ctrl.drawChoice();
+    return n;
+}
+
+/*
  * Pick a number from 0 to maxValue at the text cursor.
  * Returns 0 if cancelled.
  */
@@ -1355,20 +1492,21 @@ int EventHandler::chooseNumber(int maxValue)
  */
 const char* EventHandler::readLetters(int maxlen)
 {
-    const int rows = LetterGridController::ROWS;
     if (maxlen > TEXT_AREA_W - 1)
         maxlen = TEXT_AREA_W - 1;
+
+    const int cols = 7;
+    const int rows = (26 + cols - 1) / cols + 1;
 
     // Reserve a line for the word and the grid lines.
     for (int i = 0; i <= rows; ++i)
         screenCrLf();
     int line = c->line - rows;
+    LetterGridController ctrl(maxlen, cols, NULL, 0, line - 1, 0, line);
 
     bool cursor = screenState()->cursorVisible;
     screenHideCursor();
 
-    LetterGridController ctrl(maxlen, TEXT_AREA_X, TEXT_AREA_Y + line - 1,
-                              line);
     ctrl.draw();
     ctrl.drawText();
     xu4.eventHandler->pushController(&ctrl);
@@ -1377,9 +1515,7 @@ const char* EventHandler::readLetters(int maxlen)
     char* buf = xu4.eventHandler->readStringBuf;
     strcpy(buf, (status < 0) ? "" : ctrl.text().c_str());
 
-    for (int i = 0; i < rows; ++i)
-        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%*s",
-                     TEXT_AREA_W, "");
+    ctrl.clear();
     screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line - 1, "%-*s",
                  TEXT_AREA_W, buf);
     c->line = line - 1;

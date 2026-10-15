@@ -41,6 +41,9 @@ public:
 class TurnController : public Controller {
 public:
     TurnController(short timerInterval) : Controller(timerInterval) {}
+    // Gamepad B does nothing on the map or in combat, rather than opening
+    // the game menu as Escape does.
+    virtual bool handlesPadB() const { return true; }
     virtual void finishTurn() = 0;
 };
 

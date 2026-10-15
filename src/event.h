@@ -38,6 +38,7 @@
 
 // Gamepad buttons which have no keyboard equivalent.
 #define U4_PAD_START    0x1F0
+#define U4_PAD_B        0x1F1   // Escape, except on the map or in combat.
 
 enum InputEventType {
     IE_MOUSE_MOVE,
@@ -155,6 +156,8 @@ public:
     static bool smsMenus();
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
+    static int  chooseInline(TextView* view, const char* const* items,
+                             int count);
 
     /* Static functions */
     static bool timerQueueEmpty();
