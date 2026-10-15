@@ -804,6 +804,188 @@ void gameBadCommand() {
     screenMessage("%cBad command%c\n", FG_GREY, FG_WHITE);
 }
 
+/*
+ * Guess from the character's surroundings etc, what action is wanted.
+ */
+static int smartEnterKey() {
+    int key = U4_ENTER;
+
+    /* Attempt to guess based on the character's surroundings etc, what
+       action they want */
+
+    /* Do they want to board something? */
+    if (c->transportContext == TRANSPORT_FOOT) {
+        const Object* obj =
+                    c->location->map->objectAt(c->location->coords);
+        if (obj) {
+            const Tile* tile = obj->tile.getTileType();
+            if (tile->isShip() ||
+                tile->isHorse() ||
+                tile->isBalloon())
+            key = 'b';
+        }
+    }
+    /* Klimb/Descend Balloon */
+    else if (c->transportContext == TRANSPORT_BALLOON) {
+        if (c->party->isFlying())
+            key = 'd';
+        else {
+            key = 'k';
+        }
+    }
+    /* X-it transport */
+    else key = 'x';
+
+    /* Klimb? */
+    if ((c->location->map->portalAt(c->location->coords, ACTION_KLIMB) != NULL))
+        key = 'k';
+    /* Descend? */
+    else if ((c->location->map->portalAt(c->location->coords, ACTION_DESCEND) != NULL))
+        key = 'd';
+
+    if (c->location->context == CTX_DUNGEON) {
+        Dungeon *dungeon = static_cast<Dungeon *>(c->location->map);
+        bool up = dungeon->ladderUpAt(c->location->coords);
+        bool down = dungeon->ladderDownAt(c->location->coords);
+        if (up && down) {
+            key = 'k'; // This is consistent with the previous code. Ideally, I would have a UI here as well.
+        } else if (up) {
+            key = 'k';
+        } else {
+            key = 'd';
+        }
+    }
+
+    /* Enter? */
+    if (c->location->map->portalAt(c->location->coords, ACTION_ENTER) != NULL)
+        key = 'e';
+
+    /* Get Chest? */
+    if (!c->party->isFlying()) {
+        const Tile* tile;
+        tile = c->location->map->tileTypeAt(c->location->coords, WITH_GROUND_OBJECTS);
+        if (tile->isChest())
+            key = 'g';
+    }
+
+    /* None of these? Default to search */
+    return (key == U4_ENTER) ? 's' : key;
+}
+
+/*
+ * The SMS style action menu.  The guessed action comes first, followed by
+ * the other commands which make sense here.  Returns the command key, or
+ * -1 if the menu was cancelled.
+ */
+static int smsActionMenu() {
+    struct Action {
+        int key;
+        const char* name;
+    };
+    static const Action actions[] = {
+        {'t', "Talk"},      {'s', "Search"},    {'g', "Get Chest"},
+        {'o', "Open Door"}, {'j', "Jimmy Lock"},{'c', "Cast Spell"},
+        {'u', "Use Item"},  {'r', "Ready"},     {'w', "Wear"},
+        {'a', "Attack"},    {'f', "Fire"},      {'b', "Board"},
+        {'x', "Exit Craft"},{'k', "Klimb"},     {'d', "Descend"},
+        {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
+        {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
+        {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
+        {'q', "Save Game"}
+    };
+    const int count = sizeof(actions) / sizeof(Action);
+    const SaveGame* sg = c->saveGame;
+    LocationContext ctx = c->location->context;
+    bool dungeon = (ctx == CTX_DUNGEON);
+    bool foot = (c->transportContext == TRANSPORT_FOOT);
+    int guess = smartEnterKey();
+    bool ladderUp = false, ladderDown = false;
+    if (dungeon) {
+        Dungeon* dng = static_cast<Dungeon *>(c->location->map);
+        ladderUp = dng->ladderUpAt(c->location->coords);
+        ladderDown = dng->ladderDownAt(c->location->coords);
+        if ((guess == 'k' && ! ladderUp) || (guess == 'd' && ! ladderDown))
+            guess = 's';
+    }
+    const char* items[count];
+    int keys[count];
+    int n = 0;
+
+    for (int pass = 0; pass < 2; ++pass) {
+        for (int i = 0; i < count; ++i) {
+            int k = actions[i].key;
+            if (pass == 0) {
+                if (k != guess)
+                    continue;
+            } else {
+                if (k == guess)
+                    continue;
+                bool show;
+                switch (k) {
+                case 't': case 'o': case 'j': case 'a':
+                    show = ! dungeon;
+                    break;
+                case 'g':
+                    show = false;   // Only offered when standing on a chest.
+                    break;
+                case 'f':
+                    show = (c->transportContext == TRANSPORT_SHIP);
+                    break;
+                case 'b':
+                    show = foot && ! dungeon;
+                    break;
+                case 'x':
+                    show = ! foot;
+                    break;
+                case 'k':
+                    show = ladderUp || c->transportContext == TRANSPORT_BALLOON;
+                    break;
+                case 'd':
+                    show = ladderDown || c->transportContext == TRANSPORT_BALLOON;
+                    break;
+                case 'e':
+                    show = false;   // Only offered at an entrance.
+                    break;
+                case 'i':
+                    show = dungeon;
+                    break;
+                case 'p':
+                    show = (sg->gems > 0);
+                    break;
+                case 'l':
+                    show = (sg->sextants > 0) && ! dungeon;
+                    break;
+                case 'n':
+                    show = (c->party->size() > 1);
+                    break;
+                case 'y':
+                    show = (c->transportContext == TRANSPORT_HORSE);
+                    break;
+                case 'q':
+                    show = (ctx & CTX_CAN_SAVE_GAME) != 0;
+                    break;
+                default:
+                    show = true;
+                    break;
+                }
+                if (! show)
+                    continue;
+            }
+            const char* name = actions[i].name;
+            if (k == 'd' && c->transportContext == TRANSPORT_BALLOON)
+                name = "Land";
+            else if (k == 'k' && c->transportContext == TRANSPORT_BALLOON)
+                name = "Ascend";
+            items[n] = name;
+            keys[n] = k;
+            ++n;
+        }
+    }
+
+    int pick = EventHandler::chooseItem(items, n);
+    return (pick < 0) ? -1 : keys[pick];
+}
+
 /**
  * The main key handler for the game.  Interpretes each key as a
  * command - 'a' for attack, 't' for talk, etc.
@@ -814,67 +996,14 @@ bool GameController::keyPressed(int key) {
     int endTurn = 1;
 
     /* Translate context-sensitive action key into a useful command */
-    if (key == U4_ENTER && settings.enhancements && settings.enhancementsOptions.smartEnterKey) {
-        /* Attempt to guess based on the character's surroundings etc, what
-           action they want */
-
-        /* Do they want to board something? */
-        if (c->transportContext == TRANSPORT_FOOT) {
-            const Object* obj =
-                        c->location->map->objectAt(c->location->coords);
-            if (obj) {
-                const Tile* tile = obj->tile.getTileType();
-                if (tile->isShip() ||
-                    tile->isHorse() ||
-                    tile->isBalloon())
-                key = 'b';
-            }
-        }
-        /* Klimb/Descend Balloon */
-        else if (c->transportContext == TRANSPORT_BALLOON) {
-            if (c->party->isFlying())
-                key = 'd';
-            else {
-                key = 'k';
-            }
-        }
-        /* X-it transport */
-        else key = 'x';
-
-        /* Klimb? */
-        if ((c->location->map->portalAt(c->location->coords, ACTION_KLIMB) != NULL))
-            key = 'k';
-        /* Descend? */
-        else if ((c->location->map->portalAt(c->location->coords, ACTION_DESCEND) != NULL))
-            key = 'd';
-
-        if (c->location->context == CTX_DUNGEON) {
-            Dungeon *dungeon = static_cast<Dungeon *>(c->location->map);
-            bool up = dungeon->ladderUpAt(c->location->coords);
-            bool down = dungeon->ladderDownAt(c->location->coords);
-            if (up && down) {
-                key = 'k'; // This is consistent with the previous code. Ideally, I would have a UI here as well.
-            } else if (up) {
-                key = 'k';
-            } else {
-                key = 'd';
-            }
-        }
-
-        /* Enter? */
-        if (c->location->map->portalAt(c->location->coords, ACTION_ENTER) != NULL)
-            key = 'e';
-
-        /* Get Chest? */
-        if (!c->party->isFlying()) {
-            const Tile* tile;
-            tile = c->location->map->tileTypeAt(c->location->coords, WITH_GROUND_OBJECTS);
-            if (tile->isChest())
-                key = 'g';
-        }
-
-        /* None of these? Default to search */
-        if (key == U4_ENTER) key = 's';
+    if (key == U4_ENTER) {
+        if (settings.enhancementsOptions.smsInterface) {
+            key = smsActionMenu();
+            if (key < 0)
+                return true;
+        } else if (settings.enhancements &&
+                   settings.enhancementsOptions.smartEnterKey)
+            key = smartEnterKey();
     }
 
     if ((c->location->context & CTX_DUNGEON) && strchr("abefjlotxy", key))
