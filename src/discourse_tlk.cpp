@@ -1,8 +1,10 @@
 // Discourse for U4 Tlk
 
+#include <set>
 #include "game.h"
 #include "party.h"
 #include "screen.h"
+#include "settings.h"
 #include "utils.h"
 
 enum DialogueString {
@@ -12,7 +14,16 @@ enum DialogueString {
     DS_KEYWORD,
     DS_QUESTION,
     DS_ANSWER_Y,
-    DS_ANSWER_N
+    DS_ANSWER_N,
+    // Used by the SMS style topic menu; these have no side effects and
+    // return NULL if the dialogue has no such string.
+    DS_TOPIC1,
+    DS_TOPIC2,
+    DS_TEXT_JOB,
+    DS_TEXT_HEALTH,
+    DS_TEXT_R1,
+    DS_TEXT_R2,
+    DS_TEXT_QUESTION
 };
 
 enum TalkOpcode {
@@ -39,13 +50,248 @@ struct TalkState {
 
 typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 
-static void talkYNResponse(TalkFunc func, TalkState* ts)
+//---------------------------------------------------------------------------
+// SMS style conversation menu.
+//
+// Instead of typing, the player picks a topic from a list.  The two NPC
+// keywords are only listed once unlocked.  The DOS data stores keywords as
+// 4 letter stubs, so the full word is taken from the text that mentions it:
+//
+//  - If one of the NPC's own replies contains the word, the keyword is
+//    unlocked once that reply has been heard in this conversation.
+//  - Otherwise the word comes from other NPCs (a hint chain) and the keyword
+//    is unlocked once the word has been heard from anyone.  These words are
+//    remembered across conversations and saved with the game.
+//  - A few stubs are not the start of any word; those use a fixed table.
+
+static std::set<std::string> talkHeardWords;     // Saved with the game.
+
+struct SmsTalk {
+    std::set<std::string> heard;    // Words heard in this conversation.
+    std::string word[2];            // Display word for topic 1 & 2.
+    bool own[2];                    // Word found in the NPC's own text.
+    bool asked[2];
+    bool askedJob;
+    int lastPick;
+};
+
+static bool smsInterface() {
+    return xu4.settings->enhancementsOptions.smsInterface;
+}
+
+static void talkHeard(SmsTalk* st, const char* text)
+{
+    if (! text)
+        return;
+    std::string w;
+    for (const char* cp = text; ; ++cp) {
+        if (isalpha((unsigned char) *cp)) {
+            w += tolower((unsigned char) *cp);
+        } else {
+            if (w.size() > 1) {
+                talkHeardWords.insert(w);
+                if (st)
+                    st->heard.insert(w);
+            }
+            w.clear();
+            if (! *cp)
+                break;
+        }
+    }
+}
+
+// Stubs which are not a prefix of any word in the DOS dialogue.
+static const char* smsFixedWord(const char* stub)
+{
+    static const char* table[] = {
+        "ho e", "HO EYO",
+        "nowh", "NOWHERE",
+        "hide", "HIDING",
+        "pris", "PRISONER",
+        "beh.", "BEH...",
+        "sine", "SINNED",
+        NULL
+    };
+    for (const char** it = table; *it; it += 2) {
+        if (strcasecmp(it[0], stub) == 0)
+            return it[1];
+    }
+    return NULL;
+}
+
+// Find the first word in text starting with stub; return it upper-cased.
+static std::string findWord(const char* text, const char* stub)
+{
+    size_t slen = strlen(stub);
+    if (! text || ! slen)
+        return std::string();
+    for (const char* cp = text; *cp; ++cp) {
+        if (isalpha((unsigned char) *cp) &&
+            (cp == text || ! isalpha((unsigned char) cp[-1])) &&
+            strncasecmp(cp, stub, slen) == 0) {
+            std::string w;
+            while (isalpha((unsigned char) *cp))
+                w += toupper((unsigned char) *cp++);
+            return w;
+        }
+    }
+    return std::string();
+}
+
+static bool heardPrefix(const std::set<std::string>& words, const char* stub,
+                        std::string* found)
+{
+    std::string s(stub);
+    for (size_t i = 0; i < s.size(); ++i)
+        s[i] = tolower((unsigned char) s[i]);
+    std::set<std::string>::const_iterator it = words.lower_bound(s);
+    if (it != words.end() && it->compare(0, s.size(), s) == 0) {
+        if (found) {
+            *found = *it;
+            for (size_t i = 0; i < found->size(); ++i)
+                (*found)[i] = toupper((unsigned char) (*found)[i]);
+        }
+        return true;
+    }
+    return false;
+}
+
+static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
+{
+    // Where to look for each keyword, in the order the SMS usually
+    // unlocks them (keyword 1 after job, keyword 2 after keyword 1).
+    static const int order[2][6] = {
+        { DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_R2, DS_TEXT_QUESTION, -1 },
+        { DS_TEXT_R1, DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_QUESTION, -1 }
+    };
+
+    st->askedJob = false;
+    st->lastPick = 1;
+    for (int k = 0; k < 2; ++k) {
+        st->asked[k] = false;
+        st->own[k] = false;
+        st->word[k].clear();
+
+        const char* stub = func(ts, DS_TOPIC1 + k, NULL);
+        if (! stub || ! stub[0])
+            continue;
+        const char* fixed = smsFixedWord(stub);
+        if (fixed) {
+            st->word[k] = fixed;
+            continue;
+        }
+        for (const int* f = order[k]; *f >= 0; ++f) {
+            st->word[k] = findWord(func(ts, *f, NULL), stub);
+            if (! st->word[k].empty()) {
+                st->own[k] = true;
+                break;
+            }
+        }
+    }
+}
+
+static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
+                             int k, std::string* display)
+{
+    const char* stub = func(ts, DS_TOPIC1 + k, NULL);
+    if (! stub || ! stub[0])
+        return false;
+    if (smsFixedWord(stub)) {
+        *display = st->word[k];
+        return k ? st->asked[0] : st->askedJob;
+    }
+    if (st->own[k]) {
+        *display = st->word[k];
+        return heardPrefix(st->heard, stub, NULL);
+    }
+    return heardPrefix(talkHeardWords, stub, display);
+}
+
+/*
+ * Show the topic menu and return the input string the DOS logic expects,
+ * or an empty string for Bye.
+ */
+static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
+{
+    // Same order as the SMS talk menu.
+    static const char* fixedTopics[] = {
+        "Bye", "Name", "Look", "Job", "Health", "Join", "Give"
+    };
+    const char* items[9];
+    std::string words[2];
+    int topicOf[9];
+    int count = 0;
+
+    for (int i = 0; i < 7; ++i) {
+        topicOf[count] = -1 - i;
+        items[count++] = fixedTopics[i];
+    }
+    for (int k = 0; k < 2; ++k) {
+        if (smsTopicUnlocked(st, func, ts, k, &words[k])) {
+            topicOf[count] = k;
+            items[count++] = words[k].c_str();
+        }
+    }
+
+    int start = (st->lastPick < count) ? st->lastPick : 1;
+    int n = EventHandler::chooseItem(items, count, start);
+    if (n <= 0)
+        return std::string();
+    st->lastPick = n;
+
+    screenMessage("%s\n", items[n]);
+    int t = topicOf[n];
+    if (t >= 0) {
+        st->asked[t] = true;
+        return std::string(func(ts, DS_TOPIC1 + t, NULL));
+    }
+    if (t == -4)
+        st->askedJob = true;
+    std::string in(fixedTopics[-1 - t]);
+    in[0] = tolower(in[0]);
+    return in;
+}
+
+void talkWordsClear() {
+    talkHeardWords.clear();
+}
+
+bool talkWordsSave(FILE* fp) {
+    std::set<std::string>::const_iterator it;
+    for (it = talkHeardWords.begin(); it != talkHeardWords.end(); ++it)
+        fprintf(fp, "%s\n", it->c_str());
+    return ! ferror(fp);
+}
+
+void talkWordsLoad(FILE* fp) {
+    char buf[64];
+    talkHeardWords.clear();
+    while (fgets(buf, sizeof(buf), fp)) {
+        size_t len = strlen(buf);
+        while (len && isspace((unsigned char) buf[len-1]))
+            buf[--len] = '\0';
+        if (len)
+            talkHeardWords.insert(buf);
+    }
+}
+
+//---------------------------------------------------------------------------
+
+static void talkYNResponse(TalkFunc func, TalkState* ts, SmsTalk* st)
 {
     std::string input;
     int ans;
 
     while (1) {
-        input = gameGetInput(3);
+        if (st) {
+            static const char* yesNo[] = { "Yes", "No" };
+            int n = EventHandler::chooseItem(yesNo, 2);
+            if (n < 0)
+                continue;
+            screenMessage("%s\n", yesNo[n]);
+            input = n ? "n" : "y";
+        } else
+            input = gameGetInput(3);
         screenCrLf();
         if (input.empty())
             return;
@@ -62,6 +308,7 @@ static void talkYNResponse(TalkFunc func, TalkState* ts)
     }
 
     const char* reply = func(ts, ans, NULL);
+    talkHeard(st, reply);
     screenMessage(reply);
     screenCrLf();
 }
@@ -71,12 +318,20 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
     std::string input;
     const char* in;
     const char* reply;
+    SmsTalk sms;
+    SmsTalk* st = NULL;
+
+    if (smsInterface()) {
+        st = &sms;
+        smsInit(st, func, ts);
+    }
 
 #define DSTRING(V)  func(ts, V, NULL)
 #define message     screenMessage
 #define inputEq(K)  (strncasecmp(K, in, 4) == 0)
 
     message("\nYou meet %s\n", DSTRING(DS_LOOK));
+    talkHeard(st, DSTRING(DS_LOOK));
 
     // 50% of the time they introduce themselves.
     if (xu4_random(2)) {
@@ -86,7 +341,7 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
 
     while (xu4.stage == StagePlay) {
         message("\nYour Interest:\n");
-        input = gameGetInput(16);
+        input = st ? smsChooseTopic(st, func, ts) : gameGetInput(16);
         screenCrLf();
         screenCrLf();
         in = input.c_str();
@@ -112,6 +367,7 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
 
         reply = func(ts, DS_KEYWORD, input.c_str());
         if (reply) {
+            talkHeard(st, reply);
             message(reply);
             screenCrLf();
 
@@ -121,12 +377,14 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
                 EventHandler::waitAnyKey();
 
                 reply = func(ts, DS_QUESTION, input.c_str());
+                talkHeard(st, reply);
                 message("\n%s\n\nYou say: ", reply);
-                talkYNResponse(func, ts);
+                talkYNResponse(func, ts, st);
             }
         } else {
             // Standard responses.
             if (inputEq("look")) {
+                talkHeard(st, DSTRING(DS_LOOK));
                 message("You see %s\n", DSTRING(DS_LOOK));
             } else if (inputEq("name")) {
 tell_name:
@@ -391,6 +649,20 @@ static const char* U4Talk_dialogue(TalkState* ts, int value, const char* input)
                 if (tlk->questionHumility)
                     c->party->adjustKarma(KA_HUMBLE);
                 return USTR(no);
+            case DS_TOPIC1:
+                return tlk->topic1 ? USTR(topic1) : NULL;
+            case DS_TOPIC2:
+                return tlk->topic2 ? USTR(topic2) : NULL;
+            case DS_TEXT_JOB:
+                return USTR(job);
+            case DS_TEXT_HEALTH:
+                return USTR(health);
+            case DS_TEXT_R1:
+                return USTR(response1);
+            case DS_TEXT_R2:
+                return USTR(response2);
+            case DS_TEXT_QUESTION:
+                return USTR(question);
         }
     }
     return NULL;
@@ -476,6 +748,9 @@ static const char* dialogueBoron(TalkState* ts, int value, const char* input)
         }
         return NULL;
     }
+
+    if (value >= DS_TOPIC1)
+        return NULL;    // SMS topic menu strings are not supported yet.
 
     switch (value) {
         case DS_QUESTION:

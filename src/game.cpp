@@ -3,6 +3,7 @@
  */
 
 #include "game.h"
+#include "discourse.h"
 
 #include "camp.h"
 #include "cheat.h"
@@ -253,6 +254,16 @@ bool GameController::initContext() {
 
     ++pb;
 
+    /* load in talkwords.sav (SMS style conversations) */
+    {
+    FILE* fp = fopen((settings.getUserPath() + TALKWORDS_SAV).c_str(), "r");
+    if (fp) {
+        talkWordsLoad(fp);
+        fclose(fp);
+    } else
+        talkWordsClear();
+    }
+
     /* load in monsters.sav */
     {
     MonstersSav mons;
@@ -340,6 +351,12 @@ int gameSave(const char* userPath) {
 
     openSaveFile(PARTY_SAV);
     if (! save.write(fp))
+        goto write_error;
+    fclose(fp);
+
+
+    openSaveFile(TALKWORDS_SAV);
+    if (! talkWordsSave(fp))
         goto write_error;
     fclose(fp);
 

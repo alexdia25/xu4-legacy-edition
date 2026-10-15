@@ -79,6 +79,7 @@ struct SettingsEnhancementOptions {
     bool textColorization;
     bool c64chestTraps;
     bool smartEnterKey;
+    bool smsInterface;      // Sega Master System style menus & talk
     bool peerShowsObjects;
     bool u4TileTransparencyHack;
     int  u4TileTransparencyHackPixelShadowOpacity;

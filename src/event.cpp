@@ -786,6 +786,100 @@ bool AlphaActionController::keyPressed(int key) {
 
 //----------------------------------------------------------------------------
 
+/**
+ * A controller to pick one item from a vertical list drawn in the message
+ * area, as the Sega Master System version does for its menus.
+ * Up/Down move the cursor, Enter picks, Escape cancels.  A letter jumps to
+ * the next item starting with it.
+ */
+class ListPickerController : public WaitableController<int> {
+public:
+    ListPickerController(const char* const* items, int count, int start,
+                         int rows, int line)
+        : items(items), count(count), rows(rows), line(line), top(0) {
+        value = -1;
+        sel = (start >= 0 && start < count) ? start : 0;
+        scrollToSel();
+    }
+
+    virtual bool keyPressed(int key);
+    void draw() const;
+
+private:
+    void scrollToSel() {
+        if (sel < top)
+            top = sel;
+        else if (sel >= top + rows)
+            top = sel - rows + 1;
+    }
+
+    const char* const* items;
+    int count;
+    int rows;
+    int line;       // First message area line used.
+    int top;        // First visible item.
+    int sel;
+};
+
+void ListPickerController::draw() const {
+    for (int i = 0; i < rows; ++i) {
+        int n = top + i;
+        int mark = ' ';
+        if (n == sel)
+            mark = CHARSET_PROMPT;
+        else if (i == 0 && top > 0)
+            mark = '^';
+        else if (i == rows - 1 && n < count - 1)
+            mark = 'v';
+        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%c%-*.*s", mark,
+                     TEXT_AREA_W - 1, TEXT_AREA_W - 1,
+                     (n < count) ? items[n] : "");
+    }
+}
+
+bool ListPickerController::keyPressed(int key) {
+    switch (key) {
+    case U4_UP:
+    case U4_LEFT:
+        if (sel > 0)
+            --sel;
+        break;
+    case U4_DOWN:
+    case U4_RIGHT:
+        if (sel < count - 1)
+            ++sel;
+        break;
+    case U4_ENTER:
+    case U4_KEYPAD_ENTER:
+    case U4_SPACE:
+        value = sel;
+        doneWaiting();
+        return true;
+    case U4_ESC:
+        value = -1;
+        doneWaiting();
+        return true;
+    default:
+        if (key < 0x80 && isalpha(key)) {
+            key = toupper(key);
+            for (int i = 1; i <= count; ++i) {
+                int n = (sel + i) % count;
+                if (toupper(items[n][0]) == key) {
+                    sel = n;
+                    break;
+                }
+            }
+        } else
+            return EventHandler::globalKeyHandler(key);
+        break;
+    }
+    scrollToSel();
+    draw();
+    return true;
+}
+
+//----------------------------------------------------------------------------
+
 /*
  * A controller that ignores keypresses
  */
@@ -975,6 +1069,45 @@ void EventHandler::waitAnyKeyTimeout()
 {
     AnyKeyController ctrl;
     ctrl.waitTimeout();
+}
+
+/*
+ * Pick one of the items from a list shown in the message area.
+ * Return the item index or -1 if cancelled.  The list is erased afterwards
+ * and the text cursor left at the start of where it was.
+ */
+int EventHandler::chooseItem(const char* const* items, int count, int start,
+                             int maxRows)
+{
+    if (count < 1)
+        return -1;
+
+    int rows = (count < maxRows) ? count : maxRows;
+    if (rows > TEXT_AREA_H - 1)
+        rows = TEXT_AREA_H - 1;
+
+    // Reserve the lines, scrolling the message area as needed.
+    if (c->col)
+        screenCrLf();
+    for (int i = 0; i < rows; ++i)
+        screenCrLf();
+    int line = c->line - rows;
+
+    bool cursor = screenState()->cursorVisible;
+    screenHideCursor();
+
+    ListPickerController ctrl(items, count, start, rows, line);
+    ctrl.draw();
+    xu4.eventHandler->pushController(&ctrl);
+    int n = ctrl.waitFor();
+
+    for (int i = 0; i < rows; ++i)
+        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%*s",
+                     TEXT_AREA_W, "");
+    c->line = line;
+    c->col = 0;
+    screenShowCursor(cursor);
+    return n;
 }
 
 /*

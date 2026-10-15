@@ -8,6 +8,7 @@
 #include "u4.h"
 
 #include "intro.h"
+#include "discourse.h"
 
 #include "debug.h"
 #include "error.h"
@@ -273,6 +274,7 @@ IntroController::IntroController() :
     interfaceMenu.add(MI_INTERFACE_04, new BoolMenuItem("Text Colorization          %s", 2,  6,/*'t'*/  0, &settingsChanged.enhancementsOptions.textColorization));
     interfaceMenu.add(MI_INTERFACE_05, new BoolMenuItem("Ultima V Shrines           %s", 2,  7,/*'s'*/  9, &settingsChanged.enhancementsOptions.u5shrines));
     interfaceMenu.add(MI_INTERFACE_06, new BoolMenuItem("Ultima V Spell Mixing      %s", 2,  8,/*'m'*/ 15, &settingsChanged.enhancementsOptions.u5spellMixing));
+    interfaceMenu.add(MI_INTERFACE_07, new BoolMenuItem("Console (SMS) Menus        %s", 2,  9,/*'o'*/  1, &settingsChanged.enhancementsOptions.smsInterface));
     interfaceMenu.add(USE_SETTINGS,                     "\010 Use These Settings",       2, 11,/*'u'*/  2);
     interfaceMenu.add(CANCEL,                           "\010 Cancel",                   2, 12,/*'c'*/  2);
     interfaceMenu.addShortcutKey(CANCEL, ' ');
@@ -905,6 +907,10 @@ void IntroController::finishInitiateGame(const string &nameBuffer, SexType sex)
     }
 
     fclose(saveGameFile);
+
+    // Start with no conversation words heard.
+    talkWordsClear();
+    remove((xu4.settings->getUserPath() + TALKWORDS_SAV).c_str());
 
     saveGameFile = fopen((xu4.settings->getUserPath() + MONSTERS_SAV).c_str(), "wb");
     if (saveGameFile) {

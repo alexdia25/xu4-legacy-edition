@@ -6,6 +6,7 @@
 #define DISCOURSE_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 enum DiscourseSystem {
     DISCOURSE_UNSET,
@@ -33,5 +34,11 @@ void        discourse_free(Discourse*);
 bool        discourse_run(const Discourse*, uint16_t entry, Person*);
 int         discourse_findName(const Discourse*, const char* name);
 const char* discourse_name(const Discourse*, uint16_t entry);
+
+// Words heard in conversations, used by the SMS style topic menu.
+#define TALKWORDS_SAV   "talkwords.sav"
+void talkWordsClear();
+bool talkWordsSave(FILE*);
+void talkWordsLoad(FILE*);
 
 #endif
