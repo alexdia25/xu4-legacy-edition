@@ -1253,6 +1253,14 @@ bool EventHandler::defaultKeyHandler(int key) {
  */
 int EventHandler::choosePlayer()
 {
+    if (smsMenus()) {
+        const char* names[8];
+        int count = c->saveGame->members;
+        for (int i = 0; i < count; ++i)
+            names[i] = c->saveGame->players[i].name;
+        return chooseItem(names, count);
+    }
+
     ReadPlayerController ctrl;
     xu4.eventHandler->pushController(&ctrl);
     return ctrl.waitFor();
@@ -1274,10 +1282,32 @@ int EventHandler::readAlphaAction(char lastValidLetter, const char* prompt)
  */
 char EventHandler::readChoice(const char* choices)
 {
-    if (smsMenus() && strchr(choices, 'y') && strchr(choices, 'n')) {
-        static const char* yesNo[2] = { "Yes", "No" };
-        int n = chooseItem(yesNo, 2);
-        return (n < 0) ? U4_ESC : "yn"[n];
+    if (smsMenus()) {
+        // List the printable choices; control keys are left to the picker.
+        char keys[64];
+        int count = 0;
+        for (const char* cp = choices; *cp && count < 63; ++cp) {
+            if (*cp > ' ' && *cp < 0x7f)
+                keys[count++] = *cp;
+        }
+        keys[count] = '\0';
+
+        if (count == 2 && strchr(keys, 'y') && strchr(keys, 'n')) {
+            static const char* yesNo[2] = { "Yes", "No" };
+            int n = chooseItem(yesNo, 2);
+            return (n < 0) ? U4_ESC : "yn"[n];
+        }
+        if (count > 0) {
+            static char label[64][2];
+            const char* items[64];
+            for (int i = 0; i < count; ++i) {
+                label[i][0] = toupper(keys[i]);
+                label[i][1] = '\0';
+                items[i] = label[i];
+            }
+            int n = chooseItem(items, count);
+            return (n < 0) ? U4_ESC : keys[n];
+        }
     }
 
     ReadChoiceController ctrl(choices);
