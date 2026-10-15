@@ -72,6 +72,7 @@ struct SmsTalk {
     bool own[2];                    // Word found in the NPC's own text.
     bool asked[2];
     bool askedJob;
+    bool replied;                   // A reply is on screen.
     int lastPick;
 };
 
@@ -166,6 +167,7 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
     };
 
     st->askedJob = false;
+    st->replied = false;
     st->lastPick = 1;
     for (int k = 0; k < 2; ++k) {
         st->asked[k] = false;
@@ -340,6 +342,13 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
     }
 
     while (xu4.stage == StagePlay) {
+        if (st) {
+            // Let the reply be read before the menu scrolls it away, as
+            // the SMS does with its button prompt after each answer.
+            if (st->replied)
+                EventHandler::waitAnyKey();
+            st->replied = true;
+        }
         message("\nYour Interest:\n");
         input = st ? smsChooseTopic(st, func, ts) : gameGetInput(16);
         screenCrLf();

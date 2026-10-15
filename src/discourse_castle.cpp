@@ -448,6 +448,8 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
             message("\nHe says: I cannot help thee with that.\n");
         }
 
+        if (smsInterface())
+            EventHandler::waitAnyKey();     // Let the reply be read first.
         message("\nWhat else?\n");
     }
 
@@ -484,6 +486,8 @@ static void runTalkHawkwind(const U4TalkHawkwind* hw)
     EventHandler::waitAnyKey();
 
     while (xu4.stage == StagePlay) {
+        if (smsInterface() && prompt == HW_PROMPT)
+            EventHandler::waitAnyKey();     // Let the reply be read first.
         soundSpeakLine(VOICE_HW, prompt);
         message(HW_STRING(prompt));
         prompt = HW_PROMPT;

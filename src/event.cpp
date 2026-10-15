@@ -824,16 +824,15 @@ private:
 void ListPickerController::draw() const {
     for (int i = 0; i < rows; ++i) {
         int n = top + i;
-        int mark = ' ';
-        if (n == sel)
-            mark = CHARSET_PROMPT;
-        else if (i == 0 && top > 0)
-            mark = '^';
+        int more = ' ';
+        if (i == 0 && top > 0)
+            more = '^';
         else if (i == rows - 1 && n < count - 1)
-            mark = 'v';
-        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%c%-*.*s", mark,
-                     TEXT_AREA_W - 1, TEXT_AREA_W - 1,
-                     (n < count) ? items[n] : "");
+            more = 'v';
+        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%c%-*.*s%c",
+                     (n == sel) ? CHARSET_PROMPT : ' ',
+                     TEXT_AREA_W - 2, TEXT_AREA_W - 2,
+                     (n < count) ? items[n] : "", more);
     }
 }
 
