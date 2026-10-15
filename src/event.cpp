@@ -14,6 +14,7 @@
 #include "location.h"
 #include "savegame.h"
 #include "settings.h"
+#include "gamepad.h"
 #include "screen.h"
 #include "sound.h"
 #include "textview.h"
@@ -1475,7 +1476,7 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
  */
 bool EventHandler::smsMenus()
 {
-    return xu4.settings->enhancementsOptions.smsInterface;
+    return xu4.settings->enhancementsOptions.smsInterface || gamepad_inUse();
 }
 
 /*

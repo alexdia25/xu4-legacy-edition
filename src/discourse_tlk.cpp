@@ -77,7 +77,7 @@ struct SmsTalk {
 };
 
 static bool smsInterface() {
-    return xu4.settings->enhancementsOptions.smsInterface;
+    return EventHandler::smsMenus();
 }
 
 static void talkHeard(SmsTalk* st, const char* text)
