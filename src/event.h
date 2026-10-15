@@ -36,6 +36,9 @@
 #define U4_PAUSE        0x148
 #define U4_KEYPAD_ENTER 0x158
 
+// Gamepad buttons which have no keyboard equivalent.
+#define U4_PAD_START    0x1F0
+
 enum InputEventType {
     IE_MOUSE_MOVE,
     IE_MOUSE_PRESS,

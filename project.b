@@ -80,6 +80,13 @@ exe %xu4 [
 				%sound_faun.cpp
 			]
 		]
+		sdl3 [
+			libs [%SDL3 %faun]
+			sources_from %src [
+				%screen_sdl3.cpp
+				%sound_faun.cpp
+			]
+		]
 		sdl [
 			include_from %/usr/include/SDL
 			libs [%SDL %faun]
@@ -155,6 +162,7 @@ exe %xu4 [
 		%event.cpp
 		%filesystem.cpp
 		%game.cpp
+		%gamepad.cpp
 		%gamebrowser.cpp
 		%gui.cpp
 		%image.cpp

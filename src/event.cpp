@@ -904,6 +904,10 @@ bool EventHandler::globalKeyHandler(int key) {
         xu4.eventHandler->togglePause();
         return true;
 
+    case U4_PAD_START:
+        xu4_selectGame();   // Same menu as Escape on the keyboard.
+        return true;
+
 #if defined(MACOSX)
     case U4_META + 'q': /* Cmd+q */
     case U4_META + 'x': /* Cmd+x */

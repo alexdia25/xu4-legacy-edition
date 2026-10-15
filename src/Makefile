@@ -20,6 +20,10 @@ ifeq ($(UI), glfw)
 UILIBS=-lglfw
 endif
 
+ifeq ($(UI), sdl3)
+UILIBS=-lSDL3
+endif
+
 ifeq ($(UI), sdl)
 UILIBS=$(shell sdl-config --libs)
 UIFLAGS=$(shell sdl-config --cflags)
