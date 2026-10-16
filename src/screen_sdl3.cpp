@@ -172,6 +172,18 @@ static void keyHandler(const SDL_KeyboardEvent* ev)
         case SDLK_KP_ENTER:
             key = U4_KEYPAD_ENTER;
             break;
+        case SDLK_HOME:
+            key = U4_HOME;
+            break;
+        case SDLK_END:
+            key = U4_END;
+            break;
+        case SDLK_PAGEUP:
+            key = U4_PAGE_UP;
+            break;
+        case SDLK_PAGEDOWN:
+            key = U4_PAGE_DOWN;
+            break;
         default:
             if (token >= SDLK_A && token <= SDLK_Z) {
                 key = token;    // Lower case ASCII.

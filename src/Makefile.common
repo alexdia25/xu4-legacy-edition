@@ -28,6 +28,7 @@ CXXSRCS=\
         direction.cpp \
         discourse.cpp \
         dungeon.cpp \
+        docreader.cpp \
         docs.cpp \
         dungeonview.cpp \
         error.cpp \

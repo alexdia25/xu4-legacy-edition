@@ -6,6 +6,9 @@
   the GNU General Public License (see gui.cpp).
 */
 
+#ifndef GUI_H
+#define GUI_H
+
 #include "txf_draw.h"
 
 enum GuiOpcode {
@@ -94,3 +97,5 @@ float* gui_emitText(TxfDrawState*, float* attr, const char* text, uint32_t len);
 void*  gui_areaTree(const GuiArea* areas, int count);
 const GuiArea* gui_pick(const void* tree, const GuiArea* areas,
                         uint16_t x, uint16_t y);
+
+#endif

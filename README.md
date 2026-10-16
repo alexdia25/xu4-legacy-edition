@@ -23,6 +23,9 @@ especially for someone who has just downloaded the free release from
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
    the flow of play, so the game can be played without leaving XU4.
+   The ULTIMA4.TXT file of the GOG release is split into separate
+   documents, which can be read from the Docs button of the Escape
+   menu (D key, or Y on a gamepad).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are

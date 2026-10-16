@@ -465,7 +465,7 @@ enum VertexArrayDefOpcode {
 
 static const uint16_t _vertexArrayDef[] = {
     VA_LAYOUT, VA_ATTR2(3,4),
-    VA_SINGLE, 800,     // GLOB_GUI_LIST
+    VA_SINGLE, 3200,    // GLOB_GUI_LIST
     VA_DOUBLE, 200,     // GLOB_HUD_LIST0
 #ifdef GPU_RENDER
     400, 20, 8,         // GLOB_DRAW_LIST0, GLOB_FX_LIST0, GLOB_MAPFX_LIST0

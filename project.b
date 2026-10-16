@@ -156,6 +156,7 @@ exe %xu4 [
 		%debug.cpp
 		%direction.cpp
 		%discourse.cpp
+		%docreader.cpp
 		%docs.cpp
 		%dungeon.cpp
 		%dungeonview.cpp
