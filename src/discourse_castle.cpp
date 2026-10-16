@@ -264,6 +264,7 @@ static void lordBritishHelp() {
 
     screenMessageN("\nHe says: ", 10);
     messageParts(text);
+    talkHeard(NULL, text);
 }
 
 static void lordBritishHeal(char answer) {
@@ -288,8 +289,10 @@ static void lordBritishHeal(char answer) {
 }
 
 /*
- * SMS style topic menu for Lord British: all of his keywords are listed,
- * shown as the full word found in his own text (or heard elsewhere).
+ * SMS style topic menu for Lord British.  Name, Look, Job, Health & Help
+ * are always listed; his other keywords are listed once the word has been
+ * heard, from him or anyone else.  Each is shown as the full word found in
+ * his own text (or heard elsewhere).
  * Return the input string the DOS logic expects; empty for Bye.
  */
 static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
@@ -323,15 +326,29 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
         stubs.push_back("help");
     }
 
-    for (size_t i = 0; i < words.size(); ++i)
-        items.push_back(words[i].c_str());
+    // Bye, Name, Look & Job (the first four) and Health & Help (the last
+    // two) are always shown.
+    const size_t fixedEnd = 4;
+    const size_t extraStart = words.size() - 2;
+    std::vector<size_t> index;
+    for (size_t i = 0; i < words.size(); ++i) {
+        if (i < fixedEnd || i >= extraStart)
+            index.push_back(i);
+    }
+    for (size_t i = fixedEnd; i < extraStart; ++i) {
+        if (heardPrefix(talkHeardWords, stubs[i].c_str(), NULL))
+            index.push_back(i);
+    }
+    for (size_t i = 0; i < index.size(); ++i)
+        items.push_back(words[index[i]].c_str());
 
-    int n = EventHandler::chooseItem(&items[0], items.size(), *lastPick, 5);
+    int start = (*lastPick < (int) items.size()) ? *lastPick : 1;
+    int n = EventHandler::chooseItem(&items[0], items.size(), start, 5);
     if (n <= 0)
         return std::string();
     *lastPick = n;
     screenMessage("%s\n", items[n]);
-    return stubs[n];
+    return stubs[index[n]];
 }
 
 static char smsYesNo()
@@ -409,6 +426,7 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
         message("A champion of virtue is called for. Thou may be this champion,"                " but only time shall tell.  I will aid thee any way that I"
                 " can!\n"
                 "How may I help thee?\n");
+        talkHeard(NULL, "A champion of virtue is called for.");
     }
 
     while (xu4.stage == StagePlay) {
@@ -434,6 +452,7 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
             if (l < LINE_WELCOME)
                 soundSpeakLine(VOICE_LB, l);
             messageParts(strings + lb->text[k]);
+            talkHeard(NULL, strings + lb->text[k]);
         } else if (inputEq("help")) {
             lordBritishHelp();
         } else if (inputEq("heal")) {
