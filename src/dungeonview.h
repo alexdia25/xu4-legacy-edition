@@ -5,6 +5,7 @@
 #ifndef DUNGEONVIEW_H
 #define DUNGEONVIEW_H
 
+#include <vector>
 #include "direction.h"
 #include "tileview.h"
 
@@ -46,7 +47,9 @@ private:
                                       const std::vector<MapTile> &tiles);
     void drawWall(int graphic);
     bool loadApple2Geometry();
-    int  drawApple2(Context* c, Direction dir);
+    void drawApple2(Context* c, Direction dir);
+    int  apple2Shape(const MapTile& mt) const;
+    int  apple2NamedShape(const char* name) const;
 
     struct GraphicData {
         const ImageInfo* info;
@@ -66,7 +69,8 @@ private:
     bool egaGraphics;
     bool apple2;                // Draw the view like the Apple II version.
     GraphicData graphic[84];
-    uint8_t a2geom[116];        // Apple II view geometry from the disk.
+    uint8_t a2data[168];        // Apple II view tables from the disk.
+    std::vector<uint8_t> a2shapes;  // Apple II tile bytes (SHP0 + SHP1).
 };
 
 #endif /* DUNGEONVIEW_H */

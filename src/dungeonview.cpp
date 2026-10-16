@@ -96,18 +96,7 @@ void DungeonView::display(Context * c, TileView *view)
 
         screenEraseMapArea();
         if (apple2) {
-            Direction dir = (Direction) c->saveGame->orientation;
-            int seen = drawApple2(c, dir);
-
-            // Draw the objects & monsters in view, farthest first.
-            if (c->party->getTorchDuration() <= 0)
-                seen = -1;
-            for (y = seen; y >= 0; y--) {
-                dungeonGetTiles(drawLoc, tiles, y, 0);
-                DungeonGraphicType type = tilesToGraphic(dungeon, tiles);
-                if (type == DNGGRAPHIC_DNGTILE || type == DNGGRAPHIC_BASETILE)
-                    drawInDungeon(tiles.front(), 0, y, dir);
-            }
+            drawApple2(c, (Direction) c->saveGame->orientation);
         }
         else if (c->party->getTorchDuration() > 0) {
             vector<MapTile> distant_tiles;
@@ -537,8 +526,18 @@ void DungeonView::drawWall(int index) {
  * columns on the hi-res screen.  The positions of the walls, doors, holes and
  * ladders at each distance are read from tables in the DNGD file of the
  * Underworld disk.  The graphics config names the tables with an image of
- * filetype a2dngd called "dung_apple2".
+ * filetype a2dngd called "dung_apple2".  It holds three parts of DNGD:
+ *
+ *   A2_WINDOW  32 bytes  Pixel patterns for drawing a tile at double width,
+ *                        indexed by a pixel and its two neighbors each side.
+ *   A2_GEOM   116 bytes  The A2GeomTable positions.
+ *   A2_FIELD   20 bytes  Field colors (4) and their y1, y2, x1 & x2 (bytes)
+ *                        at each distance.
  */
+#define A2_WINDOW   0
+#define A2_GEOM     32
+#define A2_FIELD    148
+
 enum A2GeomTable {
     A2G_WALL_LEFT     = 0,      // 5 bytes each
     A2G_WALL_RIGHT    = 5,
@@ -586,13 +585,23 @@ bool DungeonView::loadApple2Geometry() {
     U4FILE* file = a2_open(fn + 3);
     if (! file)
         return false;
-    size_t n = file->read(a2geom, 1, sizeof(a2geom));
+    size_t n = file->read(a2data, 1, sizeof(a2data));
     u4fclose(file);
-    if (n != sizeof(a2geom))
+    if (n != sizeof(a2data))
+        return false;
+
+    // The tile shapes are drawn as sprites.
+    file = a2_open("program/SHP0+SHP1");
+    if (! file)
+        return false;
+    a2shapes.resize(8192);
+    n = file->read(a2shapes.data(), 1, a2shapes.size());
+    u4fclose(file);
+    if (n != a2shapes.size())
         return false;
 
     // Check that the walls get smaller with distance.
-    const uint8_t* g = a2geom;
+    const uint8_t* g = a2data + A2_GEOM;
     for (int d = 0; d < 4; ++d) {
         if (g[A2G_WALL_LEFT + d] >= g[A2G_WALL_LEFT + d + 1] ||
             g[A2G_WALL_RIGHT + d] <= g[A2G_WALL_RIGHT + d + 1] ||
@@ -725,13 +734,126 @@ static void a2Ladder(A2Page& pg, const uint8_t* g, int d, bool up,
 }
 
 /*
- * Draw the view on the screen like the Apple II version.
- * Return the farthest distance that can be seen.
+ * Fill the area of a field at a distance with random dots of its color.
  */
-int DungeonView::drawApple2(Context* c, Direction dir) {
+static void a2Field(A2Page& pg, const uint8_t* field, int d, int type) {
+    type &= 3;      // Poison, lightning, fire, sleep
+    int y1 = field[4 + d],  y2 = field[8 + d];
+    int x1 = field[12 + d], x2 = field[16 + d];
+    for (int y = y1; y <= y2; ++y) {
+        for (int col = x1; col <= x2; ++col) {
+            uint8_t b = xu4_random(256) & field[type];
+            if (! (col & 1))
+                b >>= 1;
+            b &= 0x7f;
+            if (type == 1 || type == 2)
+                b |= 0x80;
+            pg.bytes[y][col] = b;
+        }
+    }
+}
+
+/*
+ * Make a row of a tile (two bytes) twice as wide.  Each pixel becomes two,
+ * chosen from a table by the pixel and the two pixels on each side of it,
+ * so that colors stay the same.
+ */
+static void a2DoubleWidth(const uint8_t* window, const uint8_t* src,
+                          uint8_t* out) {
+    uint8_t px[18];     // 14 pixels with 2 blank ones on each side.
+    uint8_t wide[28];
+    int i;
+
+    memset(px, 0, sizeof(px));
+    for (i = 0; i < 14; ++i)
+        px[i + 2] = (src[i / 7] >> (i % 7)) & 1;
+
+    for (i = 0; i < 14; ++i) {
+        const uint8_t* p = px + i + 2;
+        int w = (p[2] << 4) | (p[1] << 3) | (p[0] << 2) | (p[-1] << 1) | p[-2];
+        int pat = window[w];
+        if (! (i & 1)) {
+            wide[i*2]     = (pat >> 1) & 1;
+            wide[i*2 + 1] = pat & 1;
+        } else {
+            wide[i*2]     = (pat >> 2) & 1;
+            wide[i*2 + 1] = (pat >> 1) & 1;
+        }
+    }
+
+    for (i = 0; i < 4; ++i) {
+        uint8_t b = src[0] & 0x80;      // The left byte sets the colors.
+        for (int bit = 0; bit < 7; ++bit)
+            b |= wide[i*7 + bit] << bit;
+        out[i] = b;
+    }
+}
+
+/*
+ * Draw a tile at a distance in the middle of the view.  Sprites cover what
+ * is behind them.
+ */
+static void a2Sprite(A2Page& pg, const uint8_t* window,
+                     const std::vector<uint8_t>& shapes, int shape, int d) {
+    uint8_t src[2], wide[4];
+    int r, n;
+
+    for (r = 0; r < 16; ++r) {
+        src[0] = shapes[r * 256 + shape];
+        src[1] = shapes[4096 + r * 256 + shape];
+
+        switch (d) {
+        case 0:     // 4 times as tall & twice as wide
+        case 1:     // 2 times as tall & twice as wide
+            a2DoubleWidth(window, src, wide);
+            for (n = 0; n < (d ? 2 : 4); ++n)
+                memcpy(&pg.bytes[(d ? 0x68 : 0x70) + r * (d ? 2 : 4) + n][10],
+                       wide, 4);
+            break;
+        case 2:     // As is
+            memcpy(&pg.bytes[0x60 + r][11], src, 2);
+            break;
+        default:    // Half as tall
+            if (! (r & 1))
+                memcpy(&pg.bytes[0x60 + r / 2][11], src, 2);
+            break;
+        }
+    }
+}
+
+/*
+ * Return the Apple II shape of a tile with a random animation frame, or -1
+ * if it has none.
+ */
+int DungeonView::apple2Shape(const MapTile& mt) const {
+    const Tile* tile = tileset->get(mt.id);
+    if (! tile)
+        return -1;
+    const SubImage* sub;
+    if (! xu4.imageMgr->imageInfo(tile->imageName, &sub))
+        return -1;
+    if (! sub || tileHeight < 1)
+        return -1;
+    int shape = sub->y / tileHeight;     // The tiles are in one column.
+    int frames = tile->getFrames();
+    if (frames > 1)
+        shape += xu4_random(frames);
+    return (shape < 256) ? shape : -1;
+}
+
+int DungeonView::apple2NamedShape(const char* name) const {
+    const Tile* tile = tileset->getByName(xu4.config->intern(name));
+    return tile ? apple2Shape(MapTile(tile->getId())) : -1;
+}
+
+/*
+ * Draw the view on the screen like the Apple II version.
+ */
+void DungeonView::drawApple2(Context* c, Direction dir) {
     static A2Page pg;
     const Dungeon* dungeon = static_cast<const Dungeon*>(c->location->map);
-    const uint8_t* g = a2geom;
+    const uint8_t* g = a2data + A2_GEOM;
+    const uint8_t* field = a2data + A2_FIELD;
     // Walls facing the viewer & side walls use different colors, which swap
     // when turning.
     int ew = (dir == DIR_EAST || dir == DIR_WEST);
@@ -739,12 +861,12 @@ int DungeonView::drawApple2(Context* c, Direction dir) {
     A2Fill sideFill  = ew ? A2_EVEN_COLUMNS : A2_ODD_COLUMNS;
     Coords loc;
     std::vector<MapTile> tiles;
-    int d, seen = 0;
+    int d;
 
     pg.clear();
     if (c->party->getTorchDuration() > 0) {
+        // Walls, doors, holes & ladders, from near to far.
         for (d = 0; d < 4; ++d) {
-            seen = d;
             dungeonGetTiles(loc, tiles, d, 0);
             int token = dungeon->tokenAt(loc);
 
@@ -774,6 +896,7 @@ int DungeonView::drawApple2(Context* c, Direction dir) {
                                  g[A2G_FLOOR_TOP + d]);
                 break;
             case DUNGEON_FIELD:
+                a2Field(pg, field, d, dungeon->subTokenAt(loc));
                 stop = true;
                 sides = false;
                 break;
@@ -820,11 +943,70 @@ int DungeonView::drawApple2(Context* c, Direction dir) {
             if (stop)
                 break;
         }
+
+        // Only the nearest monster or object is drawn.
+        for (d = 0; d < 4; ++d) {
+            dungeonGetTiles(loc, tiles, d, 0);
+            int token = dungeon->tokenAt(loc);
+            int shape = -1;
+
+            if (tiles.size() > 1 && tilesToGraphic(dungeon, tiles) ==
+                                    DNGGRAPHIC_BASETILE) {
+                // A monster or an object.
+                shape = apple2Shape(tiles.front());
+            } else {
+                switch (token) {
+                case DUNGEON_CHEST:
+                    shape = apple2NamedShape("chest");
+                    break;
+                case DUNGEON_MAGIC_ORB:
+                    shape = apple2NamedShape("magic_flash");
+                    break;
+                case DUNGEON_FOUNTAIN:
+                    shape = apple2NamedShape("shallows");
+                    break;
+                case DUNGEON_ALTAR:
+                    shape = apple2NamedShape("altar");
+                    break;
+                case DUNGEON_TRAP:
+                    // Now and then a trap shows as a hole.
+                    if (xu4_random(64) == 0) {
+                        int trap = dungeon->subTokenAt(loc);
+                        if (trap && trap < 8)
+                            a2Hole(pg, g, d, g[A2G_CEIL_TOP + d],
+                                             g[A2G_CEIL_BOTTOM + d]);
+                        else if (trap)
+                            a2Hole(pg, g, d, g[A2G_FLOOR_BOTTOM + d],
+                                             g[A2G_FLOOR_TOP + d]);
+                    }
+                    break;
+                case DUNGEON_FIELD:
+                    a2Field(pg, field, d, dungeon->subTokenAt(loc));
+                    d = 4;
+                    break;
+                case DUNGEON_DOOR:
+                    if (d)
+                        d = 4;
+                    break;
+                case DUNGEON_ROOM:
+                case DUNGEON_SECRET_DOOR:
+                case DUNGEON_WALL:
+                    d = 4;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (shape >= 0) {
+                a2Sprite(pg, a2data + A2_WINDOW, a2shapes, shape, d);
+                break;
+            }
+        }
     }
 
     // The view is 154 x 176 pixels at Apple screen position 7, 8.
     a2_drawHgr(xu4.screenImage, x, y, pg.bytes[A2_VIEW_TOP],
                A2_VIEW_BOTTOM - A2_VIEW_TOP + 1, A2_VIEW_LEFT,
                A2_VIEW_LEFT + 153);
-    return seen;
 }
