@@ -32,10 +32,28 @@ especially for someone who has just downloaded the free release from
    game prompts for it.
  - **Pixel-sharp graphics by default.**  The video filter defaults to
    point scaling instead of HQX.
+ - **Apple II graphics & music.**  The Apple-II module and Apple-II-Music
+   soundtrack read the art and Mockingboard tunes of the Apple II release
+   straight from its disk images (see
+   [Apple II Disk Images](#apple-ii-disk-images)).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
 freeware from [GOG].  No game data is stored in this repository.
+
+### Screenshots
+
+The DOS graphics with the console style menus: the action menu, and the
+topics of a conversation.
+
+![DOS graphics with the console action menu](doc/screenshots/dos-action-menu.png)
+![DOS graphics with conversation topics](doc/screenshots/dos-talk-topics.png)
+
+The Apple-II module, using the tiles of the Apple II release: the
+overworld near Britain, and the town of Yew.
+
+![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
+![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
 
 The original XU4 readme follows.
 
