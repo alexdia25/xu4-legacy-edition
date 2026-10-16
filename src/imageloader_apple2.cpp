@@ -19,6 +19,14 @@
  *             placed side by side.
  *   a2beads   The four abacus bead shapes (white & black, for even & odd
  *             columns, 14 bytes each) followed by the packed abacus picture.
+ *   a2view    One or more 154x176 pictures of the map view, packed like
+ *             a2spk.  Each is drawn over the ones before it, as the game
+ *             builds up the codex symbol one answer at a time.
+ *   a2reveal  The 154x176 picture uncovered when the codex opens.  It is
+ *             stored as pairs of columns from the middle outwards, each
+ *             column from the bottom up.
+ *
+ * View pictures are put in the map area of a 320x200 image.
  *
  * Screens & pictures are put at the top center of a 320x200 image (x 20)
  * so that they line up with the 320x200 layout of the DOS screens.
@@ -310,6 +318,100 @@ static Image* a2Beads(const std::vector<uint8_t>& data)
     return img;
 }
 
+#define A2_VIEW_COLS    22
+#define A2_VIEW_ROWS    176
+#define A2_VIEW_TOP     8
+#define A2_VIEW_X       19      // Centered in the 176x176 map area.
+
+/*
+ * Unpack one view picture (codes as for a2Unpack) and return a pointer to
+ * the data after it.
+ */
+static const uint8_t* a2UnpackView(const uint8_t* it, const uint8_t* end,
+                                   std::vector<uint8_t>& out)
+{
+    const size_t size = A2_VIEW_COLS * A2_VIEW_ROWS;
+    out.clear();
+    if (end - it < 2)
+        return end;
+    int runCode = it[0];
+    int patCode = it[1];
+    it += 2;
+    while (it < end && out.size() < size) {
+        int code = *it++;
+        if (code == runCode && end - it >= 2) {
+            out.insert(out.end(), it[0], it[1]);
+            it += 2;
+        } else if (code == patCode && end - it >= 2) {
+            int len   = it[0];
+            int count = it[1];
+            it += 2;
+            if (len > end - it)
+                len = end - it;
+            std::vector<uint8_t> pat;
+            a2Unpack(it, it + len, runCode, patCode, pat, 1);
+            for (int i = 0; i < count; ++i)
+                out.insert(out.end(), pat.begin(), pat.end());
+            it += len;
+        } else {
+            out.push_back(code);
+        }
+    }
+    out.resize(size, 0);
+    return it;
+}
+
+// Put the view area of an HGR page (Apple x 7-160, y 8-183) in a 320x200 image.
+static Image* a2ViewImage(const uint8_t* page)
+{
+    std::vector<uint8_t> row;
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
+    for (int y = 0; y < A2_VIEW_ROWS; ++y) {
+        a2DecodeRow(page + a2LineOffset(A2_VIEW_TOP + y), 40, 0, row);
+        row.erase(row.begin(), row.begin() + 7);
+        row.resize(A2_VIEW_COLS * 7);
+        a2PutRow(img, A2_VIEW_X, A2_VIEW_TOP + y, row);
+    }
+    return img;
+}
+
+static Image* a2View(const std::vector<uint8_t>& data)
+{
+    std::vector<uint8_t> page(8192, 0), bytes;
+    const uint8_t* it  = data.data();
+    const uint8_t* end = it + data.size();
+    while (end - it > 2) {
+        it = a2UnpackView(it, end, bytes);
+        size_t n = 0;
+        for (int col = A2_VIEW_COLS; col > 0; --col) {
+            for (int y = A2_VIEW_ROWS - 1; y >= 0; --y)
+                page[a2LineOffset(A2_VIEW_TOP + y) + col] |= bytes[n++];
+        }
+    }
+    return a2ViewImage(page.data());
+}
+
+static Image* a2Reveal(const std::vector<uint8_t>& data)
+{
+    const int half = A2_VIEW_COLS / 2;
+    if (data.size() < size_t(A2_VIEW_COLS * A2_VIEW_ROWS))
+        return NULL;
+    std::vector<uint8_t> page(8192, 0);
+    const uint8_t* it = data.data();
+    for (int s = 0; s < half; ++s) {
+        // The last pair is the outer edges.
+        int left  = (s < half - 1) ? half - s : 1;
+        int right = (s < half - 1) ? half + 1 + s : A2_VIEW_COLS;
+        for (int y = A2_VIEW_ROWS - 1; y >= 0; --y) {
+            int line = a2LineOffset(A2_VIEW_TOP + y);
+            page[line + left]  = *it++;
+            page[line + right] = *it++;
+        }
+    }
+    return a2ViewImage(page.data());
+}
+
 static Image* loadImage_apple2(U4FILE* file, int ftype, int width)
 {
     std::vector<uint8_t> data(file->length());
@@ -329,6 +431,10 @@ static Image* loadImage_apple2(U4FILE* file, int ftype, int width)
             return a2Cards(data);
         case FTYPE_A2BEADS:
             return a2Beads(data);
+        case FTYPE_A2VIEW:
+            return a2View(data);
+        case FTYPE_A2REVEAL:
+            return a2Reveal(data);
     }
     return NULL;
 }

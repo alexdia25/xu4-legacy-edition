@@ -884,6 +884,7 @@ process-cfg [
 				none png u4raw u4rle u4lzw
 				u5lzw fmtowns fmtowns-pic fmtowns-tif
 				a2shapes a2font a2hgr a2spk a2cards a2beads a2dngd
+				a2view a2reveal
 			] ftype
 			; Skip name which can be 'tiles (assuming name is first).
 			none-zero select skip at 2 'tiles

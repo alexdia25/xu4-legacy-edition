@@ -229,6 +229,31 @@ graphics: [
     image (name: dung_apple2
            filename: "a2/underworld/DNGD#c4e,20+DNGD#c9d,74+DNGD#9de,14"
            filetype: a2dngd)
+    ; The endgame pictures.  Each codex answer adds to the symbol, so
+    ; the picture for an answer includes those before it.
+    image (name: key filename: "a2/underworld/CSTRING#181b,8b" filetype: a2view)
+    image (name: honesty filename: "a2/underworld/CSTRING#f36,c5" filetype: a2view)
+    image (name: compassn filename: "a2/underworld/CSTRING#f36,175" filetype: a2view)
+    image (name: valor filename: "a2/underworld/CSTRING#f36,192" filetype: a2view)
+    image (name: justice filename: "a2/underworld/CSTRING#f36,1af" filetype: a2view)
+    image (name: sacrific filename: "a2/underworld/CSTRING#f36,27a" filetype: a2view)
+    image (name: honor filename: "a2/underworld/CSTRING#f36,337" filetype: a2view)
+    image (name: spirit filename: "a2/underworld/CSTRING#f36,376" filetype: a2view)
+    image (name: humility filename: "a2/underworld/CSTRING#f36,538" filetype: a2view)
+    image (name: truth filename: "a2/underworld/CSTRING#f36,5b5" filetype: a2view)
+    image (name: love filename: "a2/underworld/CSTRING#f36,638" filetype: a2view)
+    image (name: courage filename: "a2/underworld/CSTRING#f36,6b6" filetype: a2view)
+    image (name: stoncrcl filename: "a2/underworld/CSTRING#15ec,22f" filetype: a2view)
+    image (name: infinity filename: "a2/underworld/CSTRING#0,f20" filetype: a2reveal)
+    ; Shrine visions: the runes of INFINITY.
+    image (name: rune1 filename: "a2/britannia/SHRN#ddb,1d" filetype: a2view)
+    image (name: rune2 filename: "a2/britannia/SHRN#df8,3b" filetype: a2view)
+    image (name: rune3 filename: "a2/britannia/SHRN#e33,3e" filetype: a2view)
+    image (name: rune4 filename: "a2/britannia/SHRN#ddb,1d" filetype: a2view)
+    image (name: rune5 filename: "a2/britannia/SHRN#df8,3b" filetype: a2view)
+    image (name: rune6 filename: "a2/britannia/SHRN#ddb,1d" filetype: a2view)
+    image (name: rune7 filename: "a2/britannia/SHRN#e71,2d" filetype: a2view)
+    image (name: rune8 filename: "a2/britannia/SHRN#e9e,51" filetype: a2view)
     image (name: cards1 filename: "a2/program/CRDS" filetype: a2cards) [
         honestycard        0,0, 70,112
         compassioncard    70,0, 70,112

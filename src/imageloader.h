@@ -25,6 +25,8 @@ enum ImageFiletype {
     FTYPE_A2CARDS,
     FTYPE_A2BEADS,
     FTYPE_A2DNGD,       // Dungeon view geometry (not an image).
+    FTYPE_A2VIEW,
+    FTYPE_A2REVEAL,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 
