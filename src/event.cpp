@@ -1500,11 +1500,18 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
 }
 
 /*
- * Return true if the console (SMS) style menus are enabled.
+ * Return true if the console (SMS) style menus are enabled.  The first use
+ * of a gamepad switches them on (for this session, unless the settings are
+ * saved), and they can still be switched off again in the options.
  */
 bool EventHandler::smsMenus()
 {
-    return xu4.settings->enhancementsOptions.smsInterface || gamepad_inUse();
+    static bool padSwitched = false;
+    if (! padSwitched && gamepad_inUse()) {
+        padSwitched = true;
+        xu4.settings->enhancementsOptions.smsInterface = true;
+    }
+    return xu4.settings->enhancementsOptions.smsInterface;
 }
 
 /*
