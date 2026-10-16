@@ -24,6 +24,7 @@ bool a2_imageFile(const uint8_t* image, size_t size, const char* name,
                   std::vector<uint8_t>& data);
 bool a2_readFile(A2Disk disk, const char* name, std::vector<uint8_t>& data);
 U4FILE* a2_open(const char* spec);
+bool a2_haveDisks();
 void a2_close();
 
 #endif

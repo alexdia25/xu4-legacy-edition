@@ -30,7 +30,8 @@ enum ModInfoValues
     MI_RULES,
     MI_VERSION,
 
-    MI_COUNT
+    MI_COUNT,
+    MI_REQUIRES = MI_COUNT  // Optional; not present in older modules.
 };
 
 #ifdef __cplusplus

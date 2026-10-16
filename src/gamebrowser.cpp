@@ -1,7 +1,9 @@
 #include <math.h>
 #include <cstring>
 #include <algorithm>
+#include <string>
 
+#include "a2disk.h"
 #include "config.h"
 #include "docreader.h"
 #include "event.h"
@@ -243,6 +245,55 @@ static bool isExtensionOf(const char* name, const char* /*version*/,
     return (pver && memcmp(name, rules, pver - rules) == 0);
 }
 
+/*
+ * Return true if the game data named in the module "requires" string is
+ * present.  Each space separated item is "apple2" (the Ultima IV Apple II
+ * disk images) or a file name looked for in the resource paths.
+ */
+static bool hasRequiredData(const StringTable* modi)
+{
+    if (modi->used <= MI_REQUIRES)
+        return true;
+
+    int len;
+    const char* it  = sst_stringL(modi, MI_REQUIRES, &len);
+    const char* end = it + len;
+    while (it != end) {
+        if (*it == ' ') {
+            ++it;
+            continue;
+        }
+        const char* start = it;
+        while (it != end && *it != ' ')
+            ++it;
+        std::string item(start, it - start);
+
+        if (item == "apple2") {
+            if (! a2_haveDisks())
+                return false;
+        } else if (item == "u4upgrad.zip") {
+            if (! u4isUpgradeAvailable())
+                return false;
+        } else if (u4find_path(item.c_str(), NULL).empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+ * Return true if the game data that a module file requires is present.
+ */
+bool moduleDataFound(const char* modulePath)
+{
+    StringTable modi;
+    sst_init(&modi, 5, 80);
+    bool found = (mod_query(modulePath, &modi) == MOD_UNKNOWN) ||
+                 hasRequiredData(&modi);
+    sst_free(&modi);
+    return found;
+}
+
 //#define TEST_LIST
 #ifdef TEST_LIST
 #define TEST_COUNT 6
@@ -379,7 +430,8 @@ static void readModuleList(StringTable* modFiles, StringTable* modFormat,
             info.category = mod_query(modulePath, &info.modi);
             info.parent   = NO_PARENT;
 
-            if (info.category == MOD_UNKNOWN)
+            // Modules are only listed if the game data they need is found.
+            if (info.category == MOD_UNKNOWN || ! hasRequiredData(&info.modi))
                 sst_free(&info.modi);
             else
                 infoList.push_back(info);

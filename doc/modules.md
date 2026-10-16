@@ -121,6 +121,16 @@ previous examples the entry would look like this:
 
     rules: "Quest-for-the-Grail/1.0b"
 
+#### Required Data
+
+The optional `requires` entry names game data that the module reads at run
+time instead of packaging it.  The game browser only lists a module when all
+of it is found.  Items are separated by spaces and are either `apple2` (the
+four Ultima IV Apple II disk images) or a file name, such as `u4upgrad.zip`,
+that is looked for in the same places as `ultima4.zip`.
+
+    requires: "u4upgrad.zip"
+
 #### Module Versions
 
 Versions are declared using strings.  A typical major/minor version should

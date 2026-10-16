@@ -218,6 +218,20 @@ bool a2_readFile(A2Disk disk, const char* name, vector<uint8_t>& data)
  * Open the data of one or more files joined by '+', such as
  * "program/SHP0+SHP1".
  */
+/*
+ * Return true if all four disk images are present.
+ */
+bool a2_haveDisks()
+{
+    if (! searched)
+        findDisks();
+    for (int i = 0; i < A2_DISK_COUNT; ++i) {
+        if (disks[i].empty())
+            return false;
+    }
+    return true;
+}
+
 U4FILE* a2_open(const char* spec)
 {
     static const char* diskNames[A2_DISK_COUNT] = {

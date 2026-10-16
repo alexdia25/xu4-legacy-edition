@@ -9,6 +9,8 @@ struct ModuleInfo {
     uint8_t parent;
 };
 
+bool moduleDataFound(const char* modulePath);
+
 class DocReader;
 struct TxfHeader;
 struct ScreenState;

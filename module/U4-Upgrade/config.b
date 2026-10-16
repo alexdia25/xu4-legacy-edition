@@ -7,6 +7,7 @@ module [
     author: "xu4 team"
     version: "1.0"
     rules: "Ultima-IV/1.4"
+    requires: "u4upgrad.zip"
 ]
 
 include %graphics.b

@@ -7,6 +7,7 @@ module [
     author: "XU4 Legacy Edition"
     version: "0.1"
     rules: "Ultima-IV/1.4"
+    requires: "apple2"
 ]
 
 include %graphics.b

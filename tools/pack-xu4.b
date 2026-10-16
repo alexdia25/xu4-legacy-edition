@@ -492,6 +492,7 @@ modi: context [
 	rules:
 	version:
 		none
+	requires: ""	; Game data the module reads at run time.
 ]
 
 module: func [blk] [do bind blk modi]

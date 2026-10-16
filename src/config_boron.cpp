@@ -1165,6 +1165,8 @@ static int findModule(const char* name, char* path, size_t pathMax) {
 }
 
 // Create Config service.
+bool moduleDataFound(const char* modulePath);   // gamebrowser.cpp
+
 Config* configInit(const char* module, const char* soundtrack) {
     int renderFound, stFound;
     char rpath[512];
@@ -1176,11 +1178,20 @@ Config* configInit(const char* module, const char* soundtrack) {
     if (! findModule(module, mpath, sizeof(mpath)))
         errorFatal("Cannot find module %s", module);
 
+    // Use the default game if the data the module reads is missing.
+    if (! moduleDataFound(mpath)) {
+        fprintf(stderr, "Game data for module %s not found\n", module);
+        if (! findModule("Ultima-IV", mpath, sizeof(mpath)))
+            errorFatal("Cannot find module Ultima-IV");
+    }
+
     stFound = 0;
     if (soundtrack && soundtrack[0] != '\0') {
         stFound = findModule(soundtrack, spath, sizeof(spath));
         if (! stFound)
             errorWarning("Cannot find module %s", soundtrack);
+        else if (! moduleDataFound(spath))
+            stFound = 0;
     }
 
     return new ConfigBoron(renderFound ? rpath : NULL, mpath,
