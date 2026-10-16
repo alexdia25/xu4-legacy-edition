@@ -98,7 +98,7 @@ struct ScreenState {
     int aspectH;
     int aspectX;        // Origin of aspect-correct area on display.
     int aspectY;
-    int16_t cursorX;
+    int16_t cursorX;            // Pixel position
     int16_t cursorY;
     bool cursorVisible;
 };
@@ -137,6 +137,7 @@ void screenPrompt(void);
 void screenRedrawMapArea(void);
 void screenShake(int iterations);
 void screenShowChar(int chr, int x, int y);
+void screenShowCharPixel(int chr, int x, int y);
 void screenTextAt(int x, int y, const char *fmt, ...) PRINTF_LIKE(3, 4);
 void screenTextColor(int color);
 bool screenTileUpdate(TileView *view, const Coords &coords);
@@ -152,6 +153,7 @@ std::vector<MapTile> screenViewportTile(unsigned int width, unsigned int height,
 void screenShowCursor(bool on = true);
 #define screenHideCursor()  screenShowCursor(false)
 void screenSetCursorPos(int x, int y);
+void screenSetCursorPixel(int x, int y);
 
 bool screenToggle3DDungeonView();
 void screenMakeDungeonView();

@@ -624,7 +624,7 @@ bool ReadChoiceController::keyPressed(int key) {
         // If the value is printable, display it
         const ScreenState* ss = screenState();
         if (ss->cursorVisible && key > ' ' && key <= 0x7F)
-            screenShowChar(toupper(key), ss->cursorX, ss->cursorY);
+            screenShowCharPixel(toupper(key), ss->cursorX, ss->cursorY);
         value = key;
         doneWaiting();
         return true;

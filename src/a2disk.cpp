@@ -216,7 +216,8 @@ bool a2_readFile(A2Disk disk, const char* name, vector<uint8_t>& data)
 
 /*
  * Open the data of one or more files joined by '+', such as
- * "program/SHP0+SHP1".
+ * "program/SHP0+SHP1".  A part of a file can be selected with a hexadecimal
+ * offset & length, such as "program/NEWGAME#706,38".
  */
 /*
  * Return true if all four disk images are present.
@@ -255,10 +256,22 @@ U4FILE* a2_open(const char* spec)
         size_t end = names.find('+', start);
         if (end == string::npos)
             end = names.size();
-        if (! a2_readFile(A2Disk(d), names.substr(start, end - start).c_str(),
-                          part))
+        string name(names.substr(start, end - start));
+        size_t off = 0, len = string::npos;
+        size_t hash = name.find('#');
+        if (hash != string::npos) {
+            unsigned long o = 0, l = 0;
+            if (sscanf(name.c_str() + hash + 1, "%lx,%lx", &o, &l) != 2)
+                return NULL;
+            off = o;
+            len = l;
+            name.resize(hash);
+        }
+        if (! a2_readFile(A2Disk(d), name.c_str(), part) || off > part.size())
             return NULL;
-        all.insert(all.end(), part.begin(), part.end());
+        if (len > part.size() - off)
+            len = part.size() - off;
+        all.insert(all.end(), part.begin() + off, part.begin() + off + len);
         start = end + 1;
     }
     return u4fopen_buffer(all.data(), all.size());

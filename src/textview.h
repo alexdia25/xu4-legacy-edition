@@ -45,6 +45,8 @@ public:
     int cursorX() const { return _cursorX; }
     int cursorY() const { return _cursorY; }
     int columns() const { return _cols; }
+    int charWidth() const { return _charW; }
+    void setCharWidth(int w);
 
     void drawChar(int chr, int x, int y);
     void drawCharMasked(int chr, int x, int y, uint8_t mask);
@@ -69,6 +71,7 @@ protected:
     void syncCursorPos();
 
     uint16_t _cols, _rows;      // size of the view in character cells
+    uint8_t _charW;             // character cell width in pixels
     int16_t _cursorX, _cursorY; // current position of cursor
     uint8_t colorBG;
     uint8_t colorFG;

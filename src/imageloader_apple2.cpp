@@ -16,6 +16,8 @@
  *             stored column by column from the bottom right.
  *   a2cards   The eight 70x112 virtue cards (row by row, 10 bytes per row),
  *             placed side by side.
+ *   a2sprite  Bytes drawn row by row, 'width' bytes per row, starting at an
+ *             even screen column.
  *
  * Screens & pictures are put at the top center of a 320x200 image (x 20)
  * so that they line up with the 320x200 layout of the DOS screens.
@@ -228,7 +230,21 @@ static Image* a2Packed(const std::vector<uint8_t>& data)
     return a2Screen(page.data(), 144);
 }
 
-static Image* loadImage_apple2(U4FILE* file, int ftype)
+static Image* a2Sprite(const std::vector<uint8_t>& data, int cols)
+{
+    if (cols < 1 || data.size() < size_t(cols))
+        return NULL;
+    std::vector<uint8_t> row;
+    int rows = data.size() / cols;
+    Image* img = Image::create(cols * 7, rows);
+    for (int y = 0; y < rows; ++y) {
+        a2DecodeRow(data.data() + y * cols, cols, 0, row);
+        a2PutRow(img, 0, y, row);
+    }
+    return img;
+}
+
+static Image* loadImage_apple2(U4FILE* file, int ftype, int width)
 {
     std::vector<uint8_t> data(file->length());
     data.resize(file->read(data.data(), 1, data.size()));
@@ -245,6 +261,8 @@ static Image* loadImage_apple2(U4FILE* file, int ftype)
             return a2Packed(data);
         case FTYPE_A2CARDS:
             return a2Cards(data);
+        case FTYPE_A2SPRITE:
+            return a2Sprite(data, width);
     }
     return NULL;
 }

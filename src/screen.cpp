@@ -846,8 +846,7 @@ static void screenUploadCursor(Screen* sp, uint32_t stex) {
     Image32 cimg;
     cimg.pixels = charset->pixels + (cdim * cdim * cursorChar);
     cimg.w = cimg.h = cdim;
-    gpu_blitTexture(stex, sp->state.cursorX * cdim, sp->state.cursorY * cdim,
-                    &cimg);
+    gpu_blitTexture(stex, sp->state.cursorX, sp->state.cursorY, &cimg);
 }
 
 void screenRender() {
@@ -958,15 +957,23 @@ void screenTextColor(int color) {
  */
 void screenShowChar(int chr, int x, int y) {
     Image* charset = XU4_SCREEN->charsetInfo->image;
+    screenShowCharPixel(chr, x * charset->width(), y * CHAR_HEIGHT);
+}
+
+/**
+ * Draw a character from the charset onto the screen at a pixel position.
+ */
+void screenShowCharPixel(int chr, int x, int y) {
+    Image* charset = XU4_SCREEN->charsetInfo->image;
     int charW = charset->width();
     int charH = CHAR_HEIGHT;
     int colorFG = XU4_SCREEN->colorFG;
 
     if (colorFG == FONT_COLOR_INDEX(FG_WHITE)) {
-        charset->drawSubRect(x * charW, y * charH,
+        charset->drawSubRect(x, y,
                              0, chr * charH, charW, charH);
     } else {
-        charset->drawLetter(x * charW, y * charH,
+        charset->drawLetter(x, y,
                             0, chr * charH, charW, charH,
                             (chr < ' ') ? NULL : fontColor + colorFG,
                             fontColor + FONT_COLOR_INDEX(BG_NORMAL));
@@ -1051,6 +1058,13 @@ void screenShowCursor(bool on) {
 }
 
 void screenSetCursorPos(int x, int y) {
+    screenSetCursorPixel(x * CHAR_WIDTH, y * CHAR_HEIGHT);
+}
+
+/*
+ * Position the cursor in screen pixels.
+ */
+void screenSetCursorPixel(int x, int y) {
     Screen* scr = XU4_SCREEN;
     scr->state.cursorVisible = true;
     scr->state.cursorX = x;

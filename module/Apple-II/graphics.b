@@ -215,10 +215,14 @@ graphics: [
     image (name: wagon filename: "a2/program/WAGN.SPK" filetype: a2spk)
     image (name: gypsy filename: "a2/program/GYPS.SPK" filetype: a2spk)
     image (name: abacus filename: "a2/program/TABL.SPK" filetype: a2spk) [
-        whitebead 123,17,   6,14 ; Part of the abacus frame
-        blackbead   0, 0,   7,14 ; Black margin
         bead_pos  132,17,   7,16
         card_pos   34,16, 182, 1
+    ]
+    ; The bead shapes from NEWGAME (white even/odd, black even/odd columns).
+    image (name: beads filename: "a2/program/NEWGAME#706,38"
+           filetype: a2sprite width: 1) [
+        whitebead 0, 0, 7,14
+        blackbead 0,28, 7,14
     ]
     image (name: cards1 filename: "a2/program/CRDS" filetype: a2cards) [
         honestycard        0,0, 70,112

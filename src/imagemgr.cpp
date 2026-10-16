@@ -198,19 +198,8 @@ void ImageMgr::fixupApple2Intro(Image *im) {
         im->fillRect(ax + sigData[i], 0xBF - sigData[i+1], 2, 1,
                      255, 255, 255);
 
-    // Widen the map window frame to the DOS size (x 0-319) so that the
-    // intro menu text, which uses 8 pixel wide characters, fits inside.
-    // The Apple frame is 279 pixels wide at x 20.
-    im->drawSubRectOn(im,   1, 96, ax,       96, 7, 96);    // Left side
-    im->drawSubRectOn(im, 312, 96, ax + 273, 96, 6, 96);    // Right side
-    for (int x = 8; x < 312; x += 16) {
-        int w = (x + 16 > 312) ? 312 - x : 16;
-        im->drawSubRectOn(im, x,  96, 160,  96, w, 8);       // Top
-        im->drawSubRectOn(im, x, 184, 160, 184, w, 8);       // Bottom
-    }
-
     // Clear the map window, where the intro map is drawn.
-    im->fillRect(8, 104, 304, 80, 0, 0, 0);
+    im->fillRect(ax + 7, 104, 266, 80, 0, 0, 0);
 }
 
 /*
@@ -397,6 +386,19 @@ ImageInfo *ImageMgr::get(Symbol name) {
         return info;
 
     return load(info);
+}
+
+/**
+ * Return the fixup of an image without loading it.
+ */
+int ImageMgr::imageFixup(Symbol name) const {
+    if (baseSet) {
+        std::map<Symbol, ImageInfo *>::const_iterator it =
+            baseSet->info.find(name);
+        if (it != baseSet->info.end() && it->second)
+            return it->second->fixup;
+    }
+    return FIXUP_NONE;
 }
 
 #ifdef CONF_MODULE

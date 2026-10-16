@@ -387,6 +387,19 @@ bool IntroController::init() {
     objectStateTable = new IntroObjectState[IntroBinData::INTRO_BASETILE_TABLE_SIZE];
 #endif
 
+    // The Apple II title has a narrower map frame which fits the text
+    // only when using the 7 pixel wide Apple font.
+    {
+    bool a2 = (xu4.imageMgr->imageFixup(BKGD_INTRO) == FIXUP_APPLE2INTRO);
+    int cw = a2 ? 7 : CHAR_WIDTH;
+    menuArea.x         = a2 ? 20 + 7 : 1 * CHAR_WIDTH;
+    extendedMenuArea.x = a2 ? 20 + 14 : 2 * CHAR_WIDTH;
+    questionArea.x     = a2 ? 20 : INTRO_TEXT_X * CHAR_WIDTH;
+    menuArea.setCharWidth(cw);
+    extendedMenuArea.setCharWidth(cw);
+    questionArea.setCharWidth(cw);
+    }
+
     backgroundArea.reinit();
     menuArea.reinit();
     extendedMenuArea.reinit();
@@ -781,12 +794,13 @@ void IntroController::drawAbacusBeads(int row, int selectedVirtue, int rejectedV
     ASSERT(selectedVirtue < 8 && selectedVirtue >= 0, "invalid virtue: %d", selectedVirtue);
     ASSERT(rejectedVirtue < 8 && rejectedVirtue >= 0, "invalid virtue: %d", rejectedVirtue);
 
-    const SubImage* pos = abacusImg->subImages + beadSub[2];
+    const SubImage* pos = abacusImg->subImages + beadPosSub;
     int y = pos->y + (row * pos->height);
     Image::enableBlend(1);
-    backgroundArea.draw(abacusImg, beadSub[0],  // whitebead
+    // The beads are found by name; they need not be part of the abacus.
+    backgroundArea.draw(xu4.config->intern("whitebead"),
                         pos->x + (selectedVirtue * pos->width), y);
-    backgroundArea.draw(abacusImg, beadSub[1],  // blackbead
+    backgroundArea.draw(xu4.config->intern("blackbead"),
                         pos->x + (rejectedVirtue * pos->width), y);
     Image::enableBlend(0);
 }
@@ -843,7 +857,7 @@ void IntroController::updateScreen() {
         drawBeasties();
 
         // draw the cursor last
-        screenSetCursorPos(24, 16);
+        menuArea.setCursorPos(23, 3);
         break;
 
     default:
@@ -1062,14 +1076,12 @@ void IntroController::startQuestions() {
     if (! abacusImg)
         errorLoadImage(BKGD_ABACUS);
 
-    Symbol sym[4];
-    xu4.config->internSymbols(sym, 4, "whitebead blackbead bead_pos card_pos");
-    beadSub[0] = abacusImg->subImageIndex[sym[0]];
-    beadSub[1] = abacusImg->subImageIndex[sym[1]];
-    beadSub[2] = abacusImg->subImageIndex[sym[2]];
+    Symbol sym[2];
+    xu4.config->internSymbols(sym, 2, "bead_pos card_pos");
+    beadPosSub = abacusImg->subImageIndex[sym[0]];
 
     const SubImage* cardPos =
-            abacusImg->subImages + abacusImg->subImageIndex[sym[3]];
+            abacusImg->subImages + abacusImg->subImageIndex[sym[1]];
 
     const vector<string>& gypsyText = binData->introGypsy;
     int i1, i2, n;

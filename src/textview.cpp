@@ -20,6 +20,7 @@ TextView::TextView(int x, int y, int columns, int rows)
     : View(x, y, columns * CHAR_WIDTH, rows * CHAR_HEIGHT) {
     _cols = columns;
     _rows = rows;
+    _charW = CHAR_WIDTH;
     _cursorX = 0;
     _cursorY = 0;
     colorFG = FONT_COLOR_INDEX(FG_WHITE);
@@ -29,6 +30,14 @@ TextView::TextView(int x, int y, int columns, int rows)
 
     if (charset == NULL)
         charset = xu4.imageMgr->get(BKGD_CHARSET)->image;
+}
+
+/*
+ * Set the width of the character cells.  The Apple II font is 7 pixels wide.
+ */
+void TextView::setCharWidth(int w) {
+    _charW = w;
+    width = _cols * w;
 }
 
 void TextView::reinit() {
@@ -79,10 +88,10 @@ void TextView::drawChar(int chr, int x, int y) {
     ASSERT(x < _cols, "x value of %d out of range", x);
     ASSERT(y < _rows, "y value of %d out of range", y);
 
-    charset->drawLetter(this->x + (x * CHAR_WIDTH),
+    charset->drawLetter(this->x + (x * _charW),
                         this->y + (y * CHAR_HEIGHT),
                         0, chr * CHAR_HEIGHT,
-                        CHAR_WIDTH, CHAR_HEIGHT,
+                        _charW, CHAR_HEIGHT,
                         (chr < ' ') ? NULL : fontColor + colorFG,
                         fontColor + colorBG);
 }
@@ -95,11 +104,11 @@ void TextView::drawChar(int chr, int x, int y) {
  */
 void TextView::drawCharMasked(int chr, int x, int y, uint8_t mask) {
     drawChar(chr, x, y);
-    int mx = this->x + (x * CHAR_WIDTH);
+    int mx = this->x + (x * _charW);
     int my = this->y + (y * CHAR_HEIGHT);
     for (int i = 0; i < 8; i++) {
         if (mask & (1 << i))
-            xu4.screenImage->fillRect(mx, my + i, CHAR_WIDTH, 1, 0, 0, 0);
+            xu4.screenImage->fillRect(mx, my + i, _charW, 1, 0, 0, 0);
     }
 }
 
@@ -222,7 +231,7 @@ void TextView::scroll() {
 
 void TextView::syncCursorPos()
 {
-    screenSetCursorPos(x / CHAR_WIDTH + _cursorX, y / CHAR_HEIGHT + _cursorY);
+    screenSetCursorPixel(x + _cursorX * _charW, y + _cursorY * CHAR_HEIGHT);
 }
 
 /*
@@ -247,7 +256,7 @@ void TextView::setCursorPos(int x, int y) {
 void TextView::mouseTextPos(int mouseX, int mouseY, int& cx, int& cy) {
     const ScreenState* ss = screenState();
     int scale = ss->aspectH / U4_SCREEN_H;
-    cx = (((mouseX - ss->aspectX) / scale) - x) / CHAR_WIDTH;
+    cx = (((mouseX - ss->aspectX) / scale) - x) / _charW;
     cy = (((mouseY - ss->aspectY) / scale) - y) / CHAR_HEIGHT;
 }
 

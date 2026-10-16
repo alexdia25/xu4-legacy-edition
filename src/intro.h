@@ -225,7 +225,7 @@ private:
     int answerInd;
     int questionRound;
     int questionTree[15];
-    int beadSub[3];
+    int beadPosSub;
     int treeSub[2];
     int beastie1Cycle;
     int beastie2Cycle;
