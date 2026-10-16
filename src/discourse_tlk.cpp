@@ -65,7 +65,8 @@ typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 //    remembered across conversations and saved with the game.
 //  - A few stubs are not the start of any word; those use a fixed table.
 //  - A few chain words are too common to match on their own, so the phrase
-//    that leads to them must be heard (the SMS uses story flags for these).
+//    that leads to them must be heard (the SMS uses story flags for these),
+//    or for keyword 2, keyword 1 asked.
 
 static std::set<std::string> talkHeardWords;     // Saved with the game.
 static std::vector<size_t> lbTopicOrder;         // Lord British's menu.
@@ -135,7 +136,7 @@ static const char* smsFixedWord(const char* stub)
 static const char* smsChainPhrase(const char* stub)
 {
     static const char* table[] = {
-        "one", "one thing",     // Juliet, from Joshua's riddle.
+        "one", "one thing",     // Juliet, after Help or Joshua's riddle.
         NULL
     };
     std::string s(stub);
@@ -248,8 +249,9 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
     }
     const char* phrase = smsChainPhrase(stub);
     if (phrase) {
+        // Keyword 2 is also unlocked by asking keyword 1, the SMS default.
         *display = st->word[k];
-        return talkHeardWords.count(phrase) > 0;
+        return talkHeardWords.count(phrase) > 0 || (k && st->asked[0]);
     }
     if (st->own[k]) {
         *display = st->word[k];
