@@ -192,8 +192,10 @@ struct SmsChain {
 
 // Chain words too common to unlock alone.
 static const SmsChain smsChains[] = {
-    // Juliet's ONE THING, after Joshua's RIDDLE (SMS story flag $3E).
+    // Juliet's ONE THING, after Joshua's RIDDLE or the Shaman of Cove's
+    // JOB (both set SMS story flag $3E).
     { "one", "One Thing", "eight philosophies" },
+    { "one", "One Thing", "one thing" },
     { NULL, NULL, NULL }
 };
 
@@ -383,7 +385,12 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
     const SmsChain* chain = smsChain(stub);
     if (chain) {
         *display = st->word[k];
-        return talkHeardWords.count(chain->trigger) > 0;
+        for (; chain->stub && strcasecmp(chain->stub, smsChain(stub)->stub) == 0;
+             ++chain) {
+            if (talkHeardWords.count(chain->trigger))
+                return true;
+        }
+        return false;
     }
     if (st->own[k]) {
         *display = st->word[k];
