@@ -213,6 +213,8 @@ static void initResourcePaths(StringTable* st) {
     home = getenv("LOCALAPPDATA");
     if (home && home[0])
         sst_appendCon(st, home, "\\xu4");
+    // Default install directory of the free GOG release.
+    sst_append(st, "C:\\GOG Games\\Ultima 4 - Quest of the Avatar", -1);
 #else
     home = getenv("HOME");
     if (home && home[0]) {

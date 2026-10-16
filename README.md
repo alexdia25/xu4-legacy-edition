@@ -127,7 +127,8 @@ out of the zipfile.  To use it select the U4-Upgrade module.
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
  - On Linux: `$HOME/.local/share/xu4`, `/usr/share/xu4` & `/usr/local/share/xu4`
- - On Windows: `%LOCALAPPDATA%\xu4`
+ - On Windows: `%LOCALAPPDATA%\xu4` & `C:\GOG Games\Ultima 4 - Quest of the Avatar`
+   (where the GOG release installs by default)
 
 The DOS game zipfiles (ultima4.zip & u4upgrad.zip) don't need to be unpacked,
 but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
