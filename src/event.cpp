@@ -1198,7 +1198,16 @@ bool EventHandler::globalKeyHandler(int key) {
         return true;
 
     case U4_PAD_START:
-        xu4_selectGame();   // Same menu as Escape on the keyboard.
+        xu4.eventHandler->togglePause();
+        return true;
+
+    case U4_PAD_SELECT:
+        // Same menu as Escape on the keyboard.  Pressed again it closes
+        // the menu (or the document reader opened from it).
+        if (screenLayerUsed(LAYER_TOP_MENU))
+            xu4.eventHandler->setControllerDone(true);
+        else
+            xu4_selectGame();
         return true;
 
 #if defined(MACOSX)

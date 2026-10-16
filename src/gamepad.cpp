@@ -38,7 +38,7 @@ static int buttonKey(int b) {
         case PAD_B:     return U4_PAD_B;
         case PAD_X:     return U4_SPACE;
         case PAD_Y:     return 'z';         // Ztats
-        case PAD_BACK:  return U4_ESC;
+        case PAD_BACK:  return U4_PAD_SELECT;
         case PAD_START: return U4_PAD_START;
         case PAD_UP:    return U4_UP;
         case PAD_DOWN:  return U4_DOWN;

@@ -12,7 +12,8 @@ especially for someone who has just downloaded the free release from
 [GOG].  Planned and in-progress work:
 
  - **Controller support.**  A platform independent gamepad layer, with a
-   new SDL3 backend (`./configure --sdl3`).
+   new SDL3 backend (`./configure --sdl3`).  The Select (Back, −)
+   button opens and closes the xu4 menu, and Start pauses.
  - **Console style menus.**  An optional interface modelled on the Sega
    Master System version: an action menu instead of one key per command,
    conversation topics that are discovered and listed rather than typed,

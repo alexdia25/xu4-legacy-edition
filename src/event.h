@@ -41,8 +41,9 @@
 #define U4_KEYPAD_ENTER 0x158
 
 // Gamepad buttons which have no keyboard equivalent.
-#define U4_PAD_START    0x1F0
+#define U4_PAD_START    0x1F0   // Pause, like the SMS console button.
 #define U4_PAD_B        0x1F1   // Escape, except on the map or in combat.
+#define U4_PAD_SELECT   0x1F2   // Open or close the xu4 (Escape) menu.
 
 enum InputEventType {
     IE_MOUSE_MOVE,
