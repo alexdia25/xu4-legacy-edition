@@ -171,6 +171,7 @@ bool docsSplit(const string& text, string docs[DOC_COUNT]) {
         history.push_back("                 as told by Kyle the Younger");
         history.push_back(spaces);
     }
+    size_t titleLines = history.size();
     for (size_t i = hist; i < ref; ++i) {
         string u = upperTrim(lines[i]);
         if (u.compare(0, 8, "CHAPTER ") != 0 ||
@@ -178,7 +179,12 @@ bool docsSplit(const string& text, string docs[DOC_COUNT]) {
             history.push_back(lines[i]);
             continue;
         }
-        // Center the chapter number and the title which follows it.
+        // Center the chapter number and the title which follows it, with
+        // one blank line above (except after the title) and below.
+        while (history.size() > titleLines && isBlank(history.back()))
+            history.pop_back();
+        if (history.size() > titleLines)
+            history.push_back(string());
         history.push_back(centerLine(u));
         while (i + 1 < ref && isBlank(lines[i + 1]))
             ++i;
