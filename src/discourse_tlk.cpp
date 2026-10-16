@@ -64,9 +64,9 @@ typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 //    is unlocked once the word has been heard from anyone.  These words are
 //    remembered across conversations and saved with the game.
 //  - A few stubs are not the start of any word; those use a fixed table.
-//  - A few chain words are too common to match on their own, so the phrase
-//    that leads to them must be heard (the SMS uses story flags for these),
-//    or for keyword 2, keyword 1 asked.
+//  - A few chain words are too common to match on their own; these use a
+//    table of the two-word phrase that leads to them, as the SMS does with
+//    its story flags.
 
 static std::set<std::string> talkHeardWords;     // Saved with the game.
 static std::vector<size_t> lbTopicOrder;         // Lord British's menu.
@@ -85,7 +85,30 @@ static bool smsInterface() {
     return EventHandler::smsMenus();
 }
 
-static const char* smsChainPhrase(const char* stub);
+struct SmsChain {
+    const char* stub;
+    const char* word;       // Display word.
+    const char* trigger;    // Two-word phrase that unlocks it.
+};
+
+// Chain words too common to unlock alone.
+static const SmsChain smsChains[] = {
+    // Juliet's ONE THING, after Joshua's RIDDLE (SMS story flag $3E).
+    { "one", "One Thing", "eight philosophies" },
+    { NULL, NULL, NULL }
+};
+
+static const SmsChain* smsChain(const char* stub)
+{
+    std::string s(stub);
+    while (! s.empty() && s[s.size()-1] == ' ')
+        s.erase(s.size()-1);
+    for (const SmsChain* it = smsChains; it->stub; ++it) {
+        if (strcasecmp(it->stub, s.c_str()) == 0)
+            return it;
+    }
+    return NULL;
+}
 
 static void talkHeard(SmsTalk* st, const char* text)
 {
@@ -100,9 +123,11 @@ static void talkHeard(SmsTalk* st, const char* text)
                 talkHeardWords.insert(w);
                 if (st)
                     st->heard.insert(w);
-                const char* phrase = smsChainPhrase(prev.c_str());
-                if (phrase && prev + ' ' + w == phrase)
-                    talkHeardWords.insert(phrase);
+                std::string pair = prev + ' ' + w;
+                for (const SmsChain* it = smsChains; it->stub; ++it) {
+                    if (pair == it->trigger)
+                        talkHeardWords.insert(pair);
+                }
             }
             if (! w.empty())
                 prev.swap(w);
@@ -127,23 +152,6 @@ static const char* smsFixedWord(const char* stub)
     };
     for (const char** it = table; *it; it += 2) {
         if (strcasecmp(it[0], stub) == 0)
-            return it[1];
-    }
-    return NULL;
-}
-
-// Chain words too common to unlock alone, and the phrase that unlocks them.
-static const char* smsChainPhrase(const char* stub)
-{
-    static const char* table[] = {
-        "one", "one thing",     // Juliet, after Help or Joshua's riddle.
-        NULL
-    };
-    std::string s(stub);
-    while (! s.empty() && s[s.size()-1] == ' ')
-        s.erase(s.size()-1);
-    for (const char** it = table; *it; it += 2) {
-        if (strcasecmp(it[0], s.c_str()) == 0)
             return it[1];
     }
     return NULL;
@@ -222,9 +230,8 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
             st->word[k] = fixed;
             continue;
         }
-        if (smsChainPhrase(stub)) {
-            st->word[k] = smsChainPhrase(stub);
-            titleCase(st->word[k]);
+        if (smsChain(stub)) {
+            st->word[k] = smsChain(stub)->word;
             continue;
         }
         for (const int* f = order[k]; *f >= 0; ++f) {
@@ -247,11 +254,10 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
         *display = st->word[k];
         return k ? st->asked[0] : st->askedJob;
     }
-    const char* phrase = smsChainPhrase(stub);
-    if (phrase) {
-        // Keyword 2 is also unlocked by asking keyword 1, the SMS default.
+    const SmsChain* chain = smsChain(stub);
+    if (chain) {
         *display = st->word[k];
-        return talkHeardWords.count(phrase) > 0 || (k && st->asked[0]);
+        return talkHeardWords.count(chain->trigger) > 0;
     }
     if (st->own[k]) {
         *display = st->word[k];
