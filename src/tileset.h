@@ -29,6 +29,7 @@ public:
     Tile* tiles;
     TileRenderData* render;
     uint32_t tileCount;
+    int tileW, tileH;       // Pixel size of map tiles.
     TileNameMap nameMap;
 };
 

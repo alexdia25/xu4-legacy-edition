@@ -25,9 +25,18 @@ using std::vector;
 TileView::TileView(int x, int y, int columns, int rows) : View(x, y, columns * TILE_WIDTH, rows * TILE_HEIGHT) {
     this->columns = columns;
     this->rows = rows;
-    tileWidth  = TILE_WIDTH;
-    tileHeight = TILE_HEIGHT;
     tileset = xu4.config->tileset();
+    tileWidth  = tileset->tileW;
+    tileHeight = tileset->tileH;
+
+    // Tiles of another size are centered in the area laid out for 16x16.
+    if (tileWidth != TILE_WIDTH || tileHeight != TILE_HEIGHT) {
+        this->x += columns * (TILE_WIDTH  - tileWidth) / 2;
+        this->y += rows    * (TILE_HEIGHT - tileHeight) / 2;
+        width  = columns * tileWidth;
+        height = rows * tileHeight;
+        View::reinit();
+    }
     animated = Image::create(tileWidth, tileHeight);
 
 #ifdef GPU_RENDER

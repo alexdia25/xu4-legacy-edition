@@ -520,9 +520,8 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
         // Pre-compute tile UVs.
         if (info->tiles > 1 && info->tileTexCoord == NULL ) {
             // Assuming image is one tile wide.
-            float iwf = (float) unscaled->width();
             float ihf = (float) unscaled->height();
-            float tileH = iwf;
+            float tileH = ihf / info->tiles;
             float tileY = 0.0f;
             float *uv;
             int tileCount = info->tiles;

@@ -52,7 +52,7 @@ jobs:
 
       - name: Build
         run: |
-          make render.pak Ultima-IV.mod U4-Upgrade.mod
+          make render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod
           VERSION=${TAG#legacy-}
           [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
           dist/build-${{ matrix.target }}.sh "$VERSION"

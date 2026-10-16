@@ -774,7 +774,8 @@ void gameSpellEffect(int spell, int player, Sound sound) {
 
     // Invert the screen while the sound plays.
     gameUpdateScreen();
-    xu4.game->mapArea.highlight(0, 0, VIEWPORT_W * TILE_WIDTH, VIEWPORT_H * TILE_HEIGHT);
+    xu4.game->mapArea.highlight(0, 0, xu4.game->mapArea.width,
+                                    xu4.game->mapArea.height);
     EventHandler::wait_msecs(time);
     xu4.game->mapArea.unhighlight();
 

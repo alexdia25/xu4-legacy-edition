@@ -6,6 +6,7 @@
 #include "tileset.h"
 
 #include "error.h"
+#include "u4.h"
 #include "imagemgr.h"
 #include "tileanim.h"
 #include "xu4.h"
@@ -69,6 +70,11 @@ void Tileset::loadImages() {
         for (; it != end; ++it)
             it->loadImage();
 #endif
+        // The module sets the tile size with the first tile.
+        if (ts->tileCount && ts->tiles[0].w > 0) {
+            ts->tileW = ts->tiles[0].w;
+            ts->tileH = ts->tiles[0].h;
+        }
     }
 }
 
@@ -99,6 +105,8 @@ const Tile* Tileset::findTileById(TileId id) {
 }
 
 Tileset::Tileset(int count) : tileCount(0) {
+    tileW = TILE_WIDTH;
+    tileH = TILE_HEIGHT;
     tiles  = new Tile[count];
     render = new TileRenderData[count];
     memset(tiles, 0, sizeof(Tile) * count);

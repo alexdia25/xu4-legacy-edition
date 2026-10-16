@@ -5,7 +5,7 @@
 # Usage: dist/build-windows.sh [version]
 #
 # Needs: x86_64-w64-mingw32-gcc, cmake, curl, unzip, zip & boron (or the
-# modules render.pak, Ultima-IV.mod & U4-Upgrade.mod already built).
+# modules render.pak & the .mod files already built).
 # Dependencies are downloaded to build-win/ in the project directory.
 
 set -e
@@ -89,7 +89,7 @@ mkdir -p ${OUT}
 cp ${SRC}/src/xu4.exe ${OUT}
 cp ${SYS}/bin/SDL3.dll ${SYS}/bin/libvorbisfile-3.dll \
    ${SYS}/bin/libvorbis-0.dll ${SYS}/bin/libogg-0.dll ${OUT}
-for f in render.pak Ultima-IV.mod U4-Upgrade.mod; do
+for f in render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod; do
     [ -f ${TOP}/$f ] || make -s -C ${TOP} $f
     cp ${TOP}/$f ${OUT}
 done

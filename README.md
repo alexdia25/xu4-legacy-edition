@@ -133,6 +133,11 @@ found on the [XU4 Download] page.
 If you have the optional u4upgrad.zip XU4 can read the data files straight
 out of the zipfile.  To use it select the U4-Upgrade module.
 
+The Apple-II module shows the map tiles and text of the original Apple II
+release.  It reads them from the four Ultima IV Apple II disk images (`.dsk`
+files in DOS 3.3 order), which can be put in any of the places below or in
+an `apple2` folder inside one of them.  The DOS game files are still needed.
+
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
  - On Linux: `$HOME/.local/share/xu4`, `/usr/share/xu4` & `/usr/local/share/xu4`

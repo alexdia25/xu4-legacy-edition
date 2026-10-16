@@ -8,7 +8,9 @@
  *             byte of each tile) followed by SHP1 (right byte).  Each file
  *             holds row 0 of all tiles, then row 1, and so on.
  *   a2font    128 text glyphs, 7x8 pixels, stored row by row like shapes.
- *             Each glyph is put in an 8x8 cell.
+ *             Each glyph is put in an 8x8 cell.  The printable characters
+ *             (32-127) replace those of the DOS charset.ega, which keeps the
+ *             symbols the game uses for its own glyphs 0-31.
  *   a2hgr     A full 280x192 HGR screen in Apple memory order.
  *   a2spk     A 280x144 picture packed with run length & pattern codes,
  *             stored column by column from the bottom right.
@@ -112,9 +114,23 @@ static Image* a2Font(const std::vector<uint8_t>& data)
 {
     if (data.size() < 1024)
         return NULL;
-    Image* img = Image::create(8, 8 * 256);
-    img->fill(Image::black);
-    for (int g = 0; g < 128; ++g) {
+
+    int first = 0;
+    Image* img = NULL;
+    U4FILE* dos = u4fopen("charset.ega");
+    if (dos) {
+        img = loadImage_u4(dos, FTYPE_U4RAW, 8, 8 * 256, 4);
+        u4fclose(dos);
+    }
+    if (img) {
+        first = ' ';
+        img->fillRect(0, first * 8, 8, (128 - first) * 8, 0, 0, 0);
+    } else {
+        img = Image::create(8, 8 * 256);
+        img->fill(Image::black);
+    }
+
+    for (int g = first; g < 128; ++g) {
         for (int r = 0; r < 8; ++r) {
             uint8_t b = data[r * 128 + g];
             for (int i = 0; i < 7; ++i) {
