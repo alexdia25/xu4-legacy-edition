@@ -68,6 +68,10 @@ typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 //    is unlocked once the word has been heard from anyone.  These words are
 //    remembered across conversations and saved with the game.
 //  - A few stubs are not the start of any word; those use a fixed table.
+//  - Where the DOS text gives a different order than the SMS, a table of
+//    people gives the topics that unlock the keyword in the SMS.  The DOS
+//    keywords and replies are kept; only when they are offered changes.
+//  - The DOS placeholder keyword "A" (no reply) is never offered.
 //  - A few chain words are too common to match on their own; these use a
 //    table of the two-word phrase that leads to them, as the SMS does with
 //    its story flags.
@@ -84,12 +88,100 @@ struct SmsTalk {
     bool askedJob;
     bool askedLook;
     bool answered;                  // The NPC's question was answered.
+    int askedMask;                  // TK_* topics asked this conversation.
+    int unlockMask[2];              // TK_* topics that unlock (0 = rules).
     bool replied;                   // A reply is on screen.
     int lastPick;
 };
 
 static bool smsInterface() {
     return EventHandler::smsMenus();
+}
+
+enum TalkTopicBit {
+    TK_NAME   = 0x01,
+    TK_LOOK   = 0x02,
+    TK_JOB    = 0x04,
+    TK_HEALTH = 0x08,
+    TK_KW1    = 0x10,
+    TK_KW2    = 0x20,
+    TK_YES    = 0x40,
+    TK_NO     = 0x80
+};
+
+struct SmsUnlock {
+    const char* name;       // DOS name (newlines as spaces).
+    const char* stub;       // DOS keyword.
+    int topics;             // Any of these topics asked unlocks it.
+};
+
+// People whose keyword the SMS unlocks after a different topic than the
+// DOS text would suggest (from the SMS unlock pairs).
+static const SmsUnlock smsUnlocks[] = {
+    { "Juliet", "HELP", TK_LOOK },
+    { "Le Chef", "FOOD", TK_JOB },
+    { "a nameless prisoner", "PRIS", TK_NAME },
+    { "a guard", "CAST", TK_JOB },
+    { "Estro", "REAS", TK_JOB },
+    { "Shylock the Meek", "BEG", TK_JOB },
+    { "Benjamin", "COMP", TK_JOB },
+    { "Deirdre", "JUST", TK_JOB },
+    { "Thomas", "SACR", TK_JOB },
+    { "the gate guard.", "GUAR", TK_KW1 },
+    { "Patric the Humble Shepherd", "HUMB", TK_NAME },
+    { "Shazom", "DIE", TK_HEALTH },
+    { "Daranor", "SUN", TK_JOB },
+    { "Tyrone", "USE", TK_YES },
+    { "Joe", "RUM", TK_JOB },
+    { "Sprite", "BEG", TK_JOB },
+    { "Bengrod", "ROOM", TK_KW1 },
+    { "Luke", "YEW", TK_KW1 },
+    { "Short Round", "QUES", TK_JOB },
+    { "Singsong", "SONG", TK_JOB },
+    { "Publius", "NOTH", TK_KW1 },
+    { "Slim", "PRID", TK_NO },
+    { "Sven", "AXE", TK_KW1 },
+    { "Sal", "ALE", TK_JOB },
+    { "Brigant", "IT", TK_HEALTH },
+    { "Guard", "UG", TK_JOB | TK_HEALTH },
+    { "Mentorian", "GATE", TK_KW1 },
+    { "Shaman", "CODE", TK_JOB },
+    { "Charm", "KEY", TK_JOB },
+    { "Charm", "AXIO", TK_JOB },
+    { NULL, NULL, 0 }
+};
+
+// Compare ignoring case, treating newlines as spaces and ignoring
+// trailing spaces.
+static bool smsSameText(const char* a, const char* b)
+{
+    for (;;) {
+        int ca = (*a == '\n') ? ' ' : tolower((unsigned char) *a);
+        int cb = (*b == '\n') ? ' ' : tolower((unsigned char) *b);
+        if (! ca || ! cb) {
+            while (*a == ' ') ++a;
+            while (*b == ' ') ++b;
+            return ! *a && ! *b;
+        }
+        if (ca != cb)
+            return false;
+        ++a;
+        ++b;
+    }
+}
+
+static int smsUnlockTopics(const char* name, const char* stub)
+{
+    for (const SmsUnlock* it = smsUnlocks; it->name; ++it) {
+        if (smsSameText(it->name, name) && smsSameText(it->stub, stub))
+            return it->topics;
+    }
+    return 0;
+}
+
+static bool smsPlaceholder(const char* stub)
+{
+    return smsSameText(stub, "a");
 }
 
 struct SmsChain {
@@ -226,17 +318,20 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
     st->askedJob = false;
     st->askedLook = false;
     st->answered = false;
+    st->askedMask = 0;
     st->replied = false;
     st->lastPick = 1;
     for (int k = 0; k < 2; ++k) {
         st->asked[k] = false;
         st->own[k] = false;
         st->source[k] = -1;
+        st->unlockMask[k] = 0;
         st->word[k].clear();
 
         const char* stub = func(ts, DS_TOPIC1 + k, NULL);
         if (! stub || ! stub[0])
             continue;
+        st->unlockMask[k] = smsUnlockTopics(func(ts, DS_NAME, NULL), stub);
         const char* fixed = smsFixedWord(stub);
         if (fixed) {
             st->word[k] = fixed;
@@ -254,6 +349,20 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
                 break;
             }
         }
+        if (st->unlockMask[k] && st->word[k].empty()) {
+            // Not in the text the rules look at; try the replies too.
+            static const int all[] = {
+                DS_TEXT_R1, DS_TEXT_R2, DS_TEXT_YES, DS_TEXT_NO, -1
+            };
+            for (const int* f = all; *f >= 0 && st->word[k].empty(); ++f)
+                st->word[k] = findWord(func(ts, *f, NULL), stub);
+            if (st->word[k].empty()) {
+                st->word[k] = stub;
+                while (! st->word[k].empty() && st->word[k].back() == ' ')
+                    st->word[k].pop_back();
+                titleCase(st->word[k]);
+            }
+        }
     }
 }
 
@@ -261,8 +370,12 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
                              int k, std::string* display)
 {
     const char* stub = func(ts, DS_TOPIC1 + k, NULL);
-    if (! stub || ! stub[0])
+    if (! stub || ! stub[0] || smsPlaceholder(stub))
         return false;
+    if (st->unlockMask[k]) {
+        *display = st->word[k];
+        return (st->askedMask & st->unlockMask[k]) != 0;
+    }
     if (smsFixedWord(stub)) {
         *display = st->word[k];
         return k ? st->asked[0] : st->askedJob;
@@ -324,12 +437,17 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
     int t = topicOf[n];
     if (t >= 0) {
         st->asked[t] = true;
+        st->askedMask |= t ? TK_KW2 : TK_KW1;
         return std::string(func(ts, DS_TOPIC1 + t, NULL));
     }
     if (t == -4)
         st->askedJob = true;
     else if (t == -3)
         st->askedLook = true;
+    static const int fixedBits[7] = {
+        0, TK_NAME, TK_LOOK, TK_JOB, TK_HEALTH, 0, 0
+    };
+    st->askedMask |= fixedBits[-1 - t];
     std::string in(fixedTopics[-1 - t]);
     in[0] = tolower(in[0]);
     return in;
@@ -394,8 +512,10 @@ static void talkYNResponse(TalkFunc func, TalkState* ts, SmsTalk* st)
 
     const char* reply = func(ts, ans, NULL);
     talkHeard(st, reply);
-    if (st)
+    if (st) {
         st->answered = true;
+        st->askedMask |= (ans == DS_ANSWER_Y) ? TK_YES : TK_NO;
+    }
     screenMessage(reply);
     screenCrLf();
 }
