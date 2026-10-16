@@ -3,8 +3,12 @@
  */
 
 #include <faun.h>
+#include <stdlib.h>
 #include <string.h>
 #include "sound.h"
+
+#include "a2disk.h"
+#include "a2music.h"
 
 #include "config.h"
 #include "context.h"
@@ -12,22 +16,31 @@
 #include "error.h"
 #include "event.h"
 #include "settings.h"
+#include "u4file.h"
 #include "xu4.h"
 
 #define config_soundFile(id)    xu4.config->soundFile(id)
 #define config_musicFile(id)    xu4.config->musicFile(id)
 #define config_voiceParts(id)   xu4.config->voiceParts(id)
 #define BUFFER_LIMIT    SOUND_MAX
-#define SOURCE_LIMIT    8
+#define SOURCE_LIMIT    8       // Sound effect sources.
 #define SID_END         7
-#define SID_SPEECH  SOURCE_LIMIT
-#define SID_MUSIC   SOURCE_LIMIT+1
+#define SID_A2MUSIC SOURCE_LIMIT    // Source for Apple II music.
+#define SID_SPEECH  SOURCE_LIMIT+1
+#define SID_MUSIC   SOURCE_LIMIT+2
+#define BID_A2MUSIC BUFFER_LIMIT    // Two buffers for Apple II music.
+#define A2MUSIC_RATE    44100
+
+// Module music entry naming a tune on the Apple II disks ("disk/FILE:tune").
+#define XU4_A2MUSIC     CDI32(0xDA,0x7A,0xF0,0xA2)
 #define BUFFER_MS_FAILED    1
 
 static int currentTrack;
 static int currentDialog;
 static int musicEnabled;
 static int nextSource;              // Use sources in round-robin order.
+static int musicSid;                // SID_MUSIC or SID_A2MUSIC.
+static int a2MusicBuf;              // Alternates so a playing one is kept.
 static int musicFadeMs;             // Minimizes calls to faun_setParameter.
 static float soundVolume = 0.0f;
 static float musicVolume = 0.0f;
@@ -44,11 +57,13 @@ int soundInit()
     currentTrack = MUSIC_NONE;
     currentDialog = 0;
     nextSource = 0;
+    musicSid = SID_MUSIC;
+    a2MusicBuf = 0;
     musicFadeMs = 0;
     memset(bufferMs, 0, sizeof(bufferMs));
     memset(bufferResGroup, 0, sizeof(bufferResGroup));
 
-    error = faun_startup(BUFFER_LIMIT, SOURCE_LIMIT, 2, 0, "xu4");
+    error = faun_startup(BUFFER_LIMIT + 2, SOURCE_LIMIT + 1, 2, 0, "xu4");
     if (error) {
         errorWarning("Faun: %s", error);
         soundVolume = musicVolume = 0.0f;
@@ -203,6 +218,45 @@ void soundStop() {
     faun_control(0, SOURCE_LIMIT, FC_STOP);
 }
 
+#ifdef CONF_MODULE
+/*
+ * Render a tune from the Apple II disks into the music buffer.
+ */
+static bool music_loadApple2(const CDIEntry* ent, int bi)
+{
+    FILE* fp = fopen(xu4.config->modulePath(ent), "rb");
+    if (! fp)
+        return false;
+    char* text = (char*) cdi_loadPakChunk(fp, ent);
+    fclose(fp);
+    if (! text)
+        return false;
+
+    std::string spec(text, ent->bytes);
+    free(text);
+    size_t colon = spec.find(':');
+    if (colon == std::string::npos)
+        return false;
+    int tune = atoi(spec.c_str() + colon + 1);
+    spec.resize(colon);
+
+    U4FILE* file = a2_open(spec.c_str());
+    if (! file)
+        return false;
+    std::vector<uint8_t> data(file->length());
+    data.resize(file->read(data.data(), 1, data.size()));
+    delete file;
+
+    std::vector<int16_t> samples;
+    if (! a2_renderMusic(data.data(), data.size(), tune, A2MUSIC_RATE,
+                         samples))
+        return false;
+    return faun_loadBufferPcm(bi,
+                              FAUN_FMT_S16 | FAUN_FMT_STEREO | FAUN_FMT_44100,
+                              samples.data(), samples.size() / 2) > 0.0f;
+}
+#endif
+
 /*
  * Start playing a music track.
  *
@@ -218,9 +272,23 @@ static bool music_start(int music, int mode) {
 
 #ifdef CONF_MODULE
     const CDIEntry* ent = config_musicFile(music);
-    if (ent)
-        faun_playStream(SID_MUSIC, xu4.config->modulePath(ent),
-                        ent->offset, ent->bytes, mode);
+    if (ent) {
+        if ((ent->cdi & CDI_MASK_FORMAT) == (XU4_A2MUSIC & CDI_MASK_FORMAT)) {
+            faun_control(musicSid, 1, FC_STOP);
+            musicSid = SID_A2MUSIC;
+            a2MusicBuf ^= 1;
+            if (! music_loadApple2(ent, BID_A2MUSIC + a2MusicBuf))
+                return false;
+            faun_playSource(SID_A2MUSIC, BID_A2MUSIC + a2MusicBuf, mode);
+        } else {
+            if (musicSid != SID_MUSIC) {
+                faun_control(musicSid, 1, FC_STOP);
+                musicSid = SID_MUSIC;
+            }
+            faun_playStream(SID_MUSIC, xu4.config->modulePath(ent),
+                            ent->offset, ent->bytes, mode);
+        }
+    }
 #else
     const char* pathname = config_musicFile(music);
     if (! pathname)
@@ -246,7 +314,7 @@ void musicPlayLocale()
 void musicStop()
 {
     currentTrack = MUSIC_NONE;
-    faun_control(SID_MUSIC, 1, FC_STOP);
+    faun_control(musicSid, 1, FC_STOP);
 }
 
 static void music_setFadePeriod(int msec)
@@ -254,6 +322,7 @@ static void music_setFadePeriod(int msec)
     if (musicFadeMs != msec) {
         musicFadeMs = msec;
         faun_setParameter(SID_MUSIC, 1, FAUN_FADE_PERIOD, msec/1000.0f);
+        faun_setParameter(SID_A2MUSIC, 1, FAUN_FADE_PERIOD, msec/1000.0f);
     }
 }
 
@@ -263,7 +332,7 @@ void musicFadeOut(int msec)
         currentTrack = MUSIC_NONE;
         if (xu4.settings->volumeFades) {
             music_setFadePeriod(msec);
-            faun_control(SID_MUSIC, 1, FC_FADE_OUT);
+            faun_control(musicSid, 1, FC_FADE_OUT);
         } else
             musicStop();
     }
@@ -295,8 +364,10 @@ void musicSetVolume(int volume)
     musicVolume = float(volume) / MAX_VOLUME;
 #if FAUN_VERSION >= 0x000200
     faun_setParameter(SID_MUSIC, 1, FAUN_VOLUME_APPLY, musicVolume);
+    faun_setParameter(SID_A2MUSIC, 1, FAUN_VOLUME_APPLY, musicVolume);
 #else
     faun_setParameter(SID_MUSIC, 1, FAUN_VOLUME, musicVolume);
+    faun_setParameter(SID_A2MUSIC, 1, FAUN_VOLUME, musicVolume);
 #endif
 }
 

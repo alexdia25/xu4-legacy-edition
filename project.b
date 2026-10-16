@@ -143,6 +143,7 @@ exe %xu4 [
 
 	sources_from %src [
 		%a2disk.cpp
+		%a2music.cpp
 		%annotation.cpp
 		%aura.cpp
 		%camp.cpp

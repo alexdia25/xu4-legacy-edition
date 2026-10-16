@@ -633,6 +633,11 @@ process-sound: func [blk app_id] [
 			poke-id app_id ++ n
 			emit-audio app_id join path first tok
 		)
+	  | string! (
+			; A tune on the Apple II disks ("disk/FILE:tune").
+			poke-id app_id ++ n
+			cdi-chunk 0xF0A2 app_id to-binary first tok
+		)
 	  | int! (n: first tok)
 	  | 'path file! (path: terminate join root-path second tok '/')
 	  | 'parts file! (

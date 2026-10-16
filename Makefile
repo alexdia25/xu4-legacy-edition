@@ -10,7 +10,7 @@ endif
 # Note: xu4 is hardcoded to look in /usr & /usr/local only!
 DESTDIR ?= /usr/local
 
-MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod
+MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
 BORON=boron
 REND=module/render
 
@@ -31,6 +31,9 @@ U4-Upgrade.mod: module/U4-Upgrade/*.b
 
 Apple-II.mod: module/Apple-II/*.b
 	$(BORON) -s tools/pack-xu4.b module/Apple-II
+
+Apple-II-Music.mod: module/Apple-II-Music/*.b
+	$(BORON) -s tools/pack-xu4.b module/Apple-II-Music
 
 .PHONY: clean download mod snapshot
 

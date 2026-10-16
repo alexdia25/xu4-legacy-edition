@@ -135,7 +135,8 @@ found on the [XU4 Download] page.
 If you have the optional u4upgrad.zip XU4 can read the data files straight
 out of the zipfile.  To use it select the U4-Upgrade module.
 
-The Apple-II module uses the graphics of the original Apple II release (see
+The Apple-II module uses the graphics of the original Apple II release, and
+the Apple-II-Music soundtrack plays its Mockingboard music (see
 [Apple II Disk Images](#apple-ii-disk-images) below).
 
 XU4 searches for data, modules and zipfiles in the following places:
@@ -150,8 +151,9 @@ but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
 ### Apple II Disk Images
 
 The Apple-II module reads its graphics straight from the disk images of
-Ultima IV for the Apple II.  It is only listed in the Game Module Browser
-when all four disks are found.  The DOS game files are still needed for
+Ultima IV for the Apple II, and the Apple-II-Music soundtrack reads the
+Mockingboard tunes from them.  These are only listed in the Game Module
+Browser when all four disks are found.  The DOS game files are still needed for
 everything else.
 
 The release came on two floppy disks, used on both sides, so there are four

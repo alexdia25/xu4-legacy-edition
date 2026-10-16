@@ -67,7 +67,7 @@ make -s -C ${SRC}/src -j8 xu4 UI=sdl3 \
  -lpulse-simple -lpulse -lvorbisfile -lGL -lpng -lz -lpthread -ldl -lm"
 strip ${SRC}/src/xu4
 
-MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod"
+MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod"
 for f in ${MODULES}; do
     [ -f ${TOP}/$f ] || make -s -C ${TOP} $f
 done
