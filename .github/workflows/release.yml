@@ -1,5 +1,6 @@
-# Build the Windows package and publish it as a GitHub release when a
-# version tag is pushed (or when run by hand from the Actions tab).
+# Build the Windows package and publish it as a GitHub release, either
+# when a legacy-* tag is pushed or when run from the Actions tab with a
+# release name (the tag is then created on the commit that was built).
 
 name: Release
 
@@ -7,6 +8,10 @@ on:
   push:
     tags: ['legacy-*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. legacy-1.1 (leave empty to only build)'
+        required: false
 
 permissions:
   contents: write
@@ -23,17 +28,18 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q mingw-w64 cmake zip
-          curl -sSfL -o /usr/local/bin/boron \
-            https://urlan.sourceforge.net/boron/static/boron-2.1.0-Linux.x86_64 \
-            || sudo curl -sSfL -o /usr/local/bin/boron \
-            https://urlan.sourceforge.net/boron/static/boron-2.1.0-Linux.x86_64
-          sudo chmod +x /usr/local/bin/boron
+          git clone -q --depth 1 -b v2.0.8 https://github.com/0branch/boron /tmp/boron
+          (cd /tmp/boron && ./configure --static && make -j4)
+          sudo cp /tmp/boron/boron /usr/local/bin
 
       - name: Build
         run: |
           make render.pak Ultima-IV.mod U4-Upgrade.mod
-          VERSION=${GITHUB_REF_NAME#legacy-}
-          [ "$GITHUB_REF_TYPE" = tag ] || VERSION=$(git describe --tags --always)
+          TAG=${{ inputs.tag }}
+          [ "$GITHUB_REF_TYPE" = tag ] && TAG=$GITHUB_REF_NAME
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          VERSION=${TAG#legacy-}
+          [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
           dist/build-windows.sh "$VERSION" | tail -1 > zip-path
 
       - uses: actions/upload-artifact@v4
@@ -42,10 +48,10 @@ jobs:
           path: build-win/*.zip
 
       - name: Publish release
-        if: github.ref_type == 'tag'
+        if: env.TAG != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$(cat zip-path)" \
-            --title "XU4 Legacy Edition ${GITHUB_REF_NAME#legacy-}" \
+          gh release create "$TAG" "$(cat zip-path)" --target "$GITHUB_SHA" \
+            --title "XU4 Legacy Edition ${TAG#legacy-}" \
             --notes-file dist/release-notes.md --prerelease
