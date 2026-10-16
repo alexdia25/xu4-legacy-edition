@@ -1,7 +1,7 @@
 # Build the Windows & Linux packages and publish them as a GitHub release,
 # either when a legacy-* tag is pushed or when run from the Actions tab
 # with a release tag (the tag is then created on the commit that was built,
-# or the files are replaced if that release already exists).
+# or the files are replaced and the tag moved if that release already exists).
 
 name: Release
 
@@ -81,6 +81,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
+            # A rebuild from the Actions tab moves the tag to the built commit.
+            if [ "$GITHUB_REF_TYPE" != tag ]; then
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                -f sha="$GITHUB_SHA" -F force=true
+            fi
             gh release upload "$TAG" out/* --clobber
             gh release edit "$TAG" --notes-file dist/release-notes.md
           else
