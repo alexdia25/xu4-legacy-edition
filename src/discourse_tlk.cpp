@@ -247,7 +247,8 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
     }
 
     int start = (st->lastPick < count) ? st->lastPick : 1;
-    int n = EventHandler::chooseItem(items, count, start);
+    // A short scrolling list keeps the last reply on screen above it.
+    int n = EventHandler::chooseItem(items, count, start, 5);
     if (n <= 0)
         return std::string();
     st->lastPick = n;
@@ -345,6 +346,8 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
 
     message("\nYou meet %s\n", DSTRING(DS_LOOK));
     talkHeard(st, DSTRING(DS_LOOK));
+    if (st)
+        st->replied = true;     // Wait before the first menu too.
 
     // 50% of the time they introduce themselves.
     if (xu4_random(2)) {

@@ -1289,9 +1289,28 @@ int EventHandler::readAlphaAction(char lastValidLetter, const char* prompt)
 
 /*
  * Read a single key from a provided list.
+ *
+ * With the console menus the choices are listed in a picker.  If labels is
+ * not NULL it holds a name for each character of choices (by position);
+ * only those with a non-empty label are listed.
  */
-char EventHandler::readChoice(const char* choices)
+char EventHandler::readChoice(const char* choices, const char* const* labels)
 {
+    if (smsMenus() && labels) {
+        const char* items[64];
+        char keys[64];
+        int count = 0;
+        for (int i = 0; choices[i] && count < 64; ++i) {
+            if (labels[i] && labels[i][0]) {
+                keys[count] = choices[i];
+                items[count++] = labels[i];
+            }
+        }
+        if (count > 0) {
+            int n = chooseItem(items, count);
+            return (n < 0) ? U4_ESC : keys[n];
+        }
+    }
     if (smsMenus()) {
         // List the printable choices; control keys are left to the picker.
         char keys[64];

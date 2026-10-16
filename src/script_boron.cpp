@@ -304,7 +304,8 @@ CFUNC(cf_screenMessage)
     This function waits for a single character from the user.
 
     A spec block contains pairs of (char! value) optionally followed by a
-    single default value. If the value is a word! then its bound value is
+    single default value.  A string! may come between the char! and its
+    value to name the choice in the console style menus. If the value is a word! then its bound value is
     returned.
 
     A spec string! contains the valid input characters and one of those will
@@ -349,40 +350,80 @@ CFUNC(inputChoiceS)
     return UR_OK;
 }
 
+// Copy a Latin-1 string! cell to str.
+static void cellString(UThread* ut, const UCell* cell, std::string& str)
+{
+    USeriesIter si;
+    ur_seriesSlice(ut, &si, cell);
+    str.clear();
+    if (! ur_strIsUcs2(si.buf))
+        str.assign(si.buf->ptr.c + si.it, si.end - si.it);
+}
+
 CFUNC(inputChoiceB)
 {
     std::string valid;
+    std::vector<std::string> names;
+    std::vector<const char*> labels;
     UBlockIt bi;
     const UCell* start;
+    const UCell* def = NULL;
+    bool haveLabels = false;
     char ch;
 
     ur_blockIt(ut, &bi, a1);
     start = bi.it;
 
-    // Append all char! to valid string.
-    ur_foreach(bi) {
-        if (ur_is(bi.it, UT_CHAR))
+    // Append all char! to valid string.  A char! may be followed by a
+    // string! label (shown by the console menus) before its value.
+    names.reserve(bi.end - bi.it);
+    for (; bi.it != bi.end; ++bi.it) {
+        if (ur_is(bi.it, UT_CHAR)) {
             valid += ur_char(bi.it);
+            if (bi.it + 1 != bi.end && ur_is(bi.it + 1, UT_STRING)) {
+                ++bi.it;
+                names.push_back(std::string());
+                cellString(ut, bi.it, names.back());
+                haveLabels = true;
+            } else {
+                char key[2] = { (char) toupper(valid.back()), '\0' };
+                names.push_back(key);
+            }
+            if (bi.it + 1 != bi.end)
+                ++bi.it;        // Skip value.
+        } else if (bi.it + 1 == bi.end) {
+            def = bi.it;        // Default value.
+        }
     }
+    for (const std::string& n : names)
+        labels.push_back(n.c_str());
 
     valid += " \015\033";   // Space, CR, ESC.
-    ch = EventHandler::readChoice(valid.c_str());
+    labels.resize(valid.size(), NULL);
+    ch = EventHandler::readChoice(valid.c_str(),
+                                  haveLabels ? labels.data() : NULL);
     screenCrLf();
 
-    bi.it = start;
-    ur_foreach(bi) {
-        if (ur_is(bi.it, UT_CHAR) && ch == ur_char(bi.it)) {
+    for (bi.it = start; bi.it != bi.end; ++bi.it) {
+        if (ur_is(bi.it, UT_CHAR)) {
+            bool match = (ch == ur_char(bi.it));
+            if (bi.it + 1 != bi.end && ur_is(bi.it + 1, UT_STRING))
+                ++bi.it;
             ++bi.it;
-            if (bi.it == bi.end)
-                return ur_error(ut, UR_ERR_SCRIPT,
+            if (match) {
+                if (bi.it == bi.end)
+                    return ur_error(ut, UR_ERR_SCRIPT,
                                 "input-choice expected block after '%c'", ch);
-            goto found;
+                goto found;
+            }
+            if (bi.it == bi.end)
+                break;
         }
     }
 
     // No match for input so use default value if present.
-    if ((bi.end - start) & 1) {
-        bi.it = bi.end - 1;
+    if (def) {
+        bi.it = def;
         goto found;
     }
 

@@ -326,7 +326,7 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
     for (size_t i = 0; i < words.size(); ++i)
         items.push_back(words[i].c_str());
 
-    int n = EventHandler::chooseItem(&items[0], items.size(), *lastPick);
+    int n = EventHandler::chooseItem(&items[0], items.size(), *lastPick, 5);
     if (n <= 0)
         return std::string();
     *lastPick = n;

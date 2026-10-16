@@ -2830,7 +2830,14 @@ static bool mixReagentsForSpellU4(int spell) {
     screenMessage("Reagent: ");
 
     while (xu4.stage == StagePlay) {
-        int choice = EventHandler::readChoice("abcdefgh\n\r \033");
+        // The console menus list the reagents and a choice to finish.
+        static const char* labels[12] = { NULL };
+        if (! labels[0]) {
+            for (int i = 0; i < REAG_MAX; ++i)
+                labels[i] = getReagentName((Reagent) i);
+            labels[9] = "Mix";      // '\r'
+        }
+        int choice = EventHandler::readChoice("abcdefgh\n\r \033", labels);
 
         // done selecting reagents? mix it up and prompt to mix
         // another spell

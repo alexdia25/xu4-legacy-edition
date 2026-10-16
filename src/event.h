@@ -146,7 +146,8 @@ public:
     /* Static user input functions. */
     static int       choosePlayer();
     static int       readAlphaAction(char letter, const char* prompt);
-    static char      readChoice(const char* choices);
+    static char      readChoice(const char* choices,
+                                const char* const* labels = NULL);
     static Direction readDir();
     static int       readInt(int maxlen);
     static const char* readString(int maxlen, const char *extraChars = NULL);

@@ -52,6 +52,22 @@ input-shop: func [msg choices] [
 ]
 
 type: key: name: none
+
+/*
+    Build an input-choice block of the items the party owns, each named for
+    the console menus.  All_items is a block! of (Type Key Name Price)
+    values.  Every item is listed if none is owned.
+*/
+owned-choice: func [all_items /local blk t k n p] [
+    blk: make block! 32
+    foreach [t k n p] all_items [
+        if gt? party t 0 [append blk reduce [k n k]]
+    ]
+    if empty? blk [
+        foreach [t k n p] all_items [append blk reduce [k n k]]
+    ]
+    blk
+]
 item-vars: ['$' price '=' name]
 item-fields: [type key name price]
 inventory: ""
@@ -75,6 +91,7 @@ build-items: func [
         append inventory rejoin [uppercase key ' ' name '^/']
 
         append items mark-sol key
+        append items name       ; Label for the console menus.
         append/block items reduce [
            to-set-word 'type  to-lit-word type
            to-set-word 'name  name
@@ -100,8 +117,8 @@ weapons: context [
             Buy or Sell? 
         }}
         [
-            'b' [vo 2 >> "^/Very Good!" show_inventory]
-            's' [vo 3 >> "^/Excellent! Which^/wouldst " you_sell]
+            'b' "Buy"  [vo 2 >> "^/Very Good!" show_inventory]
+            's' "Sell" [vo 3 >> "^/Excellent! Which^/wouldst " you_sell]
             adieu
         ]
     ]
@@ -220,7 +237,7 @@ weapons: context [
 
     you_sell: [
         >> "^/You sell: "
-        either key: input-choice "bcdefghijklmnop" [
+        either key: input-choice owned-choice all-weapons [
             ; Get item values of selected key char!.
             set item-fields prev find all-weapons key
             sell_weapon
@@ -347,8 +364,8 @@ armor: context [
             Sell? 
         }}
         [
-            'b' [>> "^/Well then," show_inventory]
-            's' [>> "^/What will" you_sell]
+            'b' "Buy"  [>> "^/Well then," show_inventory]
+            's' "Sell" [>> "^/What will" you_sell]
             adieu
         ]
     ]
@@ -448,7 +465,7 @@ armor: context [
 
     you_sell: [
         >> "^/You sell: "
-        either key: input-choice "bcdefgh" [
+        either key: input-choice owned-choice all-armor [
             ; Get item values of selected key char!.
             set item-fields prev find all-armor key
             sell_armor
@@ -644,13 +661,13 @@ tavern: context [
 
     whatll_it_be: [
         input-shop "^/% says: What'll it be, Food er Ale? " [
-            'f' [
+            'f' "Food" [
                 vo 2
                 => "^/Our specialty is =, which costs $gp."
                     ['=' type '$' spec_price]
                 how_many_plates
             ]
-            'a' [
+            'a' "Ale" [
                 either gt? ++ ales_drunk 2 [
                     vo 3
                     => "^/% says: Sorry, you seem to have too many. Bye!^/"
@@ -902,12 +919,12 @@ reagents: context [
     }}
 
     items: [
-        'a' [name: "Sulfur Ash"     type: 'ash      pindex: 1 how_many]
-        'b' [name: "Ginseng"        type: 'ginseng  pindex: 2 how_many]
-        'c' [name: "Garlic"         type: 'garlic   pindex: 3 how_many]
-        'd' [name: "Spider Silk"    type: 'silk     pindex: 4 how_many]
-        'e' [name: "Blood Moss"     type: 'moss     pindex: 5 how_many]
-        'f' [name: "Black Pearl"    type: 'pearl    pindex: 6 how_many]
+        'a' "Sulfur Ash" [name: "Sulfur Ash"     type: 'ash      pindex: 1 how_many]
+        'b' "Ginseng" [name: "Ginseng"        type: 'ginseng  pindex: 2 how_many]
+        'c' "Garlic" [name: "Garlic"         type: 'garlic   pindex: 3 how_many]
+        'd' "Spider Silk" [name: "Spider Silk"    type: 'silk     pindex: 4 how_many]
+        'e' "Blood Moss" [name: "Blood Moss"     type: 'moss     pindex: 5 how_many]
+        'f' "Black Pearl" [name: "Black Pearl"    type: 'pearl    pindex: 6 how_many]
         adieu
     ]
 
@@ -1033,9 +1050,9 @@ healer: context [
     desc: none
 
     items: [
-        'a' [desc: "A curing"     price: 100 type: 'cure      who_needs]
-        'b' [desc: "A healing"    price: 200 type: 'fullheal  who_needs]
-        'c' [desc: "Resurrection" price: 300 type: 'resurrect who_needs]
+        'a' "Curing" [desc: "A curing"     price: 100 type: 'cure      who_needs]
+        'b' "Healing" [desc: "A healing"    price: 200 type: 'fullheal  who_needs]
+        'c' "Resurrection" [desc: "Resurrection" price: 300 type: 'resurrect who_needs]
         give_blood ;?
     ]
 
@@ -1284,19 +1301,19 @@ guild: context [
     }}
 
     items: [
-        'a' [
+        'a' "Torches" [
             price:  50 quant: 5 type: 'torch
             will_buy? "^/I can give ya # long lasting Torches for a mere $gp."
         ]
-        'b' [
+        'b' "Magic Gems" [
             price:  60 quant: 5 type: 'gem
             will_buy? "^/I've got magical mapping Gems, # for only $gp."
         ]
-        'c' [
+        'c' "Magic Keys" [
             price:  60 quant: 6 type: 'key
             will_buy? "^/Magical Keys, 1 use each, a fair price at $gp for #."
         ]
-        'd' [
+        'd' "" [    ; Not listed.
             price: 900 quant: 1 type: 'sextant
             will_buy? "^/So...Ya want a Sextant...Well I gots one which I might part with fer $ gold!"
         ]
