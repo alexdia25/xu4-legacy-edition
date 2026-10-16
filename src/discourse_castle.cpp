@@ -289,18 +289,28 @@ static void lordBritishHeal(char answer) {
 }
 
 /*
- * SMS style topic menu for Lord British.  Name, Look, Job, Health & Help
- * are always listed; his other keywords are listed once the word has been
- * heard, from him or anyone else.  Each is shown as the full word found in
- * his own text (or heard elsewhere).
+ * SMS style topic menu for Lord British.  As in the SMS, Name, Look, Job,
+ * Health & Help are there from the start, each answer adds the topics it
+ * leads to at the bottom of the list, and the list is kept for the rest of
+ * the game.  The SMS links topics with a table; here a topic is added when
+ * his answer mentions it.  Topics he never mentions (Ankh, Pride, Mondain,
+ * Minax & Exodus) are added once the word has been heard from anyone.
+ * Each is shown as the full word found in his own text (or heard elsewhere).
  * Return the input string the DOS logic expects; empty for Bye.
  */
-static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
-                                          int* lastPick)
+static std::vector<std::string> lbWords;
+static std::vector<std::string> lbStubs;
+static std::vector<bool> lbMentioned;   // Word found in another answer.
+
+// Bye, Name, Look & Job (the first four) and Health & Help (the last two)
+// are always shown.
+#define LB_FIXED_END    4
+#define LB_EXTRA_START  (lbWords.size() - 2)
+
+static void lordBritishInitTopics(const U4TalkLordBritish* lb)
 {
-    static std::vector<std::string> words;
-    static std::vector<std::string> stubs;
-    std::vector<const char*> items;
+    std::vector<std::string>& words = lbWords;
+    std::vector<std::string>& stubs = lbStubs;
     const char* strings = lb->strings;
 
     if (words.empty()) {
@@ -311,36 +321,74 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
             if (! stub[0])
                 continue;
             std::string w;
-            for (int t = 0; t < LB_KEY_COUNT && w.empty(); ++t)
-                w = findWord(strings + lb->text[t], stub);
+            bool mentioned = false;
+            for (int t = 0; t < LB_KEY_COUNT; ++t) {
+                std::string found = findWord(strings + lb->text[t], stub);
+                if (found.empty())
+                    continue;
+                if (w.empty())
+                    w = found;
+                if (t != k)
+                    mentioned = true;
+            }
             if (w.empty() && ! heardPrefix(talkHeardWords, stub, &w)) {
                 w = stub;
                 titleCase(w);
             }
             words.push_back(w);
             stubs.push_back(stub);
+            lbMentioned.resize(words.size(), false);
+            lbMentioned[words.size() - 1] = mentioned;
         }
         words.push_back("Health");
         stubs.push_back("heal");
         words.push_back("Help");
         stubs.push_back("help");
+        lbMentioned.resize(words.size(), false);
+    }
+}
+
+static void lordBritishAddTopic(size_t i)
+{
+    talkHeardWords.insert("lb:" + lbStubs[i]);
+    if (std::find(lbTopicOrder.begin(), lbTopicOrder.end(), i) ==
+        lbTopicOrder.end())
+        lbTopicOrder.push_back(i);
+}
+
+// Add the topics that an answer of Lord British leads to.
+static void lordBritishHeard(const U4TalkLordBritish* lb, const char* text)
+{
+    talkHeard(NULL, text);
+    lordBritishInitTopics(lb);
+    for (size_t i = LB_FIXED_END; i < LB_EXTRA_START; ++i) {
+        if (lbMentioned[i] && ! findWord(text, lbStubs[i].c_str()).empty())
+            lordBritishAddTopic(i);
+    }
+}
+
+static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
+                                          int* lastPick)
+{
+    std::vector<const char*> items;
+    std::vector<size_t> index;
+
+    lordBritishInitTopics(lb);
+    for (size_t i = LB_FIXED_END; i < LB_EXTRA_START; ++i) {
+        const std::string& stub = lbStubs[i];
+        // Topics from a loaded game, or heard elsewhere.
+        if (talkHeardWords.count("lb:" + stub) ||
+            (! lbMentioned[i] && heardPrefix(talkHeardWords, stub.c_str(), NULL)))
+            lordBritishAddTopic(i);
     }
 
-    // Bye, Name, Look & Job (the first four) and Health & Help (the last
-    // two) are always shown.
-    const size_t fixedEnd = 4;
-    const size_t extraStart = words.size() - 2;
-    std::vector<size_t> index;
-    for (size_t i = 0; i < words.size(); ++i) {
-        if (i < fixedEnd || i >= extraStart)
-            index.push_back(i);
-    }
-    for (size_t i = fixedEnd; i < extraStart; ++i) {
-        if (heardPrefix(talkHeardWords, stubs[i].c_str(), NULL))
-            index.push_back(i);
-    }
+    for (size_t i = 0; i < LB_FIXED_END; ++i)
+        index.push_back(i);
+    index.push_back(LB_EXTRA_START);
+    index.push_back(LB_EXTRA_START + 1);
+    index.insert(index.end(), lbTopicOrder.begin(), lbTopicOrder.end());
     for (size_t i = 0; i < index.size(); ++i)
-        items.push_back(words[index[i]].c_str());
+        items.push_back(lbWords[index[i]].c_str());
 
     int start = (*lastPick < (int) items.size()) ? *lastPick : 1;
     int n = EventHandler::chooseItem(&items[0], items.size(), start, 5);
@@ -348,7 +396,7 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
         return std::string();
     *lastPick = n;
     screenMessage("%s\n", items[n]);
-    return stubs[index[n]];
+    return lbStubs[index[n]];
 }
 
 static char smsYesNo()
@@ -426,7 +474,6 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
         message("A champion of virtue is called for. Thou may be this champion,"                " but only time shall tell.  I will aid thee any way that I"
                 " can!\n"
                 "How may I help thee?\n");
-        talkHeard(NULL, "A champion of virtue is called for.");
     }
 
     while (xu4.stage == StagePlay) {
@@ -452,7 +499,7 @@ static void runTalkLordBritish(const U4TalkLordBritish* lb)
             if (l < LINE_WELCOME)
                 soundSpeakLine(VOICE_LB, l);
             messageParts(strings + lb->text[k]);
-            talkHeard(NULL, strings + lb->text[k]);
+            lordBritishHeard(lb, strings + lb->text[k]);
         } else if (inputEq("help")) {
             lordBritishHelp();
         } else if (inputEq("heal")) {

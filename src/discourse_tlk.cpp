@@ -1,6 +1,7 @@
 // Discourse for U4 Tlk
 
 #include <set>
+#include <vector>
 #include "game.h"
 #include "party.h"
 #include "screen.h"
@@ -63,8 +64,11 @@ typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 //    is unlocked once the word has been heard from anyone.  These words are
 //    remembered across conversations and saved with the game.
 //  - A few stubs are not the start of any word; those use a fixed table.
+//  - A few chain words are too common to match on their own, so the phrase
+//    that leads to them must be heard (the SMS uses story flags for these).
 
 static std::set<std::string> talkHeardWords;     // Saved with the game.
+static std::vector<size_t> lbTopicOrder;         // Lord British's menu.
 
 struct SmsTalk {
     std::set<std::string> heard;    // Words heard in this conversation.
@@ -80,11 +84,13 @@ static bool smsInterface() {
     return EventHandler::smsMenus();
 }
 
+static const char* smsChainPhrase(const char* stub);
+
 static void talkHeard(SmsTalk* st, const char* text)
 {
     if (! text)
         return;
-    std::string w;
+    std::string w, prev;
     for (const char* cp = text; ; ++cp) {
         if (isalpha((unsigned char) *cp)) {
             w += tolower((unsigned char) *cp);
@@ -93,7 +99,12 @@ static void talkHeard(SmsTalk* st, const char* text)
                 talkHeardWords.insert(w);
                 if (st)
                     st->heard.insert(w);
+                const char* phrase = smsChainPhrase(prev.c_str());
+                if (phrase && prev + ' ' + w == phrase)
+                    talkHeardWords.insert(phrase);
             }
+            if (! w.empty())
+                prev.swap(w);
             w.clear();
             if (! *cp)
                 break;
@@ -115,6 +126,23 @@ static const char* smsFixedWord(const char* stub)
     };
     for (const char** it = table; *it; it += 2) {
         if (strcasecmp(it[0], stub) == 0)
+            return it[1];
+    }
+    return NULL;
+}
+
+// Chain words too common to unlock alone, and the phrase that unlocks them.
+static const char* smsChainPhrase(const char* stub)
+{
+    static const char* table[] = {
+        "one", "one thing",     // Juliet, from Joshua's riddle.
+        NULL
+    };
+    std::string s(stub);
+    while (! s.empty() && s[s.size()-1] == ' ')
+        s.erase(s.size()-1);
+    for (const char** it = table; *it; it += 2) {
+        if (strcasecmp(it[0], s.c_str()) == 0)
             return it[1];
     }
     return NULL;
@@ -193,6 +221,11 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
             st->word[k] = fixed;
             continue;
         }
+        if (smsChainPhrase(stub)) {
+            st->word[k] = smsChainPhrase(stub);
+            titleCase(st->word[k]);
+            continue;
+        }
         for (const int* f = order[k]; *f >= 0; ++f) {
             st->word[k] = findWord(func(ts, *f, NULL), stub);
             if (! st->word[k].empty()) {
@@ -212,6 +245,11 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
     if (smsFixedWord(stub)) {
         *display = st->word[k];
         return k ? st->asked[0] : st->askedJob;
+    }
+    const char* phrase = smsChainPhrase(stub);
+    if (phrase) {
+        *display = st->word[k];
+        return talkHeardWords.count(phrase) > 0;
     }
     if (st->own[k]) {
         *display = st->word[k];
@@ -268,6 +306,7 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
 
 void talkWordsClear() {
     talkHeardWords.clear();
+    lbTopicOrder.clear();
 }
 
 bool talkWordsSave(FILE* fp) {
@@ -280,6 +319,7 @@ bool talkWordsSave(FILE* fp) {
 void talkWordsLoad(FILE* fp) {
     char buf[64];
     talkHeardWords.clear();
+    lbTopicOrder.clear();
     while (fgets(buf, sizeof(buf), fp)) {
         size_t len = strlen(buf);
         while (len && isspace((unsigned char) buf[len-1]))
