@@ -150,6 +150,7 @@ static void setFromRawData(Image *image, int width, int height, int bpp, unsigne
 #include "imageloader_fmtowns.cpp"
 #include "imageloader_png.cpp"
 #include "imageloader_u4.cpp"
+#include "imageloader_apple2.cpp"
 
 
 Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
@@ -167,6 +168,12 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
     case FTYPE_FMTOWNS_PIC:
     case FTYPE_FMTOWNS_TIF:
         return loadImage_fmTowns(file, width, height, bpp);
+
+    case FTYPE_A2SHAPES:
+    case FTYPE_A2FONT:
+    case FTYPE_A2HGR:
+    case FTYPE_A2SPK:
+        return loadImage_apple2(file, ftype);
     }
     return NULL;
 }

@@ -8,6 +8,7 @@
 #include "error.h"
 #include "imageloader.h"
 #include "imagemgr.h"
+#include "a2disk.h"
 #include "intro.h"
 #include "settings.h"
 #include "xu4.h"
@@ -302,6 +303,9 @@ U4FILE * ImageMgr::getImageFile(ImageInfo *info)
     } else if(strncmp(fn, "u4u/", 4) == 0) {
         // Upgrade game data; strip off path.
         file = u4fopen_upgrade(string(fn + 4));
+    } else if (strncmp(fn, "a2/", 3) == 0) {
+        // Apple II disk images; "a2/<disk>/<file>[+<file>]".
+        file = a2_open(fn + 3);
 #ifdef CONF_MODULE
     } else if (isImageChunkId(fn)) {
         const CDIEntry* ent = xu4.config->imageFile(fn);

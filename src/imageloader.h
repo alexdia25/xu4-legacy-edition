@@ -18,6 +18,10 @@ enum ImageFiletype {
     FTYPE_FMTOWNS,
     FTYPE_FMTOWNS_PIC,
     FTYPE_FMTOWNS_TIF,
+    FTYPE_A2SHAPES,
+    FTYPE_A2FONT,
+    FTYPE_A2HGR,
+    FTYPE_A2SPK,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

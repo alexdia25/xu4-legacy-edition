@@ -54,6 +54,7 @@ bool u4isUpgradeInstalled();
 U4FILE *u4fopen(const std::string &fname);
 U4FILE *u4fopen_upgrade(const std::string &fname);
 U4FILE *u4fopen_stdio(const char* fname);
+U4FILE *u4fopen_buffer(const void* data, size_t size);
 void u4fclose(U4FILE *f);
 int u4fseek(U4FILE *f, long offset, int whence);
 long u4ftell(U4FILE *f);

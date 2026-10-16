@@ -532,6 +532,47 @@ U4FILE *u4fopen_stdio(const char* fname) {
 }
 
 /**
+ * A read-only U4FILE holding a copy of some data in memory.
+ */
+class U4FILE_buffer : public U4FILE {
+public:
+    U4FILE_buffer(const void* data, size_t size)
+        : buf((const uint8_t*) data, (const uint8_t*) data + size), pos(0) {}
+
+    virtual void close() {}
+    virtual int seek(long offset, int whence) {
+        long p = (whence == SEEK_SET) ? offset :
+                 (whence == SEEK_CUR) ? pos + offset : (long) buf.size() + offset;
+        if (p < 0 || p > (long) buf.size())
+            return -1;
+        pos = p;
+        return 0;
+    }
+    virtual long tell() { return pos; }
+    virtual size_t read(void *ptr, size_t size, size_t nmemb) {
+        if (size == 0)
+            return 0;
+        size_t n = (buf.size() - pos) / size;
+        if (n > nmemb)
+            n = nmemb;
+        memcpy(ptr, buf.data() + pos, n * size);
+        pos += n * size;
+        return n;
+    }
+    virtual int getc() { return (pos < (long) buf.size()) ? buf[pos++] : EOF; }
+    virtual int putc(int) { return EOF; }
+    virtual long length() { return buf.size(); }
+
+private:
+    vector<uint8_t> buf;
+    long pos;
+};
+
+U4FILE *u4fopen_buffer(const void* data, size_t size) {
+    return new U4FILE_buffer(data, size);
+}
+
+/**
  * Closes a data file from the Ultima 4 for DOS installation.
  */
 void u4fclose(U4FILE *f) {
