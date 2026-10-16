@@ -1,6 +1,7 @@
-# Build the Windows package and publish it as a GitHub release, either
-# when a legacy-* tag is pushed or when run from the Actions tab with a
-# release name (the tag is then created on the commit that was built).
+# Build the Windows & Linux packages and publish them as a GitHub release,
+# either when a legacy-* tag is pushed or when run from the Actions tab
+# with a release tag (the tag is then created on the commit that was built,
+# or the files are replaced if that release already exists).
 
 name: Release
 
@@ -16,18 +17,35 @@ on:
 permissions:
   contents: write
 
+env:
+  TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+
 jobs:
-  windows:
-    runs-on: ubuntu-24.04
+  build:
+    strategy:
+      matrix:
+        target: [windows, linux]
+    # Ubuntu 22.04 keeps the Linux binary compatible with older systems.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: ${{ matrix.target == 'linux' }}
 
       - name: Install tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q mingw-w64 cmake zip
+          if [ "${{ matrix.target }}" = windows ]; then
+            sudo apt-get install -y -q mingw-w64 cmake zip
+          else
+            sudo apt-get install -y -q cmake ninja-build libpng-dev \
+              libvorbis-dev zlib1g-dev libgl1-mesa-dev libegl1-mesa-dev \
+              libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+              libxss-dev libxfixes-dev libxtst-dev libwayland-dev \
+              libxkbcommon-dev libdecor-0-dev libpulse-dev libasound2-dev \
+              libudev-dev libdbus-1-dev libdrm-dev libgbm-dev
+          fi
           git clone -q --depth 1 -b v2.0.8 https://github.com/0branch/boron /tmp/boron
           (cd /tmp/boron && ./configure --static && make -j4)
           sudo cp /tmp/boron/boron /usr/local/bin
@@ -35,23 +53,38 @@ jobs:
       - name: Build
         run: |
           make render.pak Ultima-IV.mod U4-Upgrade.mod
-          TAG=${{ inputs.tag }}
-          [ "$GITHUB_REF_TYPE" = tag ] && TAG=$GITHUB_REF_NAME
-          echo "TAG=$TAG" >> $GITHUB_ENV
           VERSION=${TAG#legacy-}
           [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
-          dist/build-windows.sh "$VERSION" | tail -1 > zip-path
+          dist/build-${{ matrix.target }}.sh "$VERSION"
+          mkdir out
+          cp build-win/*.zip build-linux/*.tar.gz build-linux/*.deb out/ 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: xu4-legacy-windows
-          path: build-win/*.zip
+          name: xu4-legacy-${{ matrix.target }}
+          path: out/*
+
+  publish:
+    needs: build
+    if: ${{ github.ref_type == 'tag' || inputs.tag != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
 
       - name: Publish release
-        if: env.TAG != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$TAG" "$(cat zip-path)" --target "$GITHUB_SHA" \
-            --title "XU4 Legacy Edition ${TAG#legacy-}" \
-            --notes-file dist/release-notes.md --prerelease
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber
+            gh release edit "$TAG" --notes-file dist/release-notes.md
+          else
+            gh release create "$TAG" out/* --target "$GITHUB_SHA" \
+              --title "XU4 Legacy Edition ${TAG#legacy-}" \
+              --notes-file dist/release-notes.md --prerelease
+          fi

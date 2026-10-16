@@ -5,11 +5,23 @@ makes Ultima IV easier to play on modern systems, especially with the free
 ## Getting started (Windows)
 
 1. Install Ultima IV from GOG (free), or have the DOS game files ready.
-2. Unzip this archive anywhere and run `xu4.exe`.
+2. Unzip `xu4-legacy-*-windows.zip` anywhere and run `xu4.exe`.
 
 The game files are found automatically in `C:\GOG Games\Ultima 4 - Quest of
 the Avatar`.  Otherwise put them (or `ultima4.zip`) next to `xu4.exe`, or in
 `%LOCALAPPDATA%\xu4`.
+
+## Getting started (Linux)
+
+- **Archive:** unpack `xu4-legacy-*-linux.tar.gz` and run `./xu4` in that
+  directory, or `./setup install` to install it for all users.
+- **Debian & Ubuntu:** `sudo apt install ./xu4-legacy_*_amd64.deb`
+  (replaces the distribution's xu4 package if installed).
+
+Put the DOS game files (or `ultima4.zip`) in `~/.local/share/xu4`, or in
+the directory xu4 is run from.
+
+The source code is in `xu4-legacy-*.tar.gz`.
 
 ## What's new compared with XU4
 
