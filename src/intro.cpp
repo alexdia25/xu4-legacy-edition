@@ -789,6 +789,32 @@ void IntroController::drawCard(int card, int x, int y) {
 /**
  * Draws the beads in the abacus during the character creation sequence
  */
+/**
+ * Draw a bead in a column of the abacus.  The beads are found by name; they
+ * need not be part of the abacus image.  A bead image may hold a different
+ * bead for each of the 8 columns, side by side.
+ */
+void IntroController::drawBead(const char* name, const SubImage* pos,
+                               int column, int y) {
+    const SubImage* bead;
+    Symbol sym = xu4.config->intern(name);
+    const ImageInfo* info = xu4.imageMgr->imageInfo(sym, &bead);
+    if (! info || ! bead) {
+        errorLoadImage(sym);
+        return;
+    }
+
+    int w = bead->width;
+    int sx = bead->x;
+    if (w >= 8 * pos->width) {
+        w /= 8;
+        sx += column * w;
+    }
+    info->image->drawSubRect(backgroundArea.x + pos->x + column * pos->width,
+                             backgroundArea.y + y,
+                             sx, bead->y, w, bead->height);
+}
+
 void IntroController::drawAbacusBeads(int row, int selectedVirtue, int rejectedVirtue) {
     ASSERT(row >= 0 && row < 7, "invalid row: %d", row);
     ASSERT(selectedVirtue < 8 && selectedVirtue >= 0, "invalid virtue: %d", selectedVirtue);
@@ -797,11 +823,8 @@ void IntroController::drawAbacusBeads(int row, int selectedVirtue, int rejectedV
     const SubImage* pos = abacusImg->subImages + beadPosSub;
     int y = pos->y + (row * pos->height);
     Image::enableBlend(1);
-    // The beads are found by name; they need not be part of the abacus.
-    backgroundArea.draw(xu4.config->intern("whitebead"),
-                        pos->x + (selectedVirtue * pos->width), y);
-    backgroundArea.draw(xu4.config->intern("blackbead"),
-                        pos->x + (rejectedVirtue * pos->width), y);
+    drawBead("whitebead", pos, selectedVirtue, y);
+    drawBead("blackbead", pos, rejectedVirtue, y);
     Image::enableBlend(0);
 }
 

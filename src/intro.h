@@ -21,6 +21,7 @@
 
 class IntroObjectState;
 class Tile;
+struct SubImage;
 
 /**
  * Binary data loaded from the U4DOS title.exe file.
@@ -123,6 +124,7 @@ private:
     void animateTree(ImageInfo* tree, Symbol frame);
     void drawCard(int card, int x, int y);
     void drawAbacusBeads(int row, int selectedVirtue, int rejectedVirtue);
+    void drawBead(const char* name, const SubImage* pos, int column, int y);
 
     void initQuestionTree();
     bool doQuestion(int answer);

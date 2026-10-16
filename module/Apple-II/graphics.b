@@ -218,11 +218,11 @@ graphics: [
         bead_pos  132,17,   7,16
         card_pos   34,16, 182, 1
     ]
-    ; The bead shapes from NEWGAME (white even/odd, black even/odd columns).
-    image (name: beads filename: "a2/program/NEWGAME#706,38"
-           filetype: a2sprite width: 1) [
-        whitebead 0, 0, 7,14
-        blackbead 0,28, 7,14
+    ; The bead shapes from NEWGAME drawn on the abacus, one for each column.
+    image (name: beads filename: "a2/program/NEWGAME#706,38+TABL.SPK"
+           filetype: a2beads) [
+        whitebead 0, 0, 56,14
+        blackbead 0,14, 56,14
     ]
     image (name: cards1 filename: "a2/program/CRDS" filetype: a2cards) [
         honestycard        0,0, 70,112

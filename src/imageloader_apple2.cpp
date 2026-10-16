@@ -10,14 +10,15 @@
  *   a2font    128 text glyphs, 7x8 pixels, stored row by row like shapes.
  *             Each glyph is put in an 8x8 cell.  The printable characters
  *             (32-127) replace those of the DOS charset.ega, which keeps the
- *             symbols the game uses for its own glyphs 0-31.
+ *             symbols the game uses for its own glyphs 0-31, except for
+ *             the cursor (28-31), which becomes the Apple one.
  *   a2hgr     A full 280x192 HGR screen in Apple memory order.
  *   a2spk     A 280x144 picture packed with run length & pattern codes,
  *             stored column by column from the bottom right.
  *   a2cards   The eight 70x112 virtue cards (row by row, 10 bytes per row),
  *             placed side by side.
- *   a2sprite  Bytes drawn row by row, 'width' bytes per row, starting at an
- *             even screen column.
+ *   a2beads   The four abacus bead shapes (white & black, for even & odd
+ *             columns, 14 bytes each) followed by the packed abacus picture.
  *
  * Screens & pictures are put at the top center of a 320x200 image (x 20)
  * so that they line up with the 320x200 layout of the DOS screens.
@@ -27,6 +28,7 @@
  * its column, and adjacent lit pixels are white.
  */
 
+#include <string.h>
 #include <vector>
 
 enum A2Color {
@@ -117,6 +119,18 @@ static Image* a2Shapes(const std::vector<uint8_t>& data)
     return img;
 }
 
+static void a2PutGlyph(Image* img, const std::vector<uint8_t>& data,
+                       int glyph, int dest)
+{
+    for (int r = 0; r < 8; ++r) {
+        uint8_t b = data[r * 128 + glyph];
+        for (int i = 0; i < 7; ++i) {
+            if ((b >> i) & 1)
+                img->putPixel(i, dest * 8 + r, 255, 255, 255, IM_OPAQUE);
+        }
+    }
+}
+
 static Image* a2Font(const std::vector<uint8_t>& data)
 {
     if (data.size() < 1024)
@@ -137,15 +151,13 @@ static Image* a2Font(const std::vector<uint8_t>& data)
         img->fill(Image::black);
     }
 
-    for (int g = first; g < 128; ++g) {
-        for (int r = 0; r < 8; ++r) {
-            uint8_t b = data[r * 128 + g];
-            for (int i = 0; i < 7; ++i) {
-                if ((b >> i) & 1)
-                    img->putPixel(i, g * 8 + r, 255, 255, 255, IM_OPAQUE);
-            }
-        }
-    }
+    for (int g = first; g < 128; ++g)
+        a2PutGlyph(img, data, g, g);
+
+    // The Apple cursor (glyphs 124-127) also replaces the DOS cursor (28-31).
+    img->fillRect(0, 28 * 8, 8, 4 * 8, 0, 0, 0);
+    for (int g = 0; g < 4; ++g)
+        a2PutGlyph(img, data, 124 + g, 28 + g);
     return img;
 }
 
@@ -211,15 +223,16 @@ static void a2Unpack(const uint8_t* it, const uint8_t* end, int runCode,
     }
 }
 
-static Image* a2Packed(const std::vector<uint8_t>& data)
+// Unpack a picture into an HGR page.
+static bool a2UnpackPage(const uint8_t* data, size_t size,
+                         std::vector<uint8_t>& page)
 {
-    if (data.size() < 2)
-        return NULL;
+    if (size < 2)
+        return false;
     std::vector<uint8_t> bytes;
-    a2Unpack(data.data() + 2, data.data() + data.size(), data[0], data[1],
-             bytes, 0);
+    a2Unpack(data + 2, data + size, data[0], data[1], bytes, 0);
 
-    std::vector<uint8_t> page(8192, 0);
+    page.assign(8192, 0);
     size_t n = 0;
     for (int col = 39; col >= 0; --col) {
         for (int y = 143; y >= 0; --y) {
@@ -227,19 +240,53 @@ static Image* a2Packed(const std::vector<uint8_t>& data)
                 page[a2LineOffset(y) + col] = bytes[n++];
         }
     }
+    return true;
+}
+
+static Image* a2Packed(const std::vector<uint8_t>& data)
+{
+    std::vector<uint8_t> page;
+    if (! a2UnpackPage(data.data(), data.size(), page))
+        return NULL;
     return a2Screen(page.data(), 144);
 }
 
-static Image* a2Sprite(const std::vector<uint8_t>& data, int cols)
+#define A2_BEAD_ROWS    14
+#define A2_BEAD_BYTES   (4 * A2_BEAD_ROWS)
+
+/*
+ * Draw the abacus beads into the abacus picture which follows the bead data,
+ * so that their edges take the colors of the picture around them.  The
+ * result has a white bead for each of the 8 columns, with the black beads
+ * below.
+ */
+static Image* a2Beads(const std::vector<uint8_t>& data)
 {
-    if (cols < 1 || data.size() < size_t(cols))
+    const int firstCol = 0x10;
+    const int top = 17;
+    std::vector<uint8_t> page, row;
+    if (data.size() < A2_BEAD_BYTES ||
+        ! a2UnpackPage(data.data() + A2_BEAD_BYTES,
+                       data.size() - A2_BEAD_BYTES, page))
         return NULL;
-    std::vector<uint8_t> row;
-    int rows = data.size() / cols;
-    Image* img = Image::create(cols * 7, rows);
-    for (int y = 0; y < rows; ++y) {
-        a2DecodeRow(data.data() + y * cols, cols, 0, row);
-        a2PutRow(img, 0, y, row);
+
+    Image* img = Image::create(8 * 7, 2 * A2_BEAD_ROWS);
+    for (int black = 0; black < 2; ++black) {
+        for (int v = 0; v < 8; ++v) {
+            int col = firstCol + v;
+            // White even, white odd, black even, black odd.
+            const uint8_t* bead = data.data() +
+                                  (black * 2 + (col & 1)) * A2_BEAD_ROWS;
+            for (int y = 0; y < A2_BEAD_ROWS; ++y) {
+                uint8_t line[3];
+                memcpy(line, &page[a2LineOffset(top + y) + col - 1], 3);
+                line[1] = bead[y];
+                a2DecodeRow(line, 3, col - 1, row);
+                row.erase(row.begin(), row.begin() + 7);
+                row.resize(7);
+                a2PutRow(img, v * 7, black * A2_BEAD_ROWS + y, row);
+            }
+        }
     }
     return img;
 }
@@ -261,8 +308,8 @@ static Image* loadImage_apple2(U4FILE* file, int ftype, int width)
             return a2Packed(data);
         case FTYPE_A2CARDS:
             return a2Cards(data);
-        case FTYPE_A2SPRITE:
-            return a2Sprite(data, width);
+        case FTYPE_A2BEADS:
+            return a2Beads(data);
     }
     return NULL;
 }
