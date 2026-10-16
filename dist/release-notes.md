@@ -37,6 +37,15 @@ The source code is in `xu4-legacy-*.tar.gz`.
   split into the History, Book of Mystic Wisdom, Hints and Reference
   Card, which can be read from the Docs button of the Escape (Select)
   menu.
+- **Apple II graphics & music.**  With the four Ultima IV Apple II disk
+  images (.dsk, DOS 3.3 order) next to the game files, the Apple-II module
+  shows the Apple title, intro, tiles, font, line drawn dungeons, shrine
+  and ending pictures, and the Apple-II-Music soundtrack plays the
+  Mockingboard tunes.  Both are read from the disks when the game runs.
+  See "Apple II Disk Images" in the README.
+- The module browser has separate Graphics and Music sections, so any
+  soundtrack can go with any graphics, and lists only modules whose game
+  data is present.
 - Point (pixel sharp) scaling is the default video filter.
 
 Gamepad play has not yet been tested widely; please report problems in
