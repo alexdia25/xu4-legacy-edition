@@ -70,6 +70,14 @@ static bool isHintsStart(const string& line) {
     return true;
 }
 
+// Center text in the 60 column layout of the older document files.
+static string centerLine(const string& text) {
+    int pad = (61 - (int) text.size()) / 2;
+    if (pad < 0)
+        pad = 0;
+    return string(pad, ' ') + text;
+}
+
 static string joinLines(const vector<string>& lines, size_t start,
                         size_t end, const char* eol) {
     while (start < end && isBlank(lines[start]))
@@ -145,18 +153,42 @@ bool docsSplit(const string& text, string docs[DOC_COUNT]) {
 
     docs[DOC_WISDOM] = joinLines(lines, 0, hist, eol);
 
-    // The History has no title in some releases.
-    string history = joinLines(lines, hist, ref, eol);
-    if (! contains(upperTrim(history.substr(0, 200)), "HISTORY OF BRITANNIA")) {
-        string title("                  The History of Britannia");
-        title += eol;
-        title += eol;
-        title += "                 as told by Kyle the Younger";
-        title += eol;
-        title += eol;
-        history = title + history;
+    // The History has no title in some releases.  It is given the same
+    // layout as the HISTORY.TXT of older releases, with the chapter
+    // headings centered.
+    vector<string> history;
+    bool titled = false;
+    while (hist < ref && isBlank(lines[hist]))
+        ++hist;
+    for (size_t i = hist; i < ref && i < hist + 6; ++i) {
+        if (contains(upperTrim(lines[i]), "HISTORY OF BRITANNIA"))
+            titled = true;
     }
-    docs[DOC_HISTORY] = history;
+    if (! titled) {
+        string spaces(30, ' ');
+        history.push_back("                  The History of Britannia");
+        history.push_back(spaces);
+        history.push_back("                 as told by Kyle the Younger");
+        history.push_back(spaces);
+    }
+    for (size_t i = hist; i < ref; ++i) {
+        string u = upperTrim(lines[i]);
+        if (u.compare(0, 8, "CHAPTER ") != 0 ||
+            u.find_first_not_of("IVXL", 8) != string::npos) {
+            history.push_back(lines[i]);
+            continue;
+        }
+        // Center the chapter number and the title which follows it.
+        history.push_back(centerLine(u));
+        while (i + 1 < ref && isBlank(lines[i + 1]))
+            ++i;
+        if (i + 1 < ref)
+            history.push_back(centerLine(upperTrim(lines[++i])));
+        history.push_back(string());
+        while (i + 1 < ref && isBlank(lines[i + 1]))
+            ++i;
+    }
+    docs[DOC_HISTORY] = joinLines(history, 0, history.size(), eol);
 
     docs[DOC_KEYBOARD] = joinLines(lines, ref, hints, eol);
 
