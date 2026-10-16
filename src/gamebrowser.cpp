@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "config.h"
+#include "docreader.h"
 #include "event.h"
 #include "image32.h"
 #include "intro.h"
@@ -86,6 +87,7 @@ GameBrowser::GameBrowser()
     listScroll = listScrollTarget = 0.0f;
     psizeList = 20.0f;
     atree = NULL;
+    reader = NULL;
 
     rsize[REGION_PANEL] = ATTR_COUNT * 6 * 100;
     rsize[REGION_POPUP] = ATTR_COUNT * 6 * 300;
@@ -95,6 +97,7 @@ GameBrowser::GameBrowser()
 
 GameBrowser::~GameBrowser()
 {
+    delete reader;
     gpu_freeWorkBuffer(work);
 }
 
@@ -436,14 +439,15 @@ void GameBrowser::layout()
             FONT_N, 0, FONT_VSIZE, 20, LIST_DIM, 32, 9, STORE_AREA,
             FROM_BOTTOM,
             FONT_N, 1, FONT_VSIZE, 22,
-            LAYOUT_H, SPACING_PER, 10, FIX_WIDTH_EM, 50,
+            LAYOUT_H, SPACING_PER, 5, FIX_WIDTH_EM, 52,
+                BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
             LAYOUT_END,
         LAYOUT_END
     };
-    const void* guiData[6];
+    const void* guiData[7];
     const void** data = guiData;
     const ScreenState* ss = screenState();
 
@@ -456,6 +460,7 @@ void GameBrowser::layout()
     *data++ = "xu4 | ";
     *data++ = "Game Modules";
     *data++ = "Play";
+    *data++ = "Docs";
     *data++ = "Quit";
     *data   = "Cancel";
 
@@ -644,11 +649,33 @@ bool GameBrowser::keyPressed(int key)
             }
             return true;
 
+        case 'd':
+        case 'z':       // Gamepad Y
+            soundPlay(SOUND_UI_CLICK);
+            readDocuments();
+            return true;
+
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);
             return true;
     }
     return false;
+}
+
+/*
+ * Show the document reader, then return to the module list.
+ */
+void GameBrowser::readDocuments()
+{
+    if (! reader)
+        reader = new DocReader;
+    xu4.eventHandler->runController(reader);
+
+    // The reader replaced the GUI vertex data & layer.
+    buttonDown = WID_NONE;
+    tipId = WID_NONE;
+    work->dirty = (1 << work->regionCount) - 1;
+    screenSetLayer(LAYER_TOP_MENU, renderBrowser, this);
 }
 
 int GameBrowser::listRowAt(const GuiArea* area, int screenY)
@@ -718,6 +745,9 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
                             switch (hit->wid) {
                             case WI_OK:
                                 keyPressed(U4_ENTER);
+                                break;
+                            case WI_DOCS:
+                                keyPressed('d');
                                 break;
                             case WI_CANCEL:
                                 soundPlay(SOUND_UI_CLICK);

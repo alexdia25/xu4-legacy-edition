@@ -9,6 +9,7 @@ struct ModuleInfo {
     uint8_t parent;
 };
 
+class DocReader;
 struct TxfHeader;
 struct ScreenState;
 struct WorkBuffer;
@@ -27,6 +28,7 @@ public:
     enum Widgets {
         WI_LIST,
         WI_OK,
+        WI_DOCS,
         WI_QUIT,
         WI_CANCEL,
         WI_COUNT
@@ -46,6 +48,7 @@ private:
     uint16_t tipY;
     GuiArea gbox[ WI_COUNT ];
     void* atree;
+    DocReader* reader;
     WorkBuffer* work;
     float listScroll;
     float listScrollTarget;
@@ -54,6 +57,7 @@ private:
     float descenderList;        // List font descender * point size.
     float itemHeightP;
 
+    void readDocuments();
     void selectModule(const GuiArea* area, int y);
     void layout();
     void generateListItems();

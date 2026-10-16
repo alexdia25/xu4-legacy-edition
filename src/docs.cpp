@@ -13,6 +13,7 @@
 #include <vector>
 #include "docs.h"
 #include "filesystem.h"
+#include "settings.h"
 #include "u4file.h"
 #include "xu4.h"
 
@@ -23,8 +24,16 @@ static const char* docNames[DOC_COUNT] = {
     "History.txt", "Wisdom.txt", "Hints.txt", "Keyboard.txt"
 };
 
+static const char* docTitles[DOC_COUNT] = {
+    "History", "Wisdom", "Hints", "Keyboard"
+};
+
 const char* docsFileName(GameDocument doc) {
     return docNames[doc];
+}
+
+const char* docsTitle(GameDocument doc) {
+    return docTitles[doc];
 }
 
 // Return line trimmed of surrounding white space and upper-cased.
@@ -215,6 +224,25 @@ static bool readFile(const string& path, string& text) {
         text.append(buf, n);
     fclose(fp);
     return true;
+}
+
+/*
+ * Read a document from the docs directory of the user path, or from the
+ * separate files of older releases found with the game files.
+ * Return false if the document is not found.
+ */
+bool docsLoad(GameDocument doc, string& text) {
+    text.clear();
+    if (readFile(xu4.settings->getUserPath() + "docs/" + docNames[doc], text))
+        return true;
+
+    string upper(docNames[doc]);
+    for (size_t i = 0; i < upper.size(); ++i)
+        upper[i] = toupper((unsigned char) upper[i]);
+    string path = u4find_path(upper.c_str(), &u4Path.u4ForDOSPaths);
+    if (path.empty())
+        path = u4find_path(docNames[doc], &u4Path.u4ForDOSPaths);
+    return ! path.empty() && readFile(path, text);
 }
 
 /*

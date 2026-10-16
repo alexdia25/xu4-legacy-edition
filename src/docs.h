@@ -17,6 +17,8 @@ enum GameDocument {
 };
 
 const char* docsFileName(GameDocument doc);
+const char* docsTitle(GameDocument doc);
+bool docsLoad(GameDocument doc, std::string& text);
 bool docsSplit(const std::string& text, std::string docs[DOC_COUNT]);
 void docsExtract(const std::string& userPath);
 

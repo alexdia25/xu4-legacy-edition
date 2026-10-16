@@ -198,6 +198,18 @@ static void keyHandler(GLFWwindow* win, int token, int scancode, int action, int
         case GLFW_KEY_KP_ENTER:
             key = U4_KEYPAD_ENTER;
             break;
+        case GLFW_KEY_HOME:
+            key = U4_HOME;
+            break;
+        case GLFW_KEY_END:
+            key = U4_END;
+            break;
+        case GLFW_KEY_PAGE_UP:
+            key = U4_PAGE_UP;
+            break;
+        case GLFW_KEY_PAGE_DOWN:
+            key = U4_PAGE_DOWN;
+            break;
         default:
             // glfwSetCharCallback() is provided for text input.
             if (token >= GLFW_KEY_A && token <= GLFW_KEY_Z) {

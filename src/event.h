@@ -34,6 +34,10 @@
 // The following are 0x100 + USB HID Usage Ids.
 #define U4_FKEY         0x13a
 #define U4_PAUSE        0x148
+#define U4_HOME         0x14a
+#define U4_PAGE_UP      0x14b
+#define U4_END          0x14d
+#define U4_PAGE_DOWN    0x14e
 #define U4_KEYPAD_ENTER 0x158
 
 // Gamepad buttons which have no keyboard equivalent.
