@@ -38,8 +38,9 @@ private:
     StringTable modFiles;
     StringTable modFormat;
     std::vector<ModuleInfo> infoList;
-    uint16_t sel;
-    uint16_t selMusic;          // 0 = none
+    uint16_t sel;               // Cursor row.
+    uint16_t selGame;           // Chosen graphics (game) module row.
+    uint16_t selMusic;          // Chosen music row.
     uint16_t buttonMode;
     int16_t  buttonDown;
     int16_t  tipId;
@@ -57,6 +58,9 @@ private:
     float descenderList;        // List font descender * point size.
     float itemHeightP;
 
+    bool pickable(int row) const;
+    void pick(int row);
+    void moveCursor(int dir);
     void readDocuments();
     void selectModule(const GuiArea* area, int y);
     void layout();

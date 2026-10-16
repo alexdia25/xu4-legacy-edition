@@ -438,17 +438,21 @@ int mod_query(const char* filename, StringTable* modInfo)
     } else
         cat = MOD_FILE_PACKAGE;
 
-    // Check if package only contains music chunks.
+    // Check if package only contains music chunks.  An extension with no
+    // data chunks (e.g. one that only reads the original game files) is not
+    // a soundtrack.
     if (cat == MOD_EXTENSION) {
         const CDIEntry* it  = ml.toc;
         const CDIEntry* end = it + ml.tocLen;
+        int music = 0;
         for (; it != end; ++it) {
             if (it->appId == APPID_CONF || it->appId == APPID_MODI)
                 continue;
             if ((it->appId & muMask) != muId)
                 break;
+            ++music;
         }
-        if (it == end)
+        if (it == end && music)
             cat = MOD_SOUNDTRACK;
     }
 

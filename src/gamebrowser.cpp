@@ -78,7 +78,7 @@ GameBrowser::GameBrowser()
 {
     int rsize[3];
 
-    sel = selMusic = 0;
+    sel = selGame = selMusic = 0;
     buttonMode = 0;
     buttonDown = WID_NONE;
     tipId      = WID_NONE;
@@ -118,7 +118,7 @@ float GameBrowser::calcScrollTarget()
     if (targ < 0.0f) {
         targ = 0.0f;
     } else {
-        float endY = (itemHeightP * modFiles.used) - descenderList;
+        float endY = (itemHeightP * modFormat.used) - descenderList;
         if (endY < areaH) {
             targ = 0.0f;    // All items fit in view; don't scroll.
         } else {
@@ -146,7 +146,7 @@ void GameBrowser::updateWidgetTip(const ScreenState* ss)
             //printf("about: %s\n", about);
             if (len > 290)
                 len = 290;
-            if (about[len-1] == '\n')
+            if (len && about[len-1] == '\n')
                 --len;
 
             n = ss->displayW / 3;
@@ -187,6 +187,12 @@ struct ModuleSortContext {
 
     bool operator()(const ModuleInfo& a, const ModuleInfo& b) const
     {
+        // Graphics (game) modules come before music.
+        bool musicA = (a.category == MOD_SOUNDTRACK);
+        bool musicB = (b.category == MOD_SOUNDTRACK);
+        if (musicA != musicB)
+            return musicB;
+
         if (a.modFileI == b.parent)
             return true;
 
@@ -287,6 +293,41 @@ static int test_query(int n, StringTable* modInfo)
 }
 #endif
 
+// List rows that are not module files have modFileI set to NO_PARENT and
+// resPathI set to one of these.
+enum SpecialRow {
+    ROW_GRAPHICS,       // Heading
+    ROW_MUSIC,          // Heading
+    ROW_GAME_MUSIC      // Music of the selected game module.
+};
+
+static const char* specialLabel[3] = {
+    "\x12\x01\x13\x09Graphics\x12\x00",
+    "\x12\x01\x13\x09Music\x12\x00",
+    "    Game music"
+};
+
+static const char* specialAbout[3] = {
+    "Pick one game module for the graphics.",
+    "Pick one soundtrack module, or the game music.",
+    "Play the music of the game module."
+};
+
+static void insertSpecialRow(std::vector<ModuleInfo>& infoList, size_t pos,
+                             int row)
+{
+    ModuleInfo info;
+    sst_init(&info.modi, 4, 64);
+    sst_append(&info.modi, specialAbout[row], -1);
+    for (int i = MI_AUTHOR; i <= MI_VERSION; ++i)
+        sst_append(&info.modi, "", 0);
+    info.resPathI = row;
+    info.modFileI = NO_PARENT;
+    info.category = (row == ROW_GAME_MUSIC) ? MOD_SOUNDTRACK : MOD_UNKNOWN;
+    info.parent   = NO_PARENT;
+    infoList.insert(infoList.begin() + pos, info);
+}
+
 /*
  * Fill modFiles with module names and infoList with sorted information.
  * The modFormat strings match the infoList order and are edited for display
@@ -371,15 +412,31 @@ static void readModuleList(StringTable* modFiles, StringTable* modFormat,
     sort(infoList.begin(), infoList.end(), sortCtx);
     }
 
+    // Split the list into Graphics & Music sections.
+
+    {
+    size_t m = 0;
+    while (m < infoList.size() && infoList[m].category != MOD_SOUNDTRACK)
+        ++m;
+    insertSpecialRow(infoList, m, ROW_GAME_MUSIC);
+    insertSpecialRow(infoList, m, ROW_MUSIC);
+    insertSpecialRow(infoList, 0, ROW_GRAPHICS);
+    }
+
     // Create modFormat strings from infoList.  The .mod suffixes are removed
     // and child names are indented.
 
-    const int indentLen = 4;
-    strcpy(modulePath, "    ");
+    const int indentLen = 8;
+    strcpy(modulePath, "        ");
 
     for (const auto& it : infoList) {
         //printf("KR module %d %d/%d %s\n", it.category, it.modFileI, it.parent,
         //       files + sst_start(modFiles, it.modFileI));
+
+        if (it.modFileI == NO_PARENT) {
+            sst_append(modFormat, specialLabel[it.resPathI], -1);
+            continue;
+        }
 
         rpath = files + sst_start(modFiles, it.modFileI);
 
@@ -389,23 +446,20 @@ static void readModuleList(StringTable* modFiles, StringTable* modFormat,
         memcpy(modulePath + indentLen, rpath, len);
         char* itemText;
 
-        if (it.category == MOD_BASE) {
-            itemText = modulePath + indentLen;
-        } else {
-            // Indent child modules.
-            itemText = modulePath;
-            len += indentLen;
+        if (it.category != MOD_EXTENSION) {
+            // Indent under the section heading.
+            itemText = modulePath + 4;
+            len += 4;
             if (it.category == MOD_SOUNDTRACK) {
-#if 1
                 // Green musical note symbol.
-                memcpy(modulePath + len,
+                memcpy(itemText + len,
                        " \x12\x02\x13\x21N\x12\x00\x13\x00", 10);
                 len += 10;
-#else
-                memcpy(modulePath + len, " (music)", 8);
-                len += 8;
-#endif
             }
+        } else {
+            // Indent extensions under their base module.
+            itemText = modulePath;
+            len += indentLen;
         }
 
         // Add module version number.
@@ -513,15 +567,20 @@ void GameBrowser::generateListItems()
     attr = gui_emitQuadCi(attr, rect, COL_LT_BLUE);
     attr = gui_emitListItems(attr, &ds, &modFormat, sel);
 
-    if (selMusic) {
-        // Draw green checkmark.
+    // Draw checkmarks on the chosen graphics & music.
+    float rowH = ds.lineSpacing;
+    ds.tf = ds.fontTable[2];
+    txf_setFontSize(&ds, psizeList);
+    if (selGame) {
         ds.x = 0.0f;
-        ds.y = ds.lineSpacing * -(selMusic + 1.0f);
-
-        ds.tf = ds.fontTable[2];
-        txf_setFontSize(&ds, psizeList);
+        ds.y = rowH * -(selGame + 1.0f);
+        ds.colorIndex = (sel == selGame) ? COL_TX_BLACK : COL_WHITE;
+        attr = gui_emitText(&ds, attr, "c", 1);
+    }
+    if (selMusic) {
+        ds.x = 0.0f;
+        ds.y = rowH * -(selMusic + 1.0f);
         ds.colorIndex = COL_LT_GREEN;
-
         attr = gui_emitText(&ds, attr, "c", 1);
     }
     gpu_endRegion(work, REGION_LIST, attr);
@@ -540,17 +599,24 @@ bool GameBrowser::present()
     // Select the current modules.
     {
     int len;
-    sel = selMusic = 0;
+    sel = selGame = selMusic = 0;
 
     for (size_t n = 0; n < infoList.size(); ++n) {
-        const char* mod = sst_stringL(&modFiles, infoList[n].modFileI, &len);
-        if (infoList[n].category == MOD_SOUNDTRACK) {
+        const ModuleInfo& mi = infoList[n];
+        if (mi.modFileI == NO_PARENT) {
+            if (mi.resPathI == ROW_GAME_MUSIC && ! selMusic)
+                selMusic = n;
+            continue;
+        }
+        const char* mod = sst_stringL(&modFiles, mi.modFileI, &len);
+        if (mi.category == MOD_SOUNDTRACK) {
             if (mod_namesEqual(xu4.settings->soundtrack, mod))
                 selMusic = n;
-        } else if (mod_namesEqual(xu4.settings->game, mod)) {
-            sel = n;
+        } else if (! selGame || mod_namesEqual(xu4.settings->game, mod)) {
+            selGame = n;
         }
     }
+    sel = selGame;
     }
 
     layout();
@@ -585,17 +651,17 @@ bool GameBrowser::keyPressed(int key)
             const char* game;
             const char* music = "";
 
-            game = sst_stringL(&modFiles, infoList[sel].modFileI, &len);
-            if (infoList[sel].category == MOD_SOUNDTRACK) {
-                music = game;
-                game = sst_stringL(&modFiles, infoList[sel].parent, &len);
-            } else if (selMusic) {
-                int par = infoList[selMusic].parent;
-                if (par == infoList[sel].modFileI ||
-                    par == infoList[sel].parent) {
-                    music = sst_stringL(&modFiles,
-                                        infoList[selMusic].modFileI, &len);
-                }
+            pick(sel);
+            if (! selGame)
+                return true;
+
+            // A soundtrack is only used with the game it was made for.
+            const ModuleInfo& gm = infoList[selGame];
+            const ModuleInfo& mm = infoList[selMusic];
+            game = sst_stringL(&modFiles, gm.modFileI, &len);
+            if (selMusic && mm.modFileI != NO_PARENT &&
+                (mm.parent == gm.modFileI || mm.parent == gm.parent)) {
+                music = sst_stringL(&modFiles, mm.modFileI, &len);
             }
             //printf( "KR Game '%s' '%s'\n", game, music);
 
@@ -624,29 +690,19 @@ bool GameBrowser::keyPressed(int key)
             return true;
 
         case U4_SPACE:
-            if (infoList[sel].category == MOD_SOUNDTRACK) {
-                selMusic = (selMusic == sel) ? 0 : sel;
+            if (pickable(sel)) {
+                pick(sel);
                 soundPlay(SOUND_UI_CLICK);
                 generateListItems();
             }
             return true;
 
         case U4_UP:
-            if (sel > 0) {
-                --sel;
-                soundPlay(SOUND_UI_TICK);
-                calcScrollTarget();
-                generateListItems();
-            }
+            moveCursor(-1);
             return true;
 
         case U4_DOWN:
-            if (sel < modFormat.used - 1) {
-                ++sel;
-                soundPlay(SOUND_UI_TICK);
-                calcScrollTarget();
-                generateListItems();
-            }
+            moveCursor(1);
             return true;
 
         case 'd':
@@ -688,28 +744,46 @@ int GameBrowser::listRowAt(const GuiArea* area, int screenY)
 void GameBrowser::selectModule(const GuiArea* area, int screenY)
 {
     int n = listRowAt(area, screenY);
+    if (n >= 0 && n < (int) modFormat.used && pickable(n)) {
+        sel = n;
+        pick(n);
+        soundPlay(SOUND_UI_CLICK);
+        generateListItems();
+    }
+}
+
+bool GameBrowser::pickable(int row) const
+{
+    return row < (int) infoList.size() &&
+           infoList[row].category != MOD_UNKNOWN;
+}
+
+/*
+ * Choose a row as the graphics or music module.  Only one of each is used.
+ */
+void GameBrowser::pick(int row)
+{
+    if (pickable(row)) {
+        if (infoList[row].category == MOD_SOUNDTRACK)
+            selMusic = row;
+        else
+            selGame = row;
+    }
+}
+
+// Move the cursor up or down, skipping the section headings.
+void GameBrowser::moveCursor(int dir)
+{
+    int n = sel;
+    do {
+        n += dir;
+    } while (n >= 0 && n < (int) modFormat.used && ! pickable(n));
+
     if (n >= 0 && n < (int) modFormat.used) {
-        if (infoList[n].category == MOD_SOUNDTRACK) {
-            // Toggle selected soundrack.
-            if (selMusic == n) {
-                selMusic = 0;
-            } else {
-                selMusic = n;
-                /*
-                do {
-                    --n;
-                } while (n && n != sel && infoList[n].category != MOD_BASE);
-                sel = n;
-                */
-            }
-            soundPlay(SOUND_UI_CLICK);
-            generateListItems();
-        } else if (sel != n) {
-            sel = n;
-            soundPlay(SOUND_UI_TICK);
-            calcScrollTarget();
-            generateListItems();
-        }
+        sel = n;
+        soundPlay(SOUND_UI_TICK);
+        calcScrollTarget();
+        generateListItems();
     }
 }
 
@@ -785,7 +859,7 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
             if (ev->y < 0) {
                 const GuiArea* area = gbox + WI_LIST;
                 float areaH = area->y2 - area->y;
-                float endY = (itemHeightP * modFiles.used) - descenderList;
+                float endY = (itemHeightP * modFormat.used) - descenderList;
                 endY -= areaH;
                 listScrollTarget += itemHeightP * 2.0f;     // Scroll down.
                 if (listScrollTarget > endY)

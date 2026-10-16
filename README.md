@@ -126,8 +126,10 @@ available as closed-source freeware from [www.gog.com].
 
 Some graphics and sounds are stored in module files which have a `.mod`
 extension.  Soundtrack modules that only contain music streams are also
-available.  One game module and one soundtrack module can be selected using
-the Game Module Browser, which is opened with the Escape key.  Modules can be
+available.  The Game Module Browser, opened with the Escape key, lists them
+in two sections: Graphics, where one game module is chosen, and Music, where
+one soundtrack module (or the game's own music) is chosen.  Space or a click
+picks a module and Enter or Play starts with the checked pair.  Modules can be
 found on the [XU4 Download] page.
 
 If you have the optional u4upgrad.zip XU4 can read the data files straight
