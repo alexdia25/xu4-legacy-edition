@@ -26,7 +26,7 @@
 #define DEFAULT_SCALE                   2
 #define DEFAULT_FULLSCREEN              0
 
-#define DEFAULT_FILTER                  1
+#define DEFAULT_FILTER                  0       // point
 // 0 = DOS
 #define DEFAULT_LINEOFSIGHT             0
 
