@@ -224,6 +224,9 @@ graphics: [
         whitebead 0, 0, 56,14
         blackbead 0,14, 56,14
     ]
+    ; Positions of the dungeon view walls, doors, holes & ladders.
+    image (name: dung_apple2 filename: "a2/underworld/DNGD#c9d,74"
+           filetype: a2dngd)
     image (name: cards1 filename: "a2/program/CRDS" filetype: a2cards) [
         honestycard        0,0, 70,112
         compassioncard    70,0, 70,112

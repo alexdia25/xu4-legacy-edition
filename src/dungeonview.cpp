@@ -3,11 +3,14 @@
  */
 
 #include <assert.h>
+#include <string.h>
+#include "a2disk.h"
 #include "context.h"
 #include "debug.h"
 #include "dungeon.h"
 #include "dungeonview.h"
 #include "error.h"
+#include "imageloader.h"
 #include "imagemgr.h"
 #include "settings.h"
 #include "scale.h"
@@ -92,7 +95,21 @@ void DungeonView::display(Context * c, TileView *view)
         const int farthest_non_wall_tile_visibility = 4;
 
         screenEraseMapArea();
-        if (c->party->getTorchDuration() > 0) {
+        if (apple2) {
+            Direction dir = (Direction) c->saveGame->orientation;
+            int seen = drawApple2(c, dir);
+
+            // Draw the objects & monsters in view, farthest first.
+            if (c->party->getTorchDuration() <= 0)
+                seen = -1;
+            for (y = seen; y >= 0; y--) {
+                dungeonGetTiles(drawLoc, tiles, y, 0);
+                DungeonGraphicType type = tilesToGraphic(dungeon, tiles);
+                if (type == DNGGRAPHIC_DNGTILE || type == DNGGRAPHIC_BASETILE)
+                    drawInDungeon(tiles.front(), 0, y, dir);
+            }
+        }
+        else if (c->party->getTorchDuration() > 0) {
             vector<MapTile> distant_tiles;
 
             for (y = 3; y >= 0; y--) {
@@ -459,6 +476,7 @@ void DungeonView::cacheGraphicData() {
     }
 
     egaGraphics = (graphic[1].info->fixup == FIXUP_DUNGNS);
+    apple2 = loadApple2Geometry();
 }
 
 static void drawGraphic(const ImageInfo* info, const SubImage* subimage,
@@ -510,3 +528,303 @@ void DungeonView::drawWall(int index) {
     }
 }
 
+
+//----------------------------------------------------------------------------
+// Apple II view
+
+/*
+ * The Apple II program draws its dungeon view with lines and filled pixel
+ * columns on the hi-res screen.  The positions of the walls, doors, holes and
+ * ladders at each distance are read from tables in the DNGD file of the
+ * Underworld disk.  The graphics config names the tables with an image of
+ * filetype a2dngd called "dung_apple2".
+ */
+enum A2GeomTable {
+    A2G_WALL_LEFT     = 0,      // 5 bytes each
+    A2G_WALL_RIGHT    = 5,
+    A2G_WALL_TOP      = 10,
+    A2G_WALL_BOTTOM   = 15,
+    A2G_DOOR_LEFT0    = 20,     // 4 bytes each
+    A2G_DOOR_LEFT1    = 24,
+    A2G_DOOR_RIGHT0   = 28,
+    A2G_DOOR_RIGHT1   = 32,
+    A2G_DOOR_TOP0     = 36,
+    A2G_DOOR_TOP1     = 40,
+    A2G_DOOR_BOTTOM0  = 44,
+    A2G_DOOR_BOTTOM1  = 48,
+    A2G_CEIL_TOP      = 52,
+    A2G_CEIL_BOTTOM   = 56,
+    A2G_FLOOR_BOTTOM  = 60,
+    A2G_FLOOR_TOP     = 64,
+    A2G_HOLE_LEFT0    = 68,     // Near edge
+    A2G_HOLE_LEFT1    = 72,     // Far edge
+    A2G_HOLE_RIGHT0   = 76,
+    A2G_HOLE_RIGHT1   = 80,
+    A2G_LADDER_LEFT   = 84,
+    A2G_LADDER_RIGHT  = 88,
+    A2G_RUNG_UP       = 92,     // 3 tables: top, middle & bottom rung
+    A2G_RUNG_DOWN     = 104,
+    A2G_SIZE          = 116
+};
+
+#define A2_VIEW_TOP     8
+#define A2_VIEW_BOTTOM  183
+#define A2_VIEW_LEFT    7
+#define A2_VIEW_RIGHT   160
+#define A2_HORIZON      0x5f
+#define A2_LADDER_SIDE  0x53
+
+bool DungeonView::loadApple2Geometry() {
+    const ImageInfo* info =
+        xu4.imageMgr->lookup(xu4.config->intern("dung_apple2"));
+    if (! info || info->filetype != FTYPE_A2DNGD)
+        return false;
+
+    const char* fn = xu4.config->confString(info->filename);
+    if (strncmp(fn, "a2/", 3) != 0)
+        return false;
+    U4FILE* file = a2_open(fn + 3);
+    if (! file)
+        return false;
+    size_t n = file->read(a2geom, 1, sizeof(a2geom));
+    u4fclose(file);
+    if (n != sizeof(a2geom))
+        return false;
+
+    // Check that the walls get smaller with distance.
+    const uint8_t* g = a2geom;
+    for (int d = 0; d < 4; ++d) {
+        if (g[A2G_WALL_LEFT + d] >= g[A2G_WALL_LEFT + d + 1] ||
+            g[A2G_WALL_RIGHT + d] <= g[A2G_WALL_RIGHT + d + 1] ||
+            g[A2G_WALL_TOP + d] >= g[A2G_WALL_TOP + d + 1] ||
+            g[A2G_WALL_BOTTOM + d] <= g[A2G_WALL_BOTTOM + d + 1])
+            return false;
+    }
+    if (g[A2G_WALL_LEFT] != A2_VIEW_LEFT || g[A2G_WALL_TOP] != A2_VIEW_TOP)
+        return false;
+    return true;
+}
+
+// Pixel column fill modes.
+enum A2Fill {
+    A2_CLEAR,
+    A2_EVEN_COLUMNS,
+    A2_ODD_COLUMNS,
+    A2_SOLID
+};
+
+struct A2Page {
+    uint8_t bytes[192][40];
+
+    void clear() {
+        memset(bytes, 0, sizeof(bytes));
+        for (int y = A2_VIEW_TOP; y <= A2_VIEW_BOTTOM; ++y)
+            memset(bytes[y] + 1, 0x80, 22);
+    }
+
+    void pixel(int x, int y) {
+        if (x >= 0 && x < 280 && y >= 0 && y < 192)
+            bytes[y][x / 7] |= 1 << (x % 7);
+    }
+
+    void column(int x, int y0, int y1, A2Fill fill) {
+        if (x < 0 || x >= 280)
+            return;
+        if (fill == A2_EVEN_COLUMNS || fill == A2_ODD_COLUMNS) {
+            if ((x & 1) != (fill == A2_ODD_COLUMNS))
+                return;
+        }
+        if (y0 > y1) {
+            int t = y0; y0 = y1; y1 = t;
+        }
+        if (y0 < 0)
+            y0 = 0;
+        if (y1 > 191)
+            y1 = 191;
+        uint8_t bit = 1 << (x % 7);
+        for (int y = y0; y <= y1; ++y) {
+            uint8_t& b = bytes[y][x / 7];
+            if (fill == A2_CLEAR)
+                b &= ~bit;
+            else
+                b |= bit | 0x80;
+        }
+    }
+
+    // Fill the area between two lines, column by column.  The top edge goes
+    // from (x0, top0) to (x1, top1) and the bottom from (x0, bot0) to
+    // (x1, bot1).
+    void fill(int x0, int x1, int top0, int top1, int bot0, int bot1,
+              A2Fill fill) {
+        int w = abs(x1 - x0);
+        int step = (x1 >= x0) ? 1 : -1;
+        for (int i = 0; i <= w; ++i) {
+            int top = top0, bot = bot0;
+            if (w) {
+                top += ((top1 - top0) * i + (w / 2) * sign(top1 - top0)) / w;
+                bot += ((bot1 - bot0) * i + (w / 2) * sign(bot1 - bot0)) / w;
+            }
+            column(x0 + i * step, top, bot, fill);
+        }
+    }
+
+    void line(int x0, int y0, int x1, int y1) {
+        int dx = abs(x1 - x0), sx = (x0 < x1) ? 1 : -1;
+        int dy = -abs(y1 - y0), sy = (y0 < y1) ? 1 : -1;
+        int err = dx + dy;
+        for (;;) {
+            pixel(x0, y0);
+            if (x0 == x1 && y0 == y1)
+                break;
+            int e2 = 2 * err;
+            if (e2 >= dy) { err += dy; x0 += sx; }
+            if (e2 <= dx) { err += dx; y0 += sy; }
+        }
+    }
+
+    static int sign(int n) { return (n > 0) - (n < 0); }
+};
+
+static void a2Hole(A2Page& pg, const uint8_t* g, int d, int nearY, int farY) {
+    int nl = g[A2G_HOLE_LEFT0 + d], fl = g[A2G_HOLE_LEFT1 + d];
+    int nr = g[A2G_HOLE_RIGHT0 + d], fr = g[A2G_HOLE_RIGHT1 + d];
+    pg.line(nl,     nearY, fl,     farY);
+    pg.line(nl + 1, nearY, fl + 1, farY);
+    pg.line(fl + 1, farY,  fr,     farY);
+    pg.line(fr,     farY,  nr,     nearY);
+    pg.line(fr - 1, farY,  nr - 1, nearY);
+    pg.line(nl,     nearY, nr - 1, nearY);
+}
+
+static void a2Ladder(A2Page& pg, const uint8_t* g, int d, bool up,
+                     bool headOn) {
+    int end = up ? g[A2G_CEIL_TOP + d] : g[A2G_FLOOR_BOTTOM + d];
+    int mid = up ? A2_HORIZON : A2_HORIZON + 1;
+
+    if (up)
+        a2Hole(pg, g, d, g[A2G_CEIL_TOP + d], g[A2G_CEIL_BOTTOM + d]);
+    else
+        a2Hole(pg, g, d, g[A2G_FLOOR_BOTTOM + d], g[A2G_FLOOR_TOP + d]);
+
+    if (! headOn) {
+        pg.column(A2_LADDER_SIDE,     end, mid, A2_SOLID);
+        pg.column(A2_LADDER_SIDE + 1, end, mid, A2_SOLID);
+        return;
+    }
+
+    int left  = g[A2G_LADDER_LEFT + d];
+    int right = g[A2G_LADDER_RIGHT + d];
+    pg.column(left,      end, mid, A2_SOLID);
+    pg.column(left + 1,  end, mid, A2_SOLID);
+    pg.column(right,     end, mid, A2_SOLID);
+    pg.column(right - 1, end, mid, A2_SOLID);
+
+    const uint8_t* rung = g + (up ? A2G_RUNG_UP : A2G_RUNG_DOWN) + d;
+    for (int i = 0; i < 3; ++i)
+        pg.line(left, rung[i * 4], right, rung[i * 4]);
+}
+
+/*
+ * Draw the view on the screen like the Apple II version.
+ * Return the farthest distance that can be seen.
+ */
+int DungeonView::drawApple2(Context* c, Direction dir) {
+    static A2Page pg;
+    const Dungeon* dungeon = static_cast<const Dungeon*>(c->location->map);
+    const uint8_t* g = a2geom;
+    // Walls facing the viewer & side walls use different colors, which swap
+    // when turning.
+    int ew = (dir == DIR_EAST || dir == DIR_WEST);
+    A2Fill frontFill = ew ? A2_ODD_COLUMNS  : A2_EVEN_COLUMNS;
+    A2Fill sideFill  = ew ? A2_EVEN_COLUMNS : A2_ODD_COLUMNS;
+    Coords loc;
+    std::vector<MapTile> tiles;
+    int d, seen = 0;
+
+    pg.clear();
+    if (c->party->getTorchDuration() > 0) {
+        for (d = 0; d < 4; ++d) {
+            seen = d;
+            dungeonGetTiles(loc, tiles, d, 0);
+            int token = dungeon->tokenAt(loc);
+
+            int wl0 = g[A2G_WALL_LEFT + d],  wl1 = g[A2G_WALL_LEFT + d + 1];
+            int wr0 = g[A2G_WALL_RIGHT + d], wr1 = g[A2G_WALL_RIGHT + d + 1];
+            int wt0 = g[A2G_WALL_TOP + d],   wt1 = g[A2G_WALL_TOP + d + 1];
+            int wb0 = g[A2G_WALL_BOTTOM + d], wb1 = g[A2G_WALL_BOTTOM + d + 1];
+            bool stop = false;
+            bool sides = true;      // Fronts that fill the view hide the sides.
+
+            switch (token) {
+            case DUNGEON_LADDER_UP:
+                a2Ladder(pg, g, d, true, ew);
+                break;
+            case DUNGEON_LADDER_DOWN:
+                a2Ladder(pg, g, d, false, ew);
+                break;
+            case DUNGEON_LADDER_UPDOWN:
+                a2Ladder(pg, g, d, true, ew);
+                a2Ladder(pg, g, d, false, ew);
+                break;
+            case DUNGEON_CEILING_HOLE:
+                a2Hole(pg, g, d, g[A2G_CEIL_TOP + d], g[A2G_CEIL_BOTTOM + d]);
+                break;
+            case DUNGEON_FLOOR_HOLE:
+                a2Hole(pg, g, d, g[A2G_FLOOR_BOTTOM + d],
+                                 g[A2G_FLOOR_TOP + d]);
+                break;
+            case DUNGEON_FIELD:
+                stop = true;
+                sides = false;
+                break;
+            case DUNGEON_DOOR:
+            case DUNGEON_ROOM:
+                pg.fill(wl0, wr0, wt0, wt0, wb0, wb0, frontFill);
+                // A door ahead, or the door frame when standing in it.
+                pg.fill(wl1, wr1, wt1, wt1, wb0, wb0,
+                        d ? A2_SOLID : A2_CLEAR);
+                stop = (d > 0 || token == DUNGEON_ROOM);
+                sides = false;
+                break;
+            case DUNGEON_SECRET_DOOR:
+            case DUNGEON_WALL:
+                pg.fill(wl0, wr0, wt0, wt0, wb0, wb0, frontFill);
+                stop = true;
+                sides = false;
+                break;
+            default:
+                break;
+            }
+
+            for (int side = -1; sides && side <= 1; side += 2) {
+                dungeonGetTiles(loc, tiles, d, side);
+                int st = dungeon->tokenAt(loc);
+                int x0 = (side < 0) ? wl0 : wr0;
+                int x1 = (side < 0) ? wl1 : wr1;
+
+                if (st < DUNGEON_DOOR) {
+                    // Open; the wall across the corridor shows.
+                    pg.fill(x0, x1, wt1, wt1, wb1, wb1, frontFill);
+                    continue;
+                }
+                pg.fill(x0, x1, wt0, wt1, wb0, wb1, sideFill);
+                if (st < DUNGEON_SECRET_DOOR) {
+                    int t = (side < 0) ? A2G_DOOR_LEFT0 : A2G_DOOR_RIGHT0;
+                    pg.fill(g[t + d], g[t + 4 + d],
+                            g[A2G_DOOR_TOP0 + d], g[A2G_DOOR_TOP1 + d],
+                            g[A2G_DOOR_BOTTOM0 + d], g[A2G_DOOR_BOTTOM1 + d],
+                            A2_SOLID);
+                }
+            }
+
+            if (stop)
+                break;
+        }
+    }
+
+    // The view is 154 x 176 pixels at Apple screen position 7, 8.
+    a2_drawHgr(xu4.screenImage, x, y, pg.bytes[A2_VIEW_TOP],
+               A2_VIEW_BOTTOM - A2_VIEW_TOP + 1, A2_VIEW_LEFT,
+               A2_VIEW_LEFT + 153);
+    return seen;
+}

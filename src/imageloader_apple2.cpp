@@ -30,6 +30,7 @@
 
 #include <string.h>
 #include <vector>
+#include "a2disk.h"
 
 enum A2Color {
     A2_BLACK, A2_WHITE, A2_VIOLET, A2_GREEN, A2_BLUE, A2_ORANGE
@@ -162,6 +163,24 @@ static Image* a2Font(const std::vector<uint8_t>& data)
 }
 
 #define A2_SCREEN_X    20
+
+/*
+ * Draw HGR rows of 40 bytes each (in display order, not Apple memory order)
+ * onto an image.  Only screen pixels x0 to x1 (inclusive) are drawn, starting
+ * at dx, dy.
+ */
+void a2_drawHgr(Image* dest, int dx, int dy, const uint8_t* rows,
+                int count, int x0, int x1)
+{
+    std::vector<uint8_t> row;
+    for (int y = 0; y < count; ++y) {
+        a2DecodeRow(rows + y * 40, 40, 0, row);
+        for (int x = x0; x <= x1; ++x) {
+            const uint8_t* c = a2Palette[ row[x] ];
+            dest->putPixel(dx + x - x0, dy + y, c[0], c[1], c[2], IM_OPAQUE);
+        }
+    }
+}
 
 static Image* a2Screen(const uint8_t* page, int lines)
 {

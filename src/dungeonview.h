@@ -5,6 +5,7 @@
 #ifndef DUNGEONVIEW_H
 #define DUNGEONVIEW_H
 
+#include "direction.h"
 #include "tileview.h"
 
 typedef enum {
@@ -44,6 +45,8 @@ private:
     DungeonGraphicType tilesToGraphic(const Dungeon*,
                                       const std::vector<MapTile> &tiles);
     void drawWall(int graphic);
+    bool loadApple2Geometry();
+    int  drawApple2(Context* c, Direction dir);
 
     struct GraphicData {
         const ImageInfo* info;
@@ -61,7 +64,9 @@ private:
     uint32_t spotTrapTime;
     bool screen3dDungeonViewEnabled;
     bool egaGraphics;
+    bool apple2;                // Draw the view like the Apple II version.
     GraphicData graphic[84];
+    uint8_t a2geom[116];        // Apple II view geometry from the disk.
 };
 
 #endif /* DUNGEONVIEW_H */

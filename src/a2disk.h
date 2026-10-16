@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <vector>
 
+class Image;
 class U4FILE;
 
 enum A2Disk {
@@ -26,5 +27,7 @@ bool a2_readFile(A2Disk disk, const char* name, std::vector<uint8_t>& data);
 U4FILE* a2_open(const char* spec);
 bool a2_haveDisks();
 void a2_close();
+void a2_drawHgr(Image* dest, int dx, int dy, const uint8_t* rows,
+                int count, int x0, int x1);
 
 #endif

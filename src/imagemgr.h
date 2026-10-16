@@ -194,6 +194,7 @@ public:
     ImageInfo* imageInfo(Symbol name, const SubImage** subPtr);
     ImageInfo* get(Symbol name);
     int imageFixup(Symbol name) const;
+    const ImageInfo* lookup(Symbol name) const;
 
     void freeResourceGroup(uint16_t group);
 

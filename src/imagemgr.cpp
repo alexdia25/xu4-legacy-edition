@@ -392,13 +392,22 @@ ImageInfo *ImageMgr::get(Symbol name) {
  * Return the fixup of an image without loading it.
  */
 int ImageMgr::imageFixup(Symbol name) const {
+    const ImageInfo* info = lookup(name);
+    return info ? info->fixup : FIXUP_NONE;
+}
+
+/**
+ * Return the info of an image without loading it, or NULL if there is no
+ * image with that name.
+ */
+const ImageInfo* ImageMgr::lookup(Symbol name) const {
     if (baseSet) {
         std::map<Symbol, ImageInfo *>::const_iterator it =
             baseSet->info.find(name);
-        if (it != baseSet->info.end() && it->second)
-            return it->second->fixup;
+        if (it != baseSet->info.end())
+            return it->second;
     }
-    return FIXUP_NONE;
+    return NULL;
 }
 
 #ifdef CONF_MODULE
