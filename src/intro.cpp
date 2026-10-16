@@ -175,7 +175,8 @@ IntroController::IntroController() :
     binData(NULL),
     titles(),                   // element list
     title(titles.begin()),      // element iterator
-    bSkipTitles(false)
+    bSkipTitles(false),
+    apple2Title(false)
 {
     // initialize menus
     confMenu.setTitle("XU4 Configuration:", 0, 0);
@@ -334,6 +335,24 @@ bool IntroController::init() {
     beastiesImg = xu4.imageMgr->get(BKGD_ANIMATE);  // Assign resource group.
     beastieSub[0] = beastiesImg->subImageIndex[sym[0]];
     beastieSub[1] = beastiesImg->subImageIndex[sym[1]];
+
+    // The image may set where the beasties are drawn with the optional
+    // beast0_pos & beast1_pos subimages.
+    {
+    static const char* posName[2] = { "beast0_pos", "beast1_pos" };
+    beastiePos[0][0] = 0;
+    beastiePos[1][0] = 320 - 48;
+    for (int i = 0; i < 2; ++i) {
+        beastiePos[i][1] = 0;
+        std::map<Symbol, int>::const_iterator it =
+            beastiesImg->subImageIndex.find(xu4.config->intern(posName[i]));
+        if (it != beastiesImg->subImageIndex.end()) {
+            const SubImage* pos = beastiesImg->subImages + it->second;
+            beastiePos[i][0] = pos->x;
+            beastiePos[i][1] = pos->y;
+        }
+    }
+    }
 
     if (xu4.errorMessage)
         bSkipTitles = true;
@@ -691,8 +710,8 @@ void IntroController::drawBeastie(int beast, int vertoffset, int frame) {
     ASSERT(beast == 0 || beast == 1, "invalid beast: %d", beast);
 
     backgroundArea.draw(beastiesImg, beastieSub[beast] + frame,
-                        beast ? (320 - 48) : 0,
-                        vertoffset);
+                        beastiePos[beast][0],
+                        beastiePos[beast][1] + vertoffset);
 }
 
 /**
@@ -1731,6 +1750,28 @@ void IntroController::initTitles()
     addTitle(  40, 80, 240, 13, SUBTITLE,    1000,  100 );  // "Quest of the Avatar"
     addTitle(   0, 96, 320, 96, MAP,         1000,  100 );  // the map
 
+    // The title image may move elements with t_<name> subimages.
+    {
+    static const char* elemName[8] = {
+        "t_signature", "t_and", "t_bar", "t_origin",
+        "t_present", "t_title", "t_subtitle", "t_map"
+    };
+    ImageInfo* info = xu4.imageMgr->get(BKGD_INTRO);
+    if (info) {
+        for (int i = 0; i < 8; ++i) {
+            std::map<Symbol, int>::const_iterator it =
+                info->subImageIndex.find(xu4.config->intern(elemName[i]));
+            if (it != info->subImageIndex.end()) {
+                const SubImage* si = info->subImages + it->second;
+                titles[i].rx = si->x;
+                titles[i].ry = si->y;
+                titles[i].rw = si->width;
+                titles[i].rh = si->height;
+            }
+        }
+    }
+    }
+
     // get the source data for the elements
     getTitleSourceData();
 
@@ -1781,6 +1822,7 @@ void IntroController::getTitleSourceData()
     ImageInfo *info = xu4.imageMgr->get(BKGD_INTRO);
     if (!info)
         errorLoadImage(BKGD_INTRO);
+    apple2Title = (info->fixup == FIXUP_APPLE2INTRO);
 
     // for each element, get the source data
     for (unsigned i=0; i < titles.size(); i++)
@@ -1805,7 +1847,9 @@ void IntroController::getTitleSourceData()
                 // PLOT: "Lord British"
                 srcData = getSigData();
 
-                RGBA color = info->image->setColor(0, 255, 255);    // cyan for EGA
+                RGBA color = apple2Title ?
+                        info->image->setColor(255, 255, 255) :
+                        info->image->setColor(0, 255, 255);    // cyan for EGA
                 int blue[16] = {255, 250, 226, 226, 210, 194, 161, 161,
                                 129,  97,  97,  64,  64,  32,  32,   0};
                 int x = 0;
@@ -1816,7 +1860,7 @@ void IntroController::getTitleSourceData()
                     x = srcData[titles[i].animStepMax] - 0x4C;
                     y = 0xC0 - srcData[titles[i].animStepMax+1];
 
-                    if (xu4.imageMgr->usingVGA())
+                    if (xu4.imageMgr->usingVGA() && ! apple2Title)
                     {
                         // yellow gradient
                         color = info->image->setColor(255, (y == 2 ? 250 : 255), blue[y-1]);
@@ -1843,12 +1887,21 @@ void IntroController::getTitleSourceData()
 
             case TITLE:
             {
+                // Area of PRESENT (element 4) to exclude.
+                const AnimElement& pres = titles[4];
+                int px0 = pres.rx - titles[i].rx;
+                int py0 = pres.ry - titles[i].ry;
+
                 for (int y=0; y < titles[i].rh; y++)
                 {
                     // Here x is set to exclude PRESENT at top of image.
-                    int x = (y < 6) ? 133 : 0;
+                    int x = (y < 6 && ! apple2Title) ? 133 : 0;
                     for ( ; x < titles[i].rw ; x++)
                     {
+                        if (apple2Title &&
+                            x >= px0 && x < px0 + pres.rw &&
+                            y >= py0 && y < py0 + pres.rh)
+                            continue;
                         titles[i].srcImage->getPixel(x, y, r, g, b, a);
                         if (r || g || b)
                         {
@@ -1867,7 +1920,10 @@ void IntroController::getTitleSourceData()
             case MAP:
             {
                 // fill the map area with the transparent color
-                titles[i].srcImage->fillRect(8, 8, 304, 80, 0, 0, 0, 0);
+                titles[i].srcImage->fillRect(mapArea.x - titles[i].rx,
+                                             mapArea.y - titles[i].ry,
+                                             mapArea.width, mapArea.height,
+                                             0, 0, 0, 0);
                 titles[i].animStepMax = 20;
                 break;
             }
@@ -1969,7 +2025,10 @@ bool IntroController::updateTitle()
             while (animStepTarget > title->animStep)
             {
                 title->animStep++;
-                color = title->destImage->setColor(128, 0, 0); // dark red for the underline
+                if (apple2Title)
+                    color = title->destImage->setColor(20, 207, 253);
+                else
+                    color = title->destImage->setColor(128, 0, 0); // dark red for the underline
 
                 // blit bar to the canvas
                 title->destImage->fillRect(

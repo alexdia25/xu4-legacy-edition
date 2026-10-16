@@ -22,6 +22,7 @@ enum ImageFiletype {
     FTYPE_A2FONT,
     FTYPE_A2HGR,
     FTYPE_A2SPK,
+    FTYPE_A2CARDS,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

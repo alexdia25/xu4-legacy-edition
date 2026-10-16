@@ -144,7 +144,8 @@ enum ImageFixup {
     FIXUP_DUNGNS,
     FIXUP_TRANSPARENT0,
     FIXUP_BLACKTRANSPARENCYHACK,
-    FIXUP_FMTOWNSSCREEN
+    FIXUP_FMTOWNSSCREEN,
+    FIXUP_APPLE2INTRO
 };
 
 /**
@@ -211,6 +212,7 @@ private:
     void fixupAbacus(Image *im);
     void fixupDungNS(Image *im);
     void fixupFMTowns(Image *im);
+    void fixupApple2Intro(Image *im);
 
     ImageSet *baseSet;
     RGBA* vgaColors;

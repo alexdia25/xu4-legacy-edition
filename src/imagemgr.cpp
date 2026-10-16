@@ -181,6 +181,39 @@ void ImageMgr::fixupIntro(Image *im) {
 }
 
 /*
+ * Prepare the Apple II title screen (BGND) the same way the Apple program
+ * does when it draws the titles.
+ */
+void ImageMgr::fixupApple2Intro(Image *im) {
+    // Image coordinates are those of the Apple screen moved right by 20.
+    const int ax = 20;
+
+    // Move "present" from the top to between "Origin Systems" & "Ultima".
+    im->drawSubRectOn(im, ax + 112, 33, ax + 112, 0, 63, 5);
+    im->fillRect(ax + 112, 0, 63, 5, 0, 0, 0);
+
+    // Draw the "Lord British" signature (white, two pixels wide).
+    const unsigned char* sigData = xu4.intro->getSigData();
+    for (int i = 0; sigData[i] != 0; i += 2)
+        im->fillRect(ax + sigData[i], 0xBF - sigData[i+1], 2, 1,
+                     255, 255, 255);
+
+    // Widen the map window frame to the DOS size (x 0-319) so that the
+    // intro menu text, which uses 8 pixel wide characters, fits inside.
+    // The Apple frame is 279 pixels wide at x 20.
+    im->drawSubRectOn(im,   1, 96, ax,       96, 7, 96);    // Left side
+    im->drawSubRectOn(im, 312, 96, ax + 273, 96, 6, 96);    // Right side
+    for (int x = 8; x < 312; x += 16) {
+        int w = (x + 16 > 312) ? 312 - x : 16;
+        im->drawSubRectOn(im, x,  96, 160,  96, w, 8);       // Top
+        im->drawSubRectOn(im, x, 184, 160, 184, w, 8);       // Bottom
+    }
+
+    // Clear the map window, where the intro map is drawn.
+    im->fillRect(8, 104, 304, 80, 0, 0, 0);
+}
+
+/*
  * Each VGA vision component must be XORed with all the previous
  * vision components to get the actual image.
  */
@@ -583,6 +616,9 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
         break;
     case FIXUP_FMTOWNSSCREEN:
         fixupFMTowns(unscaled);
+        break;
+    case FIXUP_APPLE2INTRO:
+        fixupApple2Intro(unscaled);
         break;
     case FIXUP_TRANSPARENT0:
         fixupTransparent(unscaled, Image::black);

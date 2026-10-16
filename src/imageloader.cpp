@@ -173,6 +173,7 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
     case FTYPE_A2FONT:
     case FTYPE_A2HGR:
     case FTYPE_A2SPK:
+    case FTYPE_A2CARDS:
         return loadImage_apple2(file, ftype);
     }
     return NULL;

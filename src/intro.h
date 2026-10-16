@@ -231,6 +231,7 @@ private:
     int beastie2Cycle;
     int beastieOffset;
     int beastieSub[2];
+    int16_t beastiePos[2][2];   // Screen x,y of each beastie.
     bool beastiesVisible;
     int sleepCycles;
     int menuSel;            // Console menu cursor on the main menu.
@@ -290,6 +291,7 @@ private:
     int  listenerId;
     int  introMusic;
     bool bSkipTitles;
+    bool apple2Title;       // Titles use Apple II colors.
 };
 
 #endif

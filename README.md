@@ -135,10 +135,8 @@ found on the [XU4 Download] page.
 If you have the optional u4upgrad.zip XU4 can read the data files straight
 out of the zipfile.  To use it select the U4-Upgrade module.
 
-The Apple-II module shows the map tiles and text of the original Apple II
-release.  It reads them from the four Ultima IV Apple II disk images (`.dsk`
-files in DOS 3.3 order), which can be put in any of the places below or in
-an `apple2` folder inside one of them.  The DOS game files are still needed.
+The Apple-II module uses the graphics of the original Apple II release (see
+[Apple II Disk Images](#apple-ii-disk-images) below).
 
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
@@ -148,6 +146,38 @@ XU4 searches for data, modules and zipfiles in the following places:
 
 The DOS game zipfiles (ultima4.zip & u4upgrad.zip) don't need to be unpacked,
 but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
+
+### Apple II Disk Images
+
+The Apple-II module reads its graphics straight from the disk images of
+Ultima IV for the Apple II.  It is only listed in the Game Module Browser
+when all four disks are found.  The DOS game files are still needed for
+everything else.
+
+The release came on two floppy disks, used on both sides, so there are four
+disk images:
+
+| Disk side | Contents                          |
+|-----------|-----------------------------------|
+| Program    | Title screen, intro pictures, tiles & font |
+| Britannia  | World map, combat maps & shrines           |
+| Towne      | Towns, castles & conversations             |
+| Underworld | Dungeons, the Abyss & the ending           |
+
+Each image must be a 140 KB (143,360 byte) file in DOS 3.3 sector order,
+which usually has a `.dsk` or `.do` extension.  Images in other formats
+(`.po`, `.nib`, `.woz`, `.2mg`) are not read; tools such as CiderPress can
+convert them.  Cracked copies such as the 4am crack work.
+
+The file names don't matter, since xu4 tells the disks apart by the files on
+them.  Put the four images in any of the places listed above, or in an
+`apple2` folder inside one of them.  For example:
+
+ - Windows: `%LOCALAPPDATA%\xu4\apple2\`
+ - Linux: `~/.local/share/xu4/apple2/`
+
+Other files that come with the images (text notes, scans, `.woz` copies)
+aren't needed.
 
 ### Settings & Options
 

@@ -14,6 +14,11 @@
  *   a2hgr     A full 280x192 HGR screen in Apple memory order.
  *   a2spk     A 280x144 picture packed with run length & pattern codes,
  *             stored column by column from the bottom right.
+ *   a2cards   The eight 70x112 virtue cards (row by row, 10 bytes per row),
+ *             placed side by side.
+ *
+ * Screens & pictures are put at the top center of a 320x200 image (x 20)
+ * so that they line up with the 320x200 layout of the DOS screens.
  *
  * Colors follow the usual NTSC artifact rules: a lit pixel alone is violet
  * or green (blue or orange when the byte's high bit is set) by the parity of
@@ -142,13 +147,37 @@ static Image* a2Font(const std::vector<uint8_t>& data)
     return img;
 }
 
+#define A2_SCREEN_X    20
+
 static Image* a2Screen(const uint8_t* page, int lines)
 {
     std::vector<uint8_t> row;
-    Image* img = Image::create(280, lines);
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
     for (int y = 0; y < lines; ++y) {
         a2DecodeRow(page + a2LineOffset(y), 40, 0, row);
-        a2PutRow(img, 0, y, row);
+        a2PutRow(img, A2_SCREEN_X, y, row);
+    }
+    return img;
+}
+
+#define A2_CARD_COLS    10
+#define A2_CARD_ROWS    112
+
+static Image* a2Cards(const std::vector<uint8_t>& data)
+{
+    const int cardSize = A2_CARD_COLS * A2_CARD_ROWS;
+    if (data.size() < size_t(cardSize * 8))
+        return NULL;
+    std::vector<uint8_t> row;
+    Image* img = Image::create(8 * A2_CARD_COLS * 7, A2_CARD_ROWS);
+    for (int c = 0; c < 8; ++c) {
+        const uint8_t* card = data.data() + c * cardSize;
+        for (int y = 0; y < A2_CARD_ROWS; ++y) {
+            // Cards are drawn starting at an even screen column.
+            a2DecodeRow(card + y * A2_CARD_COLS, A2_CARD_COLS, 0, row);
+            a2PutRow(img, c * A2_CARD_COLS * 7, y, row);
+        }
     }
     return img;
 }
@@ -214,6 +243,8 @@ static Image* loadImage_apple2(U4FILE* file, int ftype)
             return a2Screen(data.data(), 192);
         case FTYPE_A2SPK:
             return a2Packed(data);
+        case FTYPE_A2CARDS:
+            return a2Cards(data);
     }
     return NULL;
 }

@@ -151,6 +151,91 @@ graphics: [
         at 0,1120 tile_fire_phantom 2
     ]
     image (name: charset filename: "a2/program/HTXT" filetype: a2font tiles: 256)
+    ; Intro screens.  Apple screens are placed at x 20 of a 320x200 image.
+    image (name: title filename: "a2/program/BGND" filetype: a2hgr fixup: apple2intro) [
+        options_top  0, 32, 320,128
+        options_btm  0,112, 320, 80
+        t_signature   96, 0, 130,16
+        t_and        152,17,  25, 4
+        t_bar         90,31, 145, 1
+        t_origin      87,21, 149, 9
+        t_present    135,33,  56, 5
+        t_title       60,34, 202,46
+        t_subtitle    40,80, 241,13
+        t_map          0,96, 320,96
+    ]
+    image (name: beasties filename: "a2/program/ANIM" filetype: a2hgr) [
+        beast0frame00  20,  0, 49,31
+        beast0frame01  20, 32, 49,31
+        beast0frame02  20, 64, 49,31
+        beast0frame03  20, 96, 49,31
+        beast0frame04  20,128, 49,31
+        beast0frame05  20,160, 49,31
+        beast0frame06  69,  0, 49,31
+        beast0frame07  69, 32, 49,31
+        beast0frame08  69, 64, 49,31
+        beast0frame09  69, 96, 49,31
+        beast0frame10  69,128, 49,31
+        beast0frame11  69,160, 49,31
+        beast0frame12 118,  0, 49,31
+        beast0frame13 118, 32, 49,31
+        beast0frame14 118, 64, 49,31
+        beast0frame15 118, 96, 49,31
+        beast0frame16 118,128, 49,31
+        beast0frame17 118,160, 49,31
+        beast1frame00 258,  0, 42,31
+        beast1frame01 258, 32, 42,31
+        beast1frame02 258, 64, 42,31
+        beast1frame03 258, 96, 42,31
+        beast1frame04 258,128, 42,31
+        beast1frame05 258,160, 42,31
+        beast1frame06 216,  0, 42,31
+        beast1frame07 216, 32, 42,31
+        beast1frame08 216, 64, 42,31
+        beast1frame09 216, 96, 42,31
+        beast1frame10 216,128, 42,31
+        beast1frame11 216,160, 42,31
+        beast1frame12 174,  0, 42,31
+        beast1frame13 174, 32, 42,31
+        beast1frame14 174, 64, 42,31
+        beast1frame15 174, 96, 42,31
+        beast1frame16 174,128, 42,31
+        beast1frame17 174,160, 42,31
+        beast0_pos     20,  0,  1,1
+        beast1_pos    258,  0,  1,1
+    ]
+    image (name: tree filename: "a2/program/TREE.SPK" filetype: a2spk) [
+        moongate  60, 0, 21,27   ; Blue sky, for the moongate rising
+        items     48,43, 28,27   ; The picture behind the moongate
+        gate_pos  48,43,  1, 1
+    ]
+    image (name: portal filename: "a2/program/PRTL.SPK" filetype: a2spk)
+    image (name: outside filename: "a2/program/LOOK.SPK" filetype: a2spk)
+    image (name: inside filename: "a2/program/FAIR.SPK" filetype: a2spk)
+    image (name: wagon filename: "a2/program/WAGN.SPK" filetype: a2spk)
+    image (name: gypsy filename: "a2/program/GYPS.SPK" filetype: a2spk)
+    image (name: abacus filename: "a2/program/TABL.SPK" filetype: a2spk) [
+        whitebead 123,17,   6,14 ; Part of the abacus frame
+        blackbead   0, 0,   7,14 ; Black margin
+        bead_pos  132,17,   7,16
+        card_pos   34,16, 182, 1
+    ]
+    image (name: cards1 filename: "a2/program/CRDS" filetype: a2cards) [
+        honestycard        0,0, 70,112
+        compassioncard    70,0, 70,112
+    ]
+    image (name: cards2 filename: "a2/program/CRDS" filetype: a2cards) [
+        valorcard        140,0, 70,112
+        justicecard      210,0, 70,112
+    ]
+    image (name: cards3 filename: "a2/program/CRDS" filetype: a2cards) [
+        sacrificecard    280,0, 70,112
+        honorcard        350,0, 70,112
+    ]
+    image (name: cards4 filename: "a2/program/CRDS" filetype: a2cards) [
+        spiritualitycard 420,0, 70,112
+        humilitycard     490,0, 70,112
+    ]
 ]
 
 ; The flag & campfire effects of the DOS tiles do not fit the Apple tiles.
