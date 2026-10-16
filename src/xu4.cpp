@@ -337,10 +337,14 @@ static void servicesReset(XU4GameServices* gs) {
 
     const Settings* settings = gs->settings;
     gs->config = configInit(settings->game, settings->soundtrack);
+
+    // Start audio before the screen, as servicesInit() does.  On Windows
+    // SDL sets up COM for the main thread in a mode where Faun's WASAPI
+    // startup then fails ("COM initialize failed").
+    soundInit();
+
     screenInit(LAYER_COUNT);
     Tile::initSymbols(gs->config);
-
-    soundInit();
 
     gs->eventHandler = new EventHandler(
                         1000/settings->gameCyclesPerSecond,

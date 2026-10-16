@@ -1001,7 +1001,7 @@ bool GameController::keyPressed(int key) {
 
     /* Translate context-sensitive action key into a useful command */
     if (key == U4_ENTER) {
-        if (settings.enhancementsOptions.smsInterface) {
+        if (EventHandler::smsMenus()) {
             key = smsActionMenu();
             if (key < 0)
                 return true;
