@@ -24,7 +24,9 @@ enum DialogueString {
     DS_TEXT_HEALTH,
     DS_TEXT_R1,
     DS_TEXT_R2,
-    DS_TEXT_QUESTION
+    DS_TEXT_QUESTION,
+    DS_TEXT_YES,
+    DS_TEXT_NO
 };
 
 enum TalkOpcode {
@@ -59,7 +61,9 @@ typedef const char* (*TalkFunc)(TalkState*, int, const char*);
 // 4 letter stubs, so the full word is taken from the text that mentions it:
 //
 //  - If one of the NPC's own replies contains the word, the keyword is
-//    unlocked once that reply has been heard in this conversation.
+//    unlocked once that reply has been heard in this conversation.  As in
+//    the SMS, a word from the Look text needs Look to be asked, and one
+//    from the question or its answers needs the question answered.
 //  - Otherwise the word comes from other NPCs (a hint chain) and the keyword
 //    is unlocked once the word has been heard from anyone.  These words are
 //    remembered across conversations and saved with the game.
@@ -75,8 +79,11 @@ struct SmsTalk {
     std::set<std::string> heard;    // Words heard in this conversation.
     std::string word[2];            // Display word for topic 1 & 2.
     bool own[2];                    // Word found in the NPC's own text.
+    int source[2];                  // Where the own word was found.
     bool asked[2];
     bool askedJob;
+    bool askedLook;
+    bool answered;                  // The NPC's question was answered.
     bool replied;                   // A reply is on screen.
     int lastPick;
 };
@@ -209,17 +216,22 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
 {
     // Where to look for each keyword, in the order the SMS usually
     // unlocks them (keyword 1 after job, keyword 2 after keyword 1).
-    static const int order[2][6] = {
-        { DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_R2, DS_TEXT_QUESTION, -1 },
-        { DS_TEXT_R1, DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_QUESTION, -1 }
+    static const int order[2][8] = {
+        { DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_R2, DS_TEXT_QUESTION,
+          DS_TEXT_YES, DS_TEXT_NO, -1 },
+        { DS_TEXT_R1, DS_TEXT_JOB, DS_TEXT_HEALTH, DS_LOOK, DS_TEXT_QUESTION,
+          DS_TEXT_YES, DS_TEXT_NO, -1 }
     };
 
     st->askedJob = false;
+    st->askedLook = false;
+    st->answered = false;
     st->replied = false;
     st->lastPick = 1;
     for (int k = 0; k < 2; ++k) {
         st->asked[k] = false;
         st->own[k] = false;
+        st->source[k] = -1;
         st->word[k].clear();
 
         const char* stub = func(ts, DS_TOPIC1 + k, NULL);
@@ -238,6 +250,7 @@ static void smsInit(SmsTalk* st, TalkFunc func, TalkState* ts)
             st->word[k] = findWord(func(ts, *f, NULL), stub);
             if (! st->word[k].empty()) {
                 st->own[k] = true;
+                st->source[k] = *f;
                 break;
             }
         }
@@ -261,6 +274,14 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
     }
     if (st->own[k]) {
         *display = st->word[k];
+        switch (st->source[k]) {
+            case DS_LOOK:
+                return st->askedLook;
+            case DS_TEXT_QUESTION:
+            case DS_TEXT_YES:
+            case DS_TEXT_NO:
+                return st->answered;
+        }
         return heardPrefix(st->heard, stub, NULL);
     }
     return heardPrefix(talkHeardWords, stub, display);
@@ -307,6 +328,8 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
     }
     if (t == -4)
         st->askedJob = true;
+    else if (t == -3)
+        st->askedLook = true;
     std::string in(fixedTopics[-1 - t]);
     in[0] = tolower(in[0]);
     return in;
@@ -371,6 +394,8 @@ static void talkYNResponse(TalkFunc func, TalkState* ts, SmsTalk* st)
 
     const char* reply = func(ts, ans, NULL);
     talkHeard(st, reply);
+    if (st)
+        st->answered = true;
     screenMessage(reply);
     screenCrLf();
 }
@@ -734,6 +759,10 @@ static const char* U4Talk_dialogue(TalkState* ts, int value, const char* input)
                 return USTR(response2);
             case DS_TEXT_QUESTION:
                 return USTR(question);
+            case DS_TEXT_YES:
+                return USTR(yes);
+            case DS_TEXT_NO:
+                return USTR(no);
         }
     }
     return NULL;
