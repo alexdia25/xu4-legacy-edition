@@ -1,7 +1,8 @@
-# Build the Windows & Linux packages and publish them as a GitHub release,
-# either when a legacy-* tag is pushed or when run from the Actions tab
-# with a release tag (the tag is then created on the commit that was built,
-# or the files are replaced and the tag moved if that release already exists).
+# Build the Windows & Linux packages (and a Linux Flatpak bundle) and publish
+# them as a GitHub release, either when a legacy-* tag is pushed or when run
+# from the Actions tab with a release tag (the tag is then created on the
+# commit that was built, or the files are replaced and the tag moved if that
+# release already exists).
 
 name: Release
 
@@ -64,8 +65,34 @@ jobs:
           name: xu4-legacy-${{ matrix.target }}
           path: out/*
 
+  flatpak:
+    # Ubuntu 24.04 has a flatpak-builder that can run appstreamcli compose.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q flatpak flatpak-builder
+          # Let bubblewrap create its sandbox.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Build
+        run: |
+          VERSION=${TAG#legacy-}
+          [ -n "$VERSION" ] || VERSION=$(git describe --tags --always | sed 's/^legacy-//')
+          dist/build-flatpak.sh "$VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xu4-legacy-flatpak
+          path: build-flatpak/*.flatpak
+
   publish:
-    needs: build
+    needs: [build, flatpak]
     if: ${{ github.ref_type == 'tag' || inputs.tag != '' }}
     runs-on: ubuntu-latest
     steps:

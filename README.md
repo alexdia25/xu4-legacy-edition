@@ -163,6 +163,10 @@ XU4 searches for data, modules and zipfiles in the following places:
  - On Windows: `%LOCALAPPDATA%\xu4` & `C:\GOG Games\Ultima 4 - Quest of the Avatar`
    (where the GOG release installs by default)
 
+The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
+modules and the Apple II disk images) and `~/.config/xu4` (settings and
+saved games), so put the files there.
+
 The DOS game zipfiles (ultima4.zip & u4upgrad.zip) don't need to be unpacked,
 but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
 

@@ -362,7 +362,10 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
             errorFatal("Unable to create OpenGL context (%s)", SDL_GetError());
 
 #if defined(__linux__)
-        _setWindowIcon(ss->view, "/usr/share/icons/hicolor/48x48/apps/xu4.png");
+#ifndef ICON_FILE
+#define ICON_FILE   "/usr/share/icons/hicolor/48x48/apps/xu4.png"
+#endif
+        _setWindowIcon(ss->view, ICON_FILE);
 #endif
         _loadCursors(ss->cursor);
 

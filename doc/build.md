@@ -107,3 +107,23 @@ are downloaded to build-linux/ & build-win/.
 [GNU Make]: https://www.gnu.org/software/make/manual/html_node/index.html#toc-Overview-of-make
 [Copr]: http://urlan.sourceforge.io/copr.html
 [build dependencies]: https://wiki.libsdl.org/SDL3/README-linux#build-dependencies
+
+
+Flatpak
+-------
+
+The Flatpak manifest is `dist/flatpak/io.github.alexdia25.xu4_legacy_edition.yml`.
+It uses the Freedesktop 25.08 runtime and builds SDL 3.4 & Boron from
+source (the runtime's SDL3 is older than 3.4).  With `flatpak` &
+`flatpak-builder` installed, this builds a single-file bundle in
+`build-flatpak/` (the runtime & SDK are installed from Flathub first):
+
+    dist/build-flatpak.sh [version]
+
+To build & install it for the current user instead:
+
+    flatpak-builder --user --install --force-clean build-flatpak/app \
+        dist/flatpak/io.github.alexdia25.xu4_legacy_edition.yml
+
+The sandbox may only use `~/.local/share/xu4` (game data, modules & Apple II
+disk images) and `~/.config/xu4` (settings & saved games).

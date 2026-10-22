@@ -17,9 +17,14 @@ the Avatar`.  Otherwise put them (or `ultima4.zip`) next to `xu4.exe`, or in
   directory, or `./setup install` to install it for all users.
 - **Debian & Ubuntu:** `sudo apt install ./xu4-legacy_*_amd64.deb`
   (replaces the distribution's xu4 package if installed).
+- **Flatpak (any distribution):**
+  `flatpak install --user xu4-legacy-*-x86_64.flatpak`, then start it from
+  the menu or with `flatpak run io.github.alexdia25.xu4_legacy_edition`.
+  The Freedesktop runtime is fetched from Flathub if needed.
 
 Put the DOS game files (or `ultima4.zip`) in `~/.local/share/xu4`, or in
-the directory xu4 is run from.
+the directory xu4 is run from (the Flatpak only looks in
+`~/.local/share/xu4`).
 
 The source code is in `xu4-legacy-*.tar.gz`.
 
