@@ -466,14 +466,14 @@ bool IntroController::keyPressed(int key) {
 
     case INTRO_MENU:
         if (EventHandler::smsMenus()) {
-            static const char menuKey[] = "rjica";
+            static const char menuKey[] = "rjicaq";
             switch (key) {
             case U4_UP:
-                menuSel = (menuSel > 0) ? menuSel - 1 : 4;
+                menuSel = (menuSel > 0) ? menuSel - 1 : 5;
                 drawMenuCursor();
                 return true;
             case U4_DOWN:
-                menuSel = (menuSel < 4) ? menuSel + 1 : 0;
+                menuSel = (menuSel < 5) ? menuSel + 1 : 0;
                 drawMenuCursor();
                 return true;
             case U4_ENTER:
@@ -565,7 +565,7 @@ bool IntroController::inputEvent(const InputEvent* ev) {
 void IntroController::drawMenuCursor() {
     if (! EventHandler::smsMenus())
         return;
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 6; ++i)
         menuArea.textAtFmt(8, 5 + i, "%c", (i == menuSel) ? CHARSET_BULLET : ' ');
 }
 
@@ -876,6 +876,8 @@ void IntroController::updateScreen() {
         menuArea.textAtKey(10, 7, "Initiate New Game", 0);
         menuArea.textAtKey(10, 8, "Configure", 0);
         menuArea.textAtKey(10, 9, "About", 0);
+        if (EventHandler::smsMenus())
+            menuArea.textAtKey(10, 10, "Quit", 0);
         drawMenuCursor();
         drawBeasties();
 

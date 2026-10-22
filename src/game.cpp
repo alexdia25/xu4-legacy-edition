@@ -48,6 +48,7 @@ static void gameSpellCastVoc(int spell, int caster, int subject, int spellMp);
 
 /* conversation functions */
 static bool talkAt(const Coords &coords, int distance);
+static bool canTalkNearby();
 
 /* action functions */
 static bool attackAt(const Coords &coords);
@@ -874,10 +875,37 @@ static int smartEnterKey() {
 }
 
 /*
- * The SMS style action menu.  The guessed action comes first, followed by
- * the other commands which make sense here.  Returns the command key, or
- * -1 if the menu was cancelled.
+ * Quit from the SMS style action menu, so a gamepad alone can end the game.
  */
+static void smsQuitMenu() {
+    const char* items[3];
+    int n = 0;
+    bool canSave = (c->location->context & CTX_CAN_SAVE_GAME) != 0;
+    if (canSave)
+        items[n++] = "Save and Quit";
+    items[n++] = "Quit, no Save";
+    items[n++] = "Cancel";
+
+    int pick = EventHandler::chooseItem(items, n);
+    if (pick < 0 || pick == n - 1)
+        return;
+    if (canSave && pick == 0) {
+        screenMessage("Saving...\n%d moves\n", c->saveGame->moves);
+        gameSave(xu4.settings->getUserPath().c_str());
+    }
+    musicFadeOut(500);
+    xu4.eventHandler->quitGame();
+}
+
+/*
+ * The SMS style action menu.  The guessed action comes first, followed by
+ * the other commands which make sense here.  Talk is moved to the top when
+ * someone is in reach, unless the guess is a real one for this spot (Klimb,
+ * Enter, a chest...).  Quit Game is always last.  Returns the command key,
+ * or -1 if the menu was cancelled.
+ */
+#define QUIT_KEY    -2
+
 static int smsActionMenu() {
     struct Action {
         int key;
@@ -892,7 +920,7 @@ static int smsActionMenu() {
         {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
         {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
         {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
-        {'q', "Save Game"}
+        {'q', "Save Game"}, {QUIT_KEY, "Quit Game"}
     };
     const int count = sizeof(actions) / sizeof(Action);
     const SaveGame* sg = c->saveGame;
@@ -908,18 +936,31 @@ static int smsActionMenu() {
         if ((guess == 'k' && ! ladderUp) || (guess == 'd' && ! ladderDown))
             guess = 's';
     }
+    // Talk goes first when it reaches someone and the guess is only the
+    // fallback (Search on foot, Exit Craft when riding).
+    int second = 0;
+    if (! dungeon && canTalkNearby()) {
+        if (guess == 's' || guess == 'x') {
+            second = guess;
+            guess = 't';
+        } else
+            second = 't';
+    }
     const char* items[count];
     int keys[count];
     int n = 0;
 
-    for (int pass = 0; pass < 2; ++pass) {
+    for (int pass = 0; pass < 3; ++pass) {
         for (int i = 0; i < count; ++i) {
             int k = actions[i].key;
             if (pass == 0) {
                 if (k != guess)
                     continue;
+            } else if (pass == 1) {
+                if (k != second)
+                    continue;
             } else {
-                if (k == guess)
+                if (k == guess || k == second)
                     continue;
                 bool show;
                 switch (k) {
@@ -984,7 +1025,13 @@ static int smsActionMenu() {
     }
 
     int pick = EventHandler::chooseItem(items, n);
-    return (pick < 0) ? -1 : keys[pick];
+    if (pick < 0)
+        return -1;
+    if (keys[pick] == QUIT_KEY) {
+        smsQuitMenu();
+        return -1;
+    }
+    return keys[pick];
 }
 
 /**
@@ -2980,6 +3027,56 @@ void peer(bool useGem) {
  * Begins a conversation with the NPC at map coordinates x,y.  If no
  * NPC is present at that point, zero is returned.
  */
+/*
+ * Return the person in a city who would answer Talk at the given coords,
+ * or NULL.
+ */
+static Person* talkablePersonAt(City* city, const Coords &coords,
+                                int distance) {
+    Person* speaker = city->personAt(coords);
+    if (! speaker)
+        return NULL;
+
+    if (speaker->isVendor() || speaker->getNpcType() >= NPC_LORD_BRITISH)
+        return speaker;
+
+    /* Prevent talking to ghosts & skeletons over the counter in Magincia.
+       In the DOS version ghosts on a counter space also ignore the player,
+       but will speak when they are inside walls. */
+    if (speaker->isUndead() && distance > 1)
+        return NULL;
+
+    /* No response from alerted guards... does any monster both
+       attack and talk besides Nate the Snake? */
+    if (speaker->movement == MOVEMENT_ATTACK_AVATAR &&
+        speaker->getId() != PYTHON_ID)
+        return NULL;
+
+    return speaker;
+}
+
+/*
+ * Return true if Talk in some direction would reach someone.
+ */
+static bool canTalkNearby() {
+    City* city = static_cast<City*>(c->location->map);
+    if (! isCity(city) || c->party->isFlying())
+        return false;
+
+    for (int dir = DIR_WEST; dir <= DIR_SOUTH; ++dir) {
+        vector<Coords> path =
+            gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
+                                         c->location->coords, 1, 2,
+                                         &Tile::canTalkOverTile, true);
+        int dist = 1;
+        for (vector<Coords>::iterator i = path.begin(); i != path.end(); i++) {
+            if (talkablePersonAt(city, *i, dist++))
+                return true;
+        }
+    }
+    return false;
+}
+
 static bool talkAt(const Coords &coords, int distance) {
     /* can't have any conversations outside of town */
     City* city = static_cast<City*>(c->location->map);
@@ -2989,7 +3086,7 @@ static bool talkAt(const Coords &coords, int distance) {
     }
 
     /* make sure we have someone we can talk with */
-    Person* speaker = city->personAt(coords);
+    Person* speaker = talkablePersonAt(city, coords, distance);
     if (! speaker)
         return false;
 
@@ -3005,18 +3102,6 @@ static bool talkAt(const Coords &coords, int distance) {
             discourse_load(dis, "castle");
         return discourse_run(dis, npcType - NPC_LORD_BRITISH, speaker);
     }
-
-    /* Prevent talking to ghosts & skeletons over the counter in Magincia.
-       In the DOS version ghosts on a counter space also ignore the player,
-       but will speak when they are inside walls. */
-    if (speaker->isUndead() && distance > 1)
-        return false;
-
-    /* No response from alerted guards... does any monster both
-       attack and talk besides Nate the Snake? */
-    if (speaker->movement == MOVEMENT_ATTACK_AVATAR &&
-        speaker->getId() != PYTHON_ID)
-        return false;
 
     return discourse_run(&city->disc, speaker->discourseId(), speaker);
 }
