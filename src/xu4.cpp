@@ -224,6 +224,11 @@ static void initResourcePaths(StringTable* st) {
         sst_appendCon(st, home, "/.local/share/xu4");
 #endif
     }
+#ifdef DATADIR
+    // Install directory of a build with another prefix (e.g. /app/share/xu4
+    // in the Flatpak).
+    sst_append(st, DATADIR, -1);
+#endif
     sst_append(st, "/usr/share/xu4", -1);
     sst_append(st, "/usr/local/share/xu4", -1);
 #endif

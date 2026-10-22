@@ -1,0 +1,104 @@
+# Flatpak manifest for XU4 Legacy Edition.
+#
+# Build & install for the current user (from the project directory):
+#   flatpak-builder --user --install --force-clean build-flatpak/app \
+#       dist/flatpak/io.github.alexdia25.xu4_legacy_edition.yml
+# or make a single-file bundle with dist/build-flatpak.sh.
+#
+# The Ultima IV data is not included.  The sandbox may read & write
+# ~/.local/share/xu4 (game data, modules, Apple II disk images) and
+# ~/.config/xu4 (settings & saved games), the same directories that the
+# other Linux builds use.
+
+id: io.github.alexdia25.xu4_legacy_edition
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: xu4
+rename-desktop-file: xu4.desktop
+rename-icon: xu4
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=all
+  - --filesystem=xdg-data/xu4:create
+  - --filesystem=xdg-config/xu4:create
+  # Use the Flatpak ID for the Wayland app ID so the desktop file matches.
+  - --env=SDL_APP_ID=io.github.alexdia25.xu4_legacy_edition
+
+cleanup:
+  - /include
+  - /lib/*.a
+  - /lib/x86_64-linux-gnu
+  - /lib/aarch64-linux-gnu
+  - /share/man
+  - /share/vim
+  - /lib/xu4-build
+
+modules:
+  # SDL3, libpng, libvorbis, PulseAudio & GL are in the runtime.
+
+  - name: boron
+    buildsystem: simple
+    build-commands:
+      - ./configure --static --thread --no-socket
+      - make -j${FLATPAK_BUILDER_N_JOBS}
+      - make DESTDIR=/app install-dev
+      # The Boron interpreter is only needed to build the xu4 modules.
+      - install -D -m 755 boron /app/lib/xu4-build/boron
+    sources:
+      - type: git
+        url: https://github.com/0branch/boron.git
+        tag: v2.0.8
+        commit: 84e7a81f68aa7588419f7b164e94e096a1c3fa07
+
+  - name: faun
+    buildsystem: simple
+    build-commands:
+      - ./configure --static --no_flac --prefix /app
+      - make libfaun.a
+      - make install
+    sources:
+      - type: git
+        url: https://codeberg.org/wickedsmoke/faun.git
+        tag: v0.2.4
+        commit: df5bb9ae93bc064221227d64850fe3db8e156bd2
+
+  - name: xu4
+    buildsystem: simple
+    build-options:
+      ldflags: -L/app/lib/x86_64-linux-gnu -L/app/lib/aarch64-linux-gnu
+    build-commands:
+      - make BORON=/app/lib/xu4-build/boron render.pak Ultima-IV.mod
+        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
+      - VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^legacy-//');
+        FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I/app/include
+        -DUSE_BORON -DCONF_MODULE -DVERSION=\\\"${VERSION:-flatpak}\\\"
+        -DDATADIR=\\\"/app/share/xu4\\\"
+        -DICON_FILE=\\\"/app/share/icons/hicolor/48x48/apps/${FLATPAK_ID}.png\\\"
+        -O2 -DNDEBUG";
+        make -C src -j${FLATPAK_BUILDER_N_JOBS} xu4 UI=sdl3
+        CFLAGS="$FLAGS" CXXFLAGS="$FLAGS" LDFLAGS="$LDFLAGS"
+        LIBS="-lSDL3 -lfaun -lboron -lpulse-simple -lpulse -lvorbisfile
+        -lGL -lpng -lz -lpthread -lm"
+      - install -D -m 755 src/xu4 /app/bin/xu4
+      - install -d /app/share/xu4
+      - install -m 644 -t /app/share/xu4 render.pak Ultima-IV.mod
+        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
+      - install -D -m 644 icons/shield.png
+        /app/share/icons/hicolor/48x48/apps/xu4.png
+      - install -D -m 644 dist/flatpak/xu4-128.png
+        /app/share/icons/hicolor/128x128/apps/xu4.png
+      - install -D -m 644 dist/xu4.desktop
+        /app/share/applications/xu4.desktop
+      - install -D -m 644 dist/flatpak/${FLATPAK_ID}.metainfo.xml
+        /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - build-flatpak
+          - build-linux
+          - build-win

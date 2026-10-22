@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.alexdia25.xu4_legacy_edition</id>
+  <name>XU4 Legacy Edition</name>
+  <summary>Ultima IV recreated, with gamepad and console style menus</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.alexdia25">
+    <name>XU4 Legacy Edition</name>
+  </developer>
+  <description>
+    <p>
+      XU4 Legacy Edition is a fork of XU4, the remake of Ultima IV that runs
+      the original DOS game data.  It adds gamepad support, console (Sega
+      Master System) style menus and the game documents in the game, and can
+      use the graphics and music of the Apple II release.
+    </p>
+    <p>
+      The Ultima IV for DOS data is not included.  The free GOG release can
+      be used: put its files (or ultima4.zip) in ~/.local/share/xu4.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.alexdia25.xu4_legacy_edition.desktop</launchable>
+  <url type="homepage">https://github.com/alexdia25/xu4-legacy-edition</url>
+  <url type="bugtracker">https://github.com/alexdia25/xu4-legacy-edition/issues</url>
+  <categories>
+    <category>Game</category>
+    <category>RolePlaying</category>
+  </categories>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>gamepad</control>
+  </supports>
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-fantasy">mild</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="1.0" date="2026-10-16"/>
+  </releases>
+</component>

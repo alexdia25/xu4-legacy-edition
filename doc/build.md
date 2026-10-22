@@ -175,3 +175,23 @@ using the cbuild `-b` option after the target.
 [Copr]: http://urlan.sourceforge.io/copr.html
 [Podman]: https://podman.io/getting-started/installation
 [Docker]: https://docs.docker.com/get-docker/
+
+
+Flatpak
+-------
+
+The Flatpak manifest is `dist/flatpak/io.github.alexdia25.xu4_legacy_edition.yml`.
+It uses the Freedesktop 25.08 runtime (which has SDL3, libpng, libvorbis,
+PulseAudio & GL) and builds Boron & Faun from source.  With `flatpak` &
+`flatpak-builder` installed, this builds a single-file bundle in
+`build-flatpak/` (the runtime & SDK are installed from Flathub first):
+
+    dist/build-flatpak.sh [version]
+
+To build & install it for the current user instead:
+
+    flatpak-builder --user --install --force-clean build-flatpak/app \
+        dist/flatpak/io.github.alexdia25.xu4_legacy_edition.yml
+
+The sandbox may only use `~/.local/share/xu4` (game data, modules & Apple II
+disk images) and `~/.config/xu4` (settings & saved games).
