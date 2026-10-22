@@ -1,6 +1,0 @@
-[submodule "src/glv"]
-	path = src/glv
-	url = https://git.code.sf.net/p/outguard/glv
-[submodule "src/faun"]
-	path = src/faun
-	url = https://codeberg.org/wickedsmoke/faun.git

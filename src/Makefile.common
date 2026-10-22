@@ -7,9 +7,12 @@ CSRCS=\
         lzw/hash.c \
         lzw/lzw.c \
         support/notify.c \
+        support/sfx_gen.c \
+        support/stb_vorbis.c \
         support/stringTable.c \
         support/txf_draw.c \
         support/unzip.c \
+        support/well512.c \
         $(NULL)
 
 CXXSRCS=\
@@ -79,14 +82,6 @@ CXXSRCS=\
         lzw/u6decode.cpp \
         $(NULL)
 
-ifeq ($(UI),glv)
-	CSRCS+=$(GLV_SRC)
-else
-ifneq ($(filter-out glfw sdl3,$(UI)),)
-	CXXSRCS+=event_$(UI).cpp
-endif
-endif
-
 #ifeq ($(CONF),boron)
 	CSRCS+=module.c support/cdi.c
 	CXXSRCS+=config_boron.cpp
@@ -97,11 +92,6 @@ OBJS += $(CSRCS:.c=.o) $(CXXSRCS:.cpp=.o)
 all:: $(MAIN) mkutils
 
 mkutils::  coord$(EXEEXT) dumpmap$(EXEEXT) dumpsavegame$(EXEEXT) tlkconv$(EXEEXT) u4dec$(EXEEXT) u4enc$(EXEEXT) u4unpackexe$(EXEEXT)
-
-ifeq ($(UI),glv)
-$(GLV_SRC):
-	git submodule init glv; git submodule update
-endif
 
 $(MAIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)

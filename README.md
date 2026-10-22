@@ -11,8 +11,8 @@ This fork aims to make Ultima IV smoother and easier to get into,
 especially for someone who has just downloaded the free release from
 [GOG].  Planned and in-progress work:
 
- - **Controller support.**  A platform independent gamepad layer, with a
-   new SDL3 backend (`./configure --sdl3`).  The Select (Back, −)
+ - **Controller support.**  A platform independent gamepad layer on
+   SDL3, which is now the only platform backend.  The Select (Back, −)
    button opens and closes the xu4 menu, and Start pauses.
  - **Console style menus.**  An optional interface modelled on the Sega
    Master System version: an action menu instead of one key per command,
@@ -89,7 +89,7 @@ it easy and convenient to play this classic on modern operating
 systems.  XU4 is primarily inspired by the much more ambitious project
 Exult.  Linux is the primary development platform but it gets built
 for Windows regularly.  It should be easy to port to any system with
-[Allegro] 5.2 or [GLFW] 3 support.
+[SDL] 3 support.
 
 XU4 isn't a new game based on the Ultima IV story -- it is a faithful
 recreation of the old game, right up to the crappy graphics.  If you
@@ -306,7 +306,6 @@ Please send an email to wickedsmoke@users.sourceforge.net if you are
 interested in helping.
 
 
-[Allegro]: https://liballeg.org/
-[GLFW]: https://www.glfw.org
+[SDL]: https://www.libsdl.org/
 [www.gog.com]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [XU4 Download]: https://xu4.sourceforge.net/download.html#release

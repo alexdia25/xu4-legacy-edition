@@ -39,8 +39,8 @@ jobs:
           if [ "${{ matrix.target }}" = windows ]; then
             sudo apt-get install -y -q mingw-w64 cmake zip
           else
-            sudo apt-get install -y -q cmake ninja-build libpng-dev \
-              libvorbis-dev zlib1g-dev libgl1-mesa-dev libegl1-mesa-dev \
+            sudo apt-get install -y -q cmake ninja-build \
+              zlib1g-dev libgl1-mesa-dev libegl1-mesa-dev \
               libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
               libxss-dev libxfixes-dev libxtst-dev libwayland-dev \
               libxkbcommon-dev libdecor-0-dev libpulse-dev libasound2-dev \

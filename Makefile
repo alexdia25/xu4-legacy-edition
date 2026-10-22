@@ -1,11 +1,6 @@
 # GNU Makefile for Linux & macOS.
 
-OS := $(shell uname)
-ifeq ($(OS), Darwin)
-MFILE_OS=Makefile.macosx
-else
 MFILE_OS=Makefile
-endif
 
 # Note: xu4 is hardcoded to look in /usr & /usr/local only!
 DESTDIR ?= /usr/local

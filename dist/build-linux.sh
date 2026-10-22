@@ -5,11 +5,12 @@
 #
 # Usage: dist/build-linux.sh [version]
 #
-# Needs: gcc, cmake, curl, git, dpkg-deb, the X11/Wayland/PulseAudio
-# development headers for SDL, libpng, libvorbis & boron (or the modules
-# render.pak & the .mod files already built).
-# SDL3, Boron & Faun are linked statically; dependencies are downloaded to
-# build-linux/ in the project directory.
+# Needs: gcc, cmake, curl, git, dpkg-deb, the X11/Wayland/PulseAudio/ALSA
+# development headers for SDL, zlib & boron (or the modules render.pak &
+# the .mod files already built).
+# SDL3 & Boron are linked statically (SDL loads the system's OpenGL & audio
+# libraries at run time); dependencies are downloaded to build-linux/ in the
+# project directory.
 
 set -e
 
@@ -19,9 +20,8 @@ WORK=${TOP}/build-linux
 SYS=${WORK}/usr
 DL=${WORK}/dl
 
-SDL_VER=3.2.24
+SDL_VER=3.4.18
 BORON_VER=2.0.8
-FAUN_VER=0.2.4
 
 mkdir -p ${DL} ${SYS}/lib ${SYS}/include
 
@@ -33,14 +33,10 @@ fetch https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VER} \
       SDL3-${SDL_VER}.tar.gz
 fetch https://xu4.sourceforge.net/download \
       boron-x86_64-static-${BORON_VER}.tar.bz2
-fetch https://codeberg.org/WickedSmoke/faun/releases/download/v${FAUN_VER} \
-      faun-x86_64-static-${FAUN_VER}.tar.bz2
 
 if [ ! -f ${SYS}/lib/libSDL3.a ]; then
     tar xjf ${DL}/boron-x86_64-static-${BORON_VER}.tar.bz2 -C ${WORK}
     cp -r ${WORK}/boron/* ${SYS}
-    tar xjf ${DL}/faun-x86_64-static-${FAUN_VER}.tar.bz2 -C ${WORK}
-    cp -r ${WORK}/faun_sdk-${FAUN_VER}/* ${SYS}
 
     tar xzf ${DL}/SDL3-${SDL_VER}.tar.gz -C ${WORK}
     cmake -S ${WORK}/SDL3-${SDL_VER} -B ${WORK}/sdl-build -G Ninja \
@@ -63,8 +59,7 @@ FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I${SYS}/include \
 make -s -C ${SRC}/src -j8 xu4 UI=sdl3 \
     CFLAGS="${FLAGS}" CXXFLAGS="${FLAGS}" \
     LDFLAGS="-L${SYS}/lib -no-pie" \
-    LIBS="-Wl,-Bstatic -lSDL3 -lfaun -lboron -Wl,-Bdynamic \
- -lpulse-simple -lpulse -lvorbisfile -lGL -lpng -lz -lpthread -ldl -lm"
+    LIBS="-Wl,-Bstatic -lSDL3 -lboron -Wl,-Bdynamic -lz -lpthread -ldl -lm"
 strip ${SRC}/src/xu4
 
 MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod"
@@ -103,7 +98,7 @@ Package: xu4-legacy
 Version: ${DEBVER:-0}
 Architecture: amd64
 Maintainer: XU4 Legacy Edition <noreply@users.noreply.github.com>
-Depends: libc6, libstdc++6, libgl1, libpng16-16t64 | libpng16-16, zlib1g, libpulse0, libvorbisfile3
+Depends: libc6, libstdc++6, libgl1, zlib1g
 Conflicts: xu4
 Replaces: xu4
 Section: games
@@ -119,15 +114,11 @@ EOF
 dpkg-deb --root-owner-group --build ${DEB} \
     ${WORK}/xu4-legacy_${DEBVER:-0}_amd64.deb >/dev/null
 
-# Source archive (with the X11 GLV files, as dist/tar-release does).
+# Source archive.
 SDIR=${WORK}/src-archive
 rm -rf ${SDIR}
 mkdir -p ${SDIR}/${PKG}
 git archive HEAD | tar x -C ${SDIR}/${PKG}
-if [ -d ${TOP}/src/glv/x11 ]; then
-    mkdir -p ${SDIR}/${PKG}/src/glv
-    cp -r ${TOP}/src/glv/LICENSE ${TOP}/src/glv/x11 ${SDIR}/${PKG}/src/glv
-fi
 rm -rf ${SDIR}/${PKG}/.git*
 tar czf ${WORK}/${PKG}.tar.gz -C ${SDIR} ${PKG}
 

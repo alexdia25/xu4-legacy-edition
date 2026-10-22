@@ -7,7 +7,7 @@ URL:       https://xu4.sourceforge.net/
 Source0:   https://downloads.sourceforge.net/xu4/1.4/xu4-%{version}.tar.gz
 Source1:   https://downloads.sourceforge.net/urlan/Boron/boron-2.0.8.tar.gz
 Source2:   https://downloads.sourceforge.net/xu4/Ultima%204%20VGA%20Upgrade/1.3/u4upgrad.zip
-BuildRequires: g++, make, libpng-devel, libXcursor-devel, mesa-libGL-devel, zlib-devel, faun-devel
+BuildRequires: g++, make, SDL3-devel, mesa-libGL-devel, zlib-devel
 
 %global debug_package %{nil}
 

@@ -7,15 +7,11 @@ The following build systems are provided:
 
  - [GNU Make] for developers.
  - [Copr] for developers.
- - Cbuild for release packages.
+ - The `dist/build-linux.sh` & `dist/build-windows.sh` scripts for release
+   packages.
 
-Here is the status of build systems for various target OSes:
-
-| Target  | make   | copr    | cbuild |
-| ------- | ------ | ------- | ------ |
-| Linux   | OK     | OK      | OK     |
-| macOS   | src/Makefile.macosx not up to date | Unknown | Not supported |
-| Windows | src/Makefile.mingw not up to date  | OK | OK |
+SDL3 is the only platform API.  It provides the window, OpenGL context,
+input, gamepads, audio output & PNG loading.
 
 
 Developer Builds
@@ -25,24 +21,20 @@ Developer Builds
 
 The following libraries are required for all targets:
 
+ - SDL 3.4 (or later)
  - Boron 2.0.8
- - Faun 0.2
-    - Vorbis
- - PNG
+ - zlib
 
-GLFW 3.3 (or later) is also required for Windows.  This is optional
-for Linux, which uses the src/glv Git submodule (X11) by default.
+Ogg Vorbis decoding (stb_vorbis) and the rFX sound effect synthesizer
+(sfx_gen, from Faun) are included in src/support.
 
-Linux distributions will provide the PNG, Vorbis, & X11 libraries.
-Below are example install commands for a few flavors of Linux.
+SDL 3.4 is newer than what most Linux distributions package, so it may need
+to be built from [source](https://github.com/libsdl-org/SDL/releases)
+(see the SDL [build dependencies] for Linux):
 
-Fedora:
-
-    sudo dnf install libpng-devel libvorbis-devel libXcursor-devel pulseaudio-libs-devel
-
-Ubuntu:
-
-    sudo apt install libpng-dev libvorbis-dev libxcursor-dev libpulse-dev
+    cmake -S SDL3-3.4.18 -B sdl-build -DCMAKE_BUILD_TYPE=Release
+    cmake --build sdl-build
+    sudo cmake --install sdl-build
 
 The Boron interpreter program is needed to build game modules.
 The static binary can be downloaded from the
@@ -57,21 +49,12 @@ or a pre-built x86_64 SDK can be downloaded from the
 On UNIX systems the following commands will checkout the source using Git,
 properly configure it for xu4, build `libboron.a`, and install it:
 
-    make -C dist boron
-    make -C dist/boron
-    sudo make -C dist/boron DESTDIR=/usr install-dev
+    git clone -b v2.0.8 https://github.com/0branch/boron
+    cd boron && ./configure --no-execute --no-socket --static --thread
+    make && sudo make DESTDIR=/usr install-dev
 
 If the Boron program has not been installed yet then adding the `install`
 target to the previous make command will do that.
-
-Faun SDKs and source can be downloaded from the
-[Faun Releases](https://codeberg.org/wickedsmoke/faun/releases) page.  The
-source is also available via the src/faun Git submodule:
-
-    git submodule update --init
-    cd src/faun
-    ./configure --no_flac && make
-    sudo make DESTDIR=/usr install
 
 ### configure
 
@@ -109,69 +92,18 @@ The following commands should get you running:
 Release Builds
 --------------
 
-Linux containers can be used to build the Linux & Windows release archives.
-The containers & SDKs must be downloaded and then the `tools/cbuild` script
-is used to build each target OS archive separately.
-
-This provides the following benefits over server based solutions:
-
- - No remote account or authorization is needed.
- - No network connection is required after the initial setup.
- - Developers can make sure changes in their working directory will build
-   on supported platforms without having to commit any code.
- - Direct access to the containers makes troubleshooting & testing easier.
- - Simple shell scripts & makefiles reduce the learning curve and make
-   customization easier.
-
-### Cbuild setup
-
-The heavy lifting is done by [Podman] or [Docker], so those must be
-installed first.  Cbuild currently uses [Copr] so that must also be installed.
-
-Run these commands from the project root:
-
-    make -C dist cbuild-images
-    make -C dist cbuild-sdks
-
-The `cbuild-images` Makefile target creates the containter images.  For
-specifics see the `dist/Dockerfile.*` files.
-
-> **_NOTE:_** dist/Makefile is currently hardcoded to use Podman `buildah`.
-> If Docker is being used, uncomment the `docker build` line.
-
-The `cbuild-sdks` Makefile target downloads the required Allegro, Boron, &
-Faun SDKs using `curl`.
-
-### Running Cbuild
-
-After setup is complete all supported targets can be built using using these
-commands:
+The release archives are built by the Release workflow on GitHub
+(.github/workflows/release.yml), which runs these scripts on Ubuntu:
 
     make mod
-    tools/cbuild linux
-    tools/cbuild windows
+    dist/build-linux.sh <version>
+    dist/build-windows.sh <version>
 
-This will create xu4 binaries & archives in the `/tmp` directory.
-
-> **_NOTE:_** cbuild is currently hardcoded to use `podman`.
-> If Docker is being used then a shell alias for Podman must be set.
-
-Cbuild executes these steps:
- 1. The currently checked out code is archived in `project.tar.gz` if it does
-    not already exist.
- 2. A container is started, the code archive & SDKs are passed to it, and
-    a binary is built.
- 3. The host retrieves the binary and creates the application archive using
-    the current game modules.
-
-To rebuild after any code changes, first remove the project.tar.gz file
-manually.
-
-If just a binary is required, the application archive step can be skipped by
-using the cbuild `-b` option after the target.
+The Linux script builds SDL3 from source and links it statically; the
+Windows script cross-compiles with MinGW and ships SDL3.dll.  Dependencies
+are downloaded to build-linux/ & build-win/.
 
 
 [GNU Make]: https://www.gnu.org/software/make/manual/html_node/index.html#toc-Overview-of-make
 [Copr]: http://urlan.sourceforge.io/copr.html
-[Podman]: https://podman.io/getting-started/installation
-[Docker]: https://docs.docker.com/get-docker/
+[build dependencies]: https://wiki.libsdl.org/SDL3/README-linux#build-dependencies

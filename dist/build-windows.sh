@@ -17,11 +17,9 @@ WORK=${TOP}/build-win
 SYS=${WORK}/usr
 DL=${WORK}/dl
 
-SDL_VER=3.2.24
+SDL_VER=3.4.18
 BORON_VER=2.0.8
-FAUN_VER=0.2.4
 ZLIB_VER=1.3.1
-PNG_VER=1.6.50
 
 mkdir -p ${DL} ${SYS}
 
@@ -33,18 +31,14 @@ fetch https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VER} \
       SDL3-devel-${SDL_VER}-mingw.tar.gz
 fetch https://xu4.sourceforge.net/download \
       boron-x86_64-w64-mingw32-static-${BORON_VER}.zip
-fetch https://codeberg.org/WickedSmoke/faun/releases/download/v${FAUN_VER} \
-      faun-${HOST}-static-${FAUN_VER}.zip
 fetch https://github.com/madler/zlib/releases/download/v${ZLIB_VER} \
       zlib-${ZLIB_VER}.tar.gz
-fetch https://download.sourceforge.net/libpng libpng-${PNG_VER}.tar.gz
 
 # Unpack the SDKs.
-if [ ! -f ${SYS}/lib/libpng.a ]; then
+if [ ! -f ${SYS}/lib/libz.a ]; then
     tar xzf ${DL}/SDL3-devel-${SDL_VER}-mingw.tar.gz -C ${WORK}
     cp -r ${WORK}/SDL3-${SDL_VER}/${HOST}/* ${SYS}
     unzip -qo ${DL}/boron-x86_64-w64-mingw32-static-${BORON_VER}.zip -d ${WORK}
-    unzip -qo ${DL}/faun-${HOST}-static-${FAUN_VER}.zip -d ${SYS}
 
     tar xzf ${DL}/zlib-${ZLIB_VER}.tar.gz -C ${WORK}
     make -s -C ${WORK}/zlib-${ZLIB_VER} -f win32/Makefile.gcc \
@@ -52,15 +46,6 @@ if [ ! -f ${SYS}/lib/libpng.a ]; then
     cp ${WORK}/zlib-${ZLIB_VER}/libz.a ${SYS}/lib
     cp ${WORK}/zlib-${ZLIB_VER}/{zlib.h,zconf.h} ${SYS}/include
 
-    tar xzf ${DL}/libpng-${PNG_VER}.tar.gz -C ${WORK}
-    cmake -S ${WORK}/libpng-${PNG_VER} -B ${WORK}/png-build \
-        -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=${HOST}-gcc \
-        -DCMAKE_RC_COMPILER=${HOST}-windres \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${SYS} \
-        -DCMAKE_PREFIX_PATH=${SYS} -DZLIB_ROOT=${SYS} \
-        -DPNG_SHARED=OFF -DPNG_TESTS=OFF -DPNG_TOOLS=OFF >/dev/null
-    cmake --build ${WORK}/png-build -j8 >/dev/null
-    cmake --install ${WORK}/png-build >/dev/null
 fi
 
 # Build xu4 in a separate tree so that a native build is not disturbed.
@@ -78,8 +63,7 @@ make -s -C ${SRC}/src -j8 xu4.exe UI=sdl3 EXEEXT=.exe \
     CC=${HOST}-gcc CXX=${HOST}-g++ \
     CFLAGS="${FLAGS}" CXXFLAGS="${FLAGS}" \
     LDFLAGS="-L${SYS}/lib -static-libgcc -static-libstdc++ -mwindows" \
-    LIBS="xu4rc.o -lSDL3 -lfaun ${SYS}/bin/libvorbisfile-3.dll -lole32 -lwinmm \
- -lboron -lws2_32 -lpng -lz -lopengl32 -Wl,-Bstatic -lpthread"
+    LIBS="xu4rc.o -lSDL3 -lboron -lws2_32 -lz -Wl,-Bstatic -lpthread"
 
 # Package.
 PKG=xu4-legacy-${VERSION}-windows
@@ -87,8 +71,7 @@ OUT=${WORK}/${PKG}
 rm -rf ${OUT}
 mkdir -p ${OUT}
 cp ${SRC}/src/xu4.exe ${OUT}
-cp ${SYS}/bin/SDL3.dll ${SYS}/bin/libvorbisfile-3.dll \
-   ${SYS}/bin/libvorbis-0.dll ${SYS}/bin/libogg-0.dll ${OUT}
+cp ${SYS}/bin/SDL3.dll ${OUT}
 for f in render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod; do
     [ -f ${TOP}/$f ] || make -s -C ${TOP} $f
     cp ${TOP}/$f ${OUT}
