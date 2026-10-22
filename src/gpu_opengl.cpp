@@ -163,7 +163,7 @@ void gpu_endRegion(WorkBuffer* work, int regionN, float* attr)
         work->dirty |= 1 << regionN;
 }
 
-#ifdef _WIN32
+#if !defined(__APPLE__) && !defined(__ANDROID__) && !defined(USE_GLES)
 #include "glad.c"
 #endif
 

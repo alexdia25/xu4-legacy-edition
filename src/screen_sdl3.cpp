@@ -380,9 +380,9 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 
     SDL_GL_MakeCurrent(ss->view, ss->glContext);
     SDL_GL_SetSwapInterval(1);
-#ifdef _WIN32
+#if !defined(__APPLE__) && !defined(USE_GLES)
     if (! reset) {
-        if (! gladLoadGL())
+        if (! gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress))
             errorFatal("Unable to get OpenGL function addresses");
     }
 #endif
