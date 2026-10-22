@@ -77,6 +77,7 @@ enum UpgradeFlags {
     UPG_INST    = 2
 };
 static int upgradeFlags = 0;
+static bool upgradeSwitchedOn = false;  // Upgrade files swapped in DOS dir.
 
 static U4PATH * u4path_instance = NULL;
 static U4ZipPackage * u4zip_orig = NULL;
@@ -87,6 +88,7 @@ U4PATH * U4PATH::getInstance() {
 }
 
 static void u4zip_setup();
+static U4FILE *u4fopen_dir(const string &fname);
 
 /**
  * Program initialization for u4 file functions.
@@ -102,6 +104,16 @@ bool u4fsetup()
     u4zip_setup();
 
     U4FILE* uf;
+
+    // The VGA upgrade's SWITCH.BAT renames the original files in the DOS
+    // directory to *.old.  Its ega.drv is larger than the original 4.5K one.
+    upgradeSwitchedOn = false;
+    if ((uf = u4fopen_dir("ega.drv"))) {
+        if (uf->length() > (5 * 1024))
+            upgradeSwitchedOn = true;
+        u4fclose(uf);
+    }
+
     if ((uf = u4fopen("AVATAR.EXE"))) {
         u4fclose(uf);
     } else {
@@ -449,41 +461,9 @@ long U4FILE_zip::length() {
     return fileinfo.uncompressed_size;
 }
 
-/**
- * Open a data file from the Ultima 4 for DOS installation.  This
- * function checks the various places where it can be installed, and
- * maps the filenames to uppercase if necessary.  The files are always
- * opened for reading only.
- *
- * First, it looks in the zipfiles.  Next, it tries FILENAME, Filename
- * and filename in up to four paths, meaning up to twelve or more
- * opens per file.  Seems to be ok for performance, but could be
- * getting excessive.
- */
-static U4FILE *u4fopen_zip(const string &fname, U4ZipPackage* zipPkg) {
+static U4FILE *u4fopen_dir(const string &fname) {
     U4FILE *u4f = NULL;
     unsigned int i;
-
-    if (xu4.verbose)
-        printf("looking for %s\n", fname.c_str());
-
-    /**
-     * search for file within zipfiles (ultima4.zip, u4upgrad.zip, etc.)
-     */
-    if (zipPkg) {
-        u4f = U4FILE_zip::open(fname, zipPkg);
-        if (u4f) {
-            if (xu4.verbose) {
-                printf("%s found in %s\n", fname.c_str(),
-                       zipPkg->getFilename().c_str());
-            }
-            return u4f; /* file was found, return it! */
-        }
-    }
-
-    /*
-     * file not in a zipfile; check if it has been unzipped
-     */
     string fname_copy(fname);
 
     string pathname = u4find_path(fname_copy.c_str(), &u4Path.u4ForDOSPaths);
@@ -510,6 +490,91 @@ static U4FILE *u4fopen_zip(const string &fname, U4ZipPackage* zipPkg) {
     }
 
     return u4f;
+}
+
+/*
+ * Files that the VGA upgrade's SWITCH.BAT swaps with their .old
+ * counterparts.  When the upgrade is switched on in the DOS directory the
+ * original files are named *.old and the upgrade files have the original
+ * names.
+ */
+static const char* upgradeSwapped[] = {
+    "ega.drv", "ultima.com", "avatar.exe",
+    "compassn.ega", "courage.ega", "honesty.ega", "honor.ega", "humility.ega",
+    "justice.ega", "key7.ega", "love.ega", "rune_0.ega", "rune_1.ega",
+    "rune_2.ega", "rune_3.ega", "rune_4.ega", "rune_5.ega", "sacrific.ega",
+    "spirit.ega", "start.ega", "stoncrcl.ega", "truth.ega", "valor.ega",
+    "cove.tlk", "lcb.tlk", "minoc.tlk", "skara.tlk", "yew.tlk",
+    NULL
+};
+
+/*
+ * Return the name a file has when the upgrade is switched on in the DOS
+ * directory (e.g. "start.ega" <-> "start.old"), or an empty string if
+ * the upgrade does not swap it.
+ */
+static string upgradeSwapName(const string &fname) {
+    string lower(fname);
+    for (size_t i = 0; i < lower.size(); ++i)
+        lower[i] = tolower(lower[i]);
+
+    size_t dot = lower.rfind('.');
+    if (dot == string::npos)
+        return string();
+    string base(lower, 0, dot + 1);
+    bool isOld = (lower.compare(dot, string::npos, ".old") == 0);
+
+    for (const char** it = upgradeSwapped; *it; ++it) {
+        if (isOld) {
+            if (strncmp(*it, base.c_str(), base.size()) == 0 &&
+                strchr(*it + base.size(), '.') == NULL)
+                return *it;
+        } else if (lower == *it)
+            return base + "old";
+    }
+    return string();
+}
+
+/**
+ * Open a data file from the Ultima 4 for DOS installation.  This
+ * function checks the various places where it can be installed, and
+ * maps the filenames to uppercase if necessary.  The files are always
+ * opened for reading only.
+ *
+ * First, it looks in the zipfiles.  Next, it tries FILENAME, Filename
+ * and filename in up to four paths, meaning up to twelve or more
+ * opens per file.  Seems to be ok for performance, but could be
+ * getting excessive.
+ */
+static U4FILE *u4fopen_zip(const string &fname, U4ZipPackage* zipPkg) {
+    U4FILE *u4f = NULL;
+
+    if (xu4.verbose)
+        printf("looking for %s\n", fname.c_str());
+
+    /**
+     * search for file within zipfiles (ultima4.zip, u4upgrad.zip, etc.)
+     */
+    if (zipPkg) {
+        u4f = U4FILE_zip::open(fname, zipPkg);
+        if (u4f) {
+            if (xu4.verbose) {
+                printf("%s found in %s\n", fname.c_str(),
+                       zipPkg->getFilename().c_str());
+            }
+            return u4f; /* file was found, return it! */
+        }
+    }
+
+    /*
+     * file not in a zipfile; check if it has been unzipped
+     */
+    if (upgradeSwitchedOn) {
+        string swapName = upgradeSwapName(fname);
+        if (! swapName.empty() && (u4f = u4fopen_dir(swapName)))
+            return u4f;
+    }
+    return u4fopen_dir(fname);
 }
 
 U4FILE *u4fopen(const string &fname) {
