@@ -886,7 +886,8 @@ static void smsQuitMenu() {
     items[n++] = "Quit, no Save";
     items[n++] = "Cancel";
 
-    int pick = EventHandler::chooseItem(items, n);
+    // Without a save the cursor starts on Cancel.
+    int pick = EventHandler::chooseItem(items, n, canSave ? 0 : n - 1);
     if (pick < 0 || pick == n - 1)
         return;
     if (canSave && pick == 0) {
