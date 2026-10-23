@@ -68,6 +68,12 @@ overworld near Britain, and the town of Yew.
 ![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
 ![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
 
+The C64 module, using the tiles of the Commodore 64 release: the
+overworld near Britain, and the town of Yew.
+
+![C64 tiles on the overworld](doc/screenshots/c64-overworld.png)
+![C64 tiles in Yew, with the action menu](doc/screenshots/c64-town.png)
+
 The C64 module (top) and the C64-Remastered module (bottom): the title,
 the moongate of the intro, the gypsy's cards and the first view of
 Britannia.
