@@ -539,7 +539,8 @@ bool IntroController::keyPressed(int key) {
 }
 
 bool IntroController::inputEvent(const InputEvent* ev) {
-    if (ev->type == IE_MOUSE_PRESS && ev->n == CMOUSE_LEFT)
+    int px, py;
+    if (EventHandler::pointerTap(ev, &px, &py))
     {
         if (mode == INTRO_TITLES || mode == INTRO_MAP)
             keyPressed(U4_SPACE);
@@ -1152,8 +1153,16 @@ void IntroController::startQuestions() {
         // wait for an answer
         int choice;
         if (EventHandler::smsMenus()) {
+            // Tapping a card (the left or right half above the text) picks
+            // its virtue.
             static const char* ab[2] = { "A", "B" };
-            choice = EventHandler::chooseInline(&questionArea, ab, 2) ? 'b' : 'a';
+            const int16_t half = U4_SCREEN_W / 2;
+            const int16_t cardsH = INTRO_TEXT_Y * CHAR_HEIGHT;
+            const int16_t cards[8] = {
+                0, 0, half, cardsH,  half, 0, half, cardsH
+            };
+            choice = EventHandler::chooseInline(&questionArea, ab, 2, cards)
+                        ? 'b' : 'a';
         } else
             choice = EventHandler::readChoice("ab");
 

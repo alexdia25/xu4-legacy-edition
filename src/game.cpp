@@ -8,6 +8,7 @@
 #include "camp.h"
 #include "cheat.h"
 #include "city.h"
+#include "combat.h"
 #include "config.h"
 #include "debug.h"
 #include "dungeon.h"
@@ -902,10 +903,12 @@ static void smsQuitMenu() {
  * The SMS style action menu.  The guessed action comes first, followed by
  * the other commands which make sense here.  Talk is moved to the top when
  * someone is in reach, unless the guess is a real one for this spot (Klimb,
- * Enter, a chest...).  Quit Game is always last.  Returns the command key,
+ * Enter, a chest...).  Game Menu (the xu4 menu, so that it can be reached
+ * without a keyboard) and Quit Game are always last.  Returns the command key,
  * or -1 if the menu was cancelled.
  */
 #define QUIT_KEY    -2
+#define OPTIONS_KEY -3
 
 static int smsActionMenu() {
     struct Action {
@@ -921,7 +924,8 @@ static int smsActionMenu() {
         {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
         {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
         {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
-        {'q', "Save Game"}, {QUIT_KEY, "Quit Game"}
+        {'q', "Save Game"}, {OPTIONS_KEY, "Game Menu"},
+        {QUIT_KEY, "Quit Game"}
     };
     const int count = sizeof(actions) / sizeof(Action);
     const SaveGame* sg = c->saveGame;
@@ -1030,6 +1034,11 @@ static int smsActionMenu() {
         return -1;
     if (keys[pick] == QUIT_KEY) {
         smsQuitMenu();
+        return -1;
+    }
+    if (keys[pick] == OPTIONS_KEY) {
+        // The xu4 menu, as opened by Escape or the gamepad Select button.
+        xu4_selectGame();
         return -1;
     }
     return keys[pick];
@@ -1593,27 +1602,113 @@ bool GameController::keyPressed(int key) {
     return valid || EventHandler::defaultKeyHandler(key);
 }
 
-bool GameController::inputEvent(const InputEvent* ev) {
-    const MouseArea* area;
+/*
+ * Turn a tap on the map at screen pixel x,y into a key: the direction from
+ * the party (or the current fighter in combat) toward the tap, or U4_ENTER
+ * when the party itself is tapped.  In the dungeon the directions are
+ * forward, back and turn.  Returns 0 if x,y is not on the map.
+ */
+int gameTapKey(int x, int y) {
+    x -= BORDER_WIDTH;
+    y -= BORDER_HEIGHT;
+    if (x < 0 || y < 0 ||
+        x >= VIEWPORT_W * TILE_WIDTH || y >= VIEWPORT_H * TILE_HEIGHT)
+        return 0;
 
+    // Large maps are centered on the party; small ones (combat) are not.
+    int ox = VIEWPORT_W / 2;
+    int oy = VIEWPORT_H / 2;
+    const Location* loc = c ? c->location : NULL;
+    if (loc && (loc->context & CTX_COMBAT) &&
+        loc->map->width <= VIEWPORT_W && loc->map->height <= VIEWPORT_H) {
+        const PartyMember* pm =
+            static_cast<CombatController*>(loc->turnCompleter)
+                ->getCurrentPlayer();
+        if (pm) {
+            ox = pm->coords.x;
+            oy = pm->coords.y;
+        }
+    }
+
+    int dx = x / TILE_WIDTH - ox;
+    int dy = y / TILE_HEIGHT - oy;
+    if (dx == 0 && dy == 0)
+        return U4_ENTER;
+    if (abs(dx) > abs(dy))
+        return (dx < 0) ? U4_LEFT : U4_RIGHT;
+    return (dy < 0) ? U4_UP : U4_DOWN;
+}
+
+/*
+ * Handle a pointer event for the map views (exploring and combat).
+ * Tapping the map moves toward the tap, and holding it down keeps moving
+ * (dragging steers).  Tapping the party, or the message area, opens the
+ * action menu; tapping the party list shows the Ztats.
+ * Returns the command key for a tap, or 0.
+ */
+static bool tapRepeats(int key) {
+    // In combat each fighter gets one move.
+    if (keyToDirection(key) == DIR_NONE ||
+        (c->location->context & CTX_COMBAT))
+        return false;
+    // Don't keep turning around in the dungeon.
+    if ((c->location->map->flags & FIRST_PERSON) &&
+        (key == U4_LEFT || key == U4_RIGHT))
+        return false;
+    return true;
+}
+
+int gameTapCommand(Controller* con, const InputEvent* ev) {
+    EventHandler* eh = xu4.eventHandler;
+    int x, y, key;
+
+    switch (ev->type) {
+    case IE_MOUSE_RELEASE:
+        eh->setPointerRepeat(con, 0);
+        break;
+
+    case IE_MOUSE_MOVE:
+        if (eh->pointerHeld(con)) {
+            EventHandler::pointerPos(ev, &x, &y);
+            key = gameTapKey(x, y);
+            if (tapRepeats(key))
+                eh->setPointerRepeat(con, key, 0);
+        }
+        break;
+
+    case IE_MOUSE_PRESS:
+        if (! EventHandler::pointerTap(ev, &x, &y))
+            break;
+        key = gameTapKey(x, y);
+        if (key) {
+            if (tapRepeats(key))
+                eh->setPointerRepeat(con, key);
+            return key;
+        }
+        if (x >= TEXT_AREA_X * CHAR_WIDTH) {
+            if (y >= TEXT_AREA_Y * CHAR_HEIGHT)
+                return U4_ENTER;
+            if (y >= STATS_AREA_Y * CHAR_HEIGHT &&
+                y < (STATS_AREA_Y + STATS_AREA_HEIGHT) * CHAR_HEIGHT)
+                return 'z';
+        }
+        break;
+    }
+    return 0;
+}
+
+bool GameController::inputEvent(const InputEvent* ev) {
     if (! xu4.settings->mouseOptions.enabled)
         return false;
 
-    switch (ev->type) {
-        case IE_MOUSE_MOVE:
-            area = xu4.eventHandler->mouseAreaForPoint(ev->x, ev->y);
-            screenSetMouseCursor(area ? area->cursor : MC_DEFAULT);
-            break;
-
-        case IE_MOUSE_PRESS:
-            area = xu4.eventHandler->mouseAreaForPoint(ev->x, ev->y);
-            if (area && ev->n < 4) {
-                int keyCmd = area->command[ev->n - 1];
-                if (keyCmd)
-                    keyPressed(keyCmd);
-            }
-            break;
+    if (ev->type == IE_MOUSE_MOVE) {
+        // The arrow cursors show which way a click moves.
+        const MouseArea* area = xu4.eventHandler->mouseAreaForPoint(ev->x, ev->y);
+        screenSetMouseCursor(area ? area->cursor : MC_DEFAULT);
     }
+    int key = gameTapCommand(this, ev);
+    if (key && keyPressed(key))
+        gameUpdateScreen();
     return true;
 }
 
@@ -1822,6 +1917,21 @@ bool ZtatsController::keyPressed(int key) {
     default:
         return EventHandler::defaultKeyHandler(key);
     }
+}
+
+/*
+ * Tap the stats to see the next page, or anywhere else to close them.
+ */
+bool ZtatsController::inputEvent(const InputEvent* ev) {
+    int x, y;
+    if (EventHandler::pointerTap(ev, &x, &y)) {
+        if (x >= STATS_AREA_X * CHAR_WIDTH &&
+            y < (STATS_AREA_Y + STATS_AREA_HEIGHT + 1) * CHAR_HEIGHT)
+            keyPressed(U4_DOWN);
+        else
+            keyPressed(U4_ESC);
+    }
+    return true;
 }
 
 void destroy() {

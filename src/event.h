@@ -163,7 +163,15 @@ public:
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
     static int  chooseInline(TextView* view, const char* const* items,
-                             int count);
+                             int count, const int16_t* tapAreas = NULL);
+
+    /* Pointer (mouse & touch) functions */
+    static void pointerPos(const InputEvent* ev, int* x, int* y);
+    static bool pointerTap(const InputEvent* ev, int* x, int* y);
+    void setPointerRepeat(Controller* con, int key, int delay = 300);
+    bool pointerHeld(const Controller* con) const {
+        return repeatCon == con;
+    }
 
     /* Static functions */
     static bool timerQueueEmpty();
@@ -226,6 +234,7 @@ public:
 protected:
     void handleInputEvents(Controller*, updateScreenCallback);
     bool runPause();
+    void pointerRepeat();
 
     FrameSleep fs;
     uint32_t timerInterval;     // Milliseconds between timedEvents ticks.
@@ -241,6 +250,9 @@ protected:
     std::vector<Controller *> controllers;
     std::list<const _MouseArea*> mouseAreaSets;
     updateScreenCallback updateScreen;
+    Controller* repeatCon;      // Controller sent repeatKey while held.
+    int repeatKey;
+    uint32_t repeatTime;
     char readStringBuf[33];
 };
 

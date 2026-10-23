@@ -21,6 +21,15 @@ especially for someone who has just downloaded the free release from
    can be played with a D-pad and two buttons.  It switches on by itself
    when a gamepad is used, or can be turned on for keyboard play with
    Configure > Enhanced Interface Options > Console (SMS) Menus.
+ - **Mouse-only and touch play.**  The console menus can also be played
+   with just taps (left clicks), as a step towards touch screens: tap
+   the map to move toward the tap (hold to keep walking, drag to steer),
+   tap your party or the message area for the action menu, tap the party
+   list for the Ztats, and tap menu items, letters and numbers to pick
+   them (tap outside a list to cancel).  Direction prompts take a tap
+   toward the target, the gypsy's questions a tap on a card, and the
+   action menu's Game Menu entry opens the xu4 menu.  No right button or
+   hovering is needed.  The first tap switches the console menus on.
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
    the flow of play, so the game can be played without leaving XU4.

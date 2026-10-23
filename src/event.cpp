@@ -14,6 +14,7 @@
 #include "location.h"
 #include "savegame.h"
 #include "settings.h"
+#include "game.h"
 #include "gamepad.h"
 #include "screen.h"
 #include "sound.h"
@@ -43,7 +44,10 @@ static void frameSleepInit(FrameSleep* fs, int frameDuration) {
 EventHandler::EventHandler(int gameCycleDuration, int frameDuration) :
     timerInterval(gameCycleDuration),
     runRecursion(0),
-    updateScreen(NULL)
+    updateScreen(NULL),
+    repeatCon(NULL),
+    repeatKey(0),
+    repeatTime(0)
 {
     controllerDone = ended = paused = false;
     anim_init(&flourishAnim, 64, NULL, NULL);
@@ -186,9 +190,20 @@ static void renderPause(ScreenState* ss, void* data)
 }
 #endif
 
+// Unpauses when the screen is tapped.
+class PauseController : public Controller {
+public:
+    virtual bool inputEvent(const InputEvent* ev) {
+        int x, y;
+        if (EventHandler::pointerTap(ev, &x, &y))
+            xu4.eventHandler->togglePause();
+        return true;
+    }
+};
+
 // Return true if game should end.
 bool EventHandler::runPause() {
-    Controller waitCon;
+    PauseController waitCon;
 
     soundSuspend(1);
     screenSetMouseCursor(MC_DEFAULT);
@@ -349,6 +364,8 @@ resume:
         }
         recordTick();
 #endif
+        if (repeatCon)
+            pointerRepeat();
         if (runTime >= timerInterval) {
             runTime -= timerInterval;
             timedEvents.tick();
@@ -642,6 +659,7 @@ class ReadDirController : public WaitableController<Direction> {
 public:
     ReadDirController();
     virtual bool keyPressed(int key);
+    virtual bool inputEvent(const InputEvent*);
 };
 
 ReadDirController::ReadDirController() {
@@ -670,6 +688,19 @@ bool ReadDirController::keyPressed(int key) {
     }
 
     return false;
+}
+
+/*
+ * Tapping the map picks the direction from the party toward the tap.
+ * Tapping the party itself, or off the map, cancels.
+ */
+bool ReadDirController::inputEvent(const InputEvent* ev) {
+    int x, y;
+    if (EventHandler::pointerTap(ev, &x, &y)) {
+        int key = gameTapKey(x, y);
+        keyPressed(keyToDirection(key) != DIR_NONE ? key : U4_ESC);
+    }
+    return true;
 }
 
 //----------------------------------------------------------------------------
@@ -805,6 +836,7 @@ public:
     }
 
     virtual bool keyPressed(int key);
+    virtual bool inputEvent(const InputEvent*);
     void draw() const;
 
 private:
@@ -860,6 +892,14 @@ bool ListPickerController::keyPressed(int key) {
         value = -1;
         doneWaiting();
         return true;
+    case U4_PAGE_UP:            // Scroll the list by one line.
+        if (top > 0)
+            sel = top - 1;
+        break;
+    case U4_PAGE_DOWN:
+        if (top + rows < count)
+            sel = top + rows;
+        break;
     default:
         if (key < 0x80 && isalpha(key)) {
             key = toupper(key);
@@ -879,6 +919,44 @@ bool ListPickerController::keyPressed(int key) {
     return true;
 }
 
+/*
+ * Tap an item to pick it, or tap anywhere else to cancel.  Tapping the
+ * first or last line while it shows a ^ or v scrolls the list (holding it
+ * keeps scrolling).
+ */
+bool ListPickerController::inputEvent(const InputEvent* ev) {
+    int x, y;
+    switch (ev->type) {
+    case IE_MOUSE_WHEEL:
+        if (ev->y)
+            keyPressed((ev->y > 0) ? U4_UP : U4_DOWN);
+        break;
+    case IE_MOUSE_RELEASE:
+        xu4.eventHandler->setPointerRepeat(this, 0);
+        break;
+    case IE_MOUSE_PRESS:
+        if (! EventHandler::pointerTap(ev, &x, &y))
+            break;
+        x = x / CHAR_WIDTH - TEXT_AREA_X;
+        y = y / CHAR_HEIGHT - (TEXT_AREA_Y + line);
+        if (x < 0 || y < 0 || y >= rows) {
+            keyPressed(U4_ESC);
+        } else if (y == 0 && top > 0) {
+            keyPressed(U4_PAGE_UP);
+            xu4.eventHandler->setPointerRepeat(this, U4_PAGE_UP);
+        } else if (y == rows - 1 && top + rows < count) {
+            keyPressed(U4_PAGE_DOWN);
+            xu4.eventHandler->setPointerRepeat(this, U4_PAGE_DOWN);
+        } else {
+            sel = top + y;
+            draw();
+            keyPressed(U4_ENTER);
+        }
+        break;
+    }
+    return true;
+}
+
 //----------------------------------------------------------------------------
 
 /*
@@ -893,6 +971,7 @@ public:
     }
 
     virtual bool keyPressed(int key);
+    virtual bool inputEvent(const InputEvent*);
     void draw() const {
         screenTextAt(x, y, "%c%d%c   ", '<', num, '>');
     }
@@ -938,6 +1017,47 @@ bool NumberPickerController::keyPressed(int key) {
     return true;
 }
 
+/*
+ * On the line of the number, tap the < side to subtract one and the > side
+ * to add one (hold to keep counting), or tap the number to pick it.
+ * Tapping anywhere else cancels.
+ */
+bool NumberPickerController::inputEvent(const InputEvent* ev) {
+    int px, py;
+    switch (ev->type) {
+    case IE_MOUSE_WHEEL:
+        if (ev->y)
+            keyPressed((ev->y > 0) ? U4_UP : U4_DOWN);
+        break;
+    case IE_MOUSE_RELEASE:
+        xu4.eventHandler->setPointerRepeat(this, 0);
+        break;
+    case IE_MOUSE_PRESS:
+        if (! EventHandler::pointerTap(ev, &px, &py))
+            break;
+        px /= CHAR_WIDTH;
+        py /= CHAR_HEIGHT;
+        if (px < TEXT_AREA_X || py < y - 1 || py > y + 1) {
+            keyPressed(U4_ESC);
+        } else {
+            int digits = snprintf(NULL, 0, "%d", num);
+            int key;
+            if (px <= x)
+                key = U4_DOWN;
+            else if (px > x + digits)
+                key = U4_UP;
+            else {
+                keyPressed(U4_ENTER);
+                break;
+            }
+            keyPressed(key);
+            xu4.eventHandler->setPointerRepeat(this, key);
+        }
+        break;
+    }
+    return true;
+}
+
 //----------------------------------------------------------------------------
 
 /*
@@ -961,6 +1081,7 @@ public:
     }
 
     virtual bool keyPressed(int key);
+    virtual bool inputEvent(const InputEvent*);
     void draw() const;
     void drawText() const;
     void clear() const;
@@ -1098,6 +1219,32 @@ bool LetterGridController::keyPressed(int key) {
     return true;
 }
 
+/*
+ * Tap a letter (or Spc, Del, End) to pick it.
+ */
+bool LetterGridController::inputEvent(const InputEvent* ev) {
+    int x, y;
+    if (! EventHandler::pointerTap(ev, &x, &y))
+        return true;
+    if (view)
+        view->mouseTextPos(ev->x, ev->y, x, y);
+    else {
+        x = x / CHAR_WIDTH - TEXT_AREA_X;
+        y = y / CHAR_HEIGHT - TEXT_AREA_Y;
+    }
+    int r = y - gridY;
+    x -= gridX;
+    if (r < 0 || r >= rows || x < 0)
+        return true;
+    int i = x / ((r == rows - 1) ? 5 : 2);
+    if (i >= rowLength(r))
+        return true;
+    row = r;
+    col = i;
+    keyPressed(U4_SPACE);
+    return true;
+}
+
 //----------------------------------------------------------------------------
 
 /*
@@ -1108,8 +1255,9 @@ bool LetterGridController::keyPressed(int key) {
 class InlineChoiceController : public WaitableController<int> {
 public:
     InlineChoiceController(TextView* view, const char* const* items,
-                           int count)
-        : view(view), items(items), count(count), sel(0) {
+                           int count, const int16_t* tapAreas)
+        : view(view), items(items), count(count), tapAreas(tapAreas),
+          sel(0) {
         x = view->cursorX();
         y = view->cursorY();
         width = 0;
@@ -1117,6 +1265,14 @@ public:
             int len = strlen(items[i]);
             if (len > width)
                 width = len;
+        }
+        // Go to the next line if the cursor is at the end of one.
+        if (x + width + 1 > view->columns()) {
+            if (y + 1 < view->rows()) {
+                x = 0;
+                ++y;
+            } else
+                x = view->columns() - width - 1;
         }
         value = 0;
     }
@@ -1154,6 +1310,34 @@ public:
         return true;
     }
 
+    /*
+     * Tapping the item picks it, tapping elsewhere shows the next one.
+     * Tapping one of the tapAreas picks the item for that area.
+     */
+    virtual bool inputEvent(const InputEvent* ev) {
+        int px, py;
+        if (EventHandler::pointerTap(ev, &px, &py)) {
+            if (tapAreas) {
+                const int16_t* r = tapAreas;
+                for (int i = 0; i < count; ++i, r += 4) {
+                    if (px >= r[0] && px < r[0] + r[2] &&
+                        py >= r[1] && py < r[1] + r[3]) {
+                        sel = i;
+                        draw();
+                        keyPressed(U4_ENTER);
+                        return true;
+                    }
+                }
+            }
+            view->mouseTextPos(ev->x, ev->y, px, py);
+            if (py >= y - 1 && py <= y + 1 && px >= x - 1 && px <= x + width)
+                keyPressed(U4_ENTER);
+            else
+                keyPressed(U4_DOWN);
+        }
+        return true;
+    }
+
     void draw() const {
         view->textAtFmt(x, y, "%c%-*s", CHARSET_BULLET, width, items[sel]);
     }
@@ -1166,6 +1350,7 @@ private:
     TextView* view;
     const char* const* items;
     int count;
+    const int16_t* tapAreas;
     int sel;
     int x, y, width;
 };
@@ -1282,6 +1467,20 @@ int EventHandler::choosePlayer()
  */
 int EventHandler::readAlphaAction(char lastValidLetter, const char* prompt)
 {
+    if (smsMenus()) {
+        static char label[26][2];
+        const char* items[26];
+        int count = tolower(lastValidLetter) - 'a' + 1;
+        for (int i = 0; i < count; ++i) {
+            label[i][0] = 'A' + i;
+            label[i][1] = '\0';
+            items[i] = label[i];
+        }
+        int n = chooseItem(items, count);
+        screenMessage("%c\n", (n < 0) ? ' ' : 'A' + n);
+        return n;
+    }
+
     AlphaActionController ctrl(lastValidLetter, prompt);
     xu4.eventHandler->pushController(&ctrl);
     return ctrl.waitFor();
@@ -1504,25 +1703,96 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
  * of a gamepad switches them on (for this session, unless the settings are
  * saved), and they can still be switched off again in the options.
  */
+static bool pointerInUse = false;   // The screen has been clicked/tapped.
+
 bool EventHandler::smsMenus()
 {
     static bool padSwitched = false;
-    if (! padSwitched && gamepad_inUse()) {
+    if (! padSwitched && (gamepad_inUse() || pointerInUse)) {
         padSwitched = true;
         xu4.settings->enhancementsOptions.smsInterface = true;
     }
     return xu4.settings->enhancementsOptions.smsInterface;
 }
 
+//----------------------------------------------------------------------------
+// Pointer (mouse & touch)
+//
+// Only the left button (a tap), holding it down, and dragging are used so
+// that everything can be played the same way on a touch screen.
+
+/*
+ * Get the position of a mouse event in screen pixels (320x200).
+ */
+void EventHandler::pointerPos(const InputEvent* ev, int* x, int* y)
+{
+    *x = ev->x;
+    *y = ev->y;
+    screenPointToMouseArea(x, y);
+}
+
+/*
+ * Return true if the event is a left button press (or a tap) and get its
+ * position in screen pixels.  Like the gamepad, the first tap switches the
+ * console menus on.
+ */
+bool EventHandler::pointerTap(const InputEvent* ev, int* x, int* y)
+{
+    if (ev->type != IE_MOUSE_PRESS || ev->n != CMOUSE_LEFT ||
+        ! xu4.settings->mouseOptions.enabled)
+        return false;
+    pointerInUse = true;
+    pointerPos(ev, x, y);
+    return true;
+}
+
+#define POINTER_REPEAT_RATE 200
+
+/*
+ * Send a key to a controller repeatedly while the pointer is held down.
+ * The key is first repeated after delay milliseconds.  Call with key 0
+ * (or another controller) when the button is released.  Repeating stops
+ * if another controller is started (a prompt or a menu).
+ */
+void EventHandler::setPointerRepeat(Controller* con, int key, int delay)
+{
+    if (key) {
+        repeatCon  = con;
+        repeatKey  = key;
+        repeatTime = getTicks() + delay;
+    } else if (con == repeatCon) {
+        repeatCon = NULL;
+        repeatKey = 0;
+    }
+}
+
+void EventHandler::pointerRepeat()
+{
+    Controller* con = getController();
+    if (con != repeatCon) {
+        repeatCon = NULL;
+        repeatKey = 0;
+        return;
+    }
+    uint32_t now = getTicks();
+    if ((int32_t) (now - repeatTime) >= 0) {
+        repeatTime = now + POINTER_REPEAT_RATE;
+        if (con->notifyKeyPressed(repeatKey) && updateScreen)
+            (*updateScreen)();
+    }
+}
+
 /*
  * Pick one of a few short items at the cursor of a TextView.
+ * If tapAreas is not NULL it holds a screen rectangle (x, y, width, height)
+ * for each item which picks it when tapped.
  * Returns the item index.
  */
 int EventHandler::chooseInline(TextView* view, const char* const* items,
-                               int count)
+                               int count, const int16_t* tapAreas)
 {
     view->hideCursor();
-    InlineChoiceController ctrl(view, items, count);
+    InlineChoiceController ctrl(view, items, count, tapAreas);
     ctrl.draw();
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();

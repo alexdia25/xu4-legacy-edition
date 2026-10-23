@@ -914,6 +914,15 @@ void CombatController::movePartyMember(MoveEvent &event) {
     }
 }
 
+// Tapping the map moves the current fighter, tapping the fighter opens the
+// action menu (see gameTapCommand).
+bool CombatController::inputEvent(const InputEvent* ev) {
+    int key = gameTapCommand(this, ev);
+    if (key && keyPressed(key))
+        gameUpdateScreen();
+    return true;
+}
+
 // Key handlers
 bool CombatController::keyPressed(int key) {
     Settings& settings = *xu4.settings;

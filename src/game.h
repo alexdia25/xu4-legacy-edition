@@ -36,6 +36,7 @@ typedef enum {
 class ZtatsController : public WaitableController<void *> {
 public:
     bool keyPressed(int key);
+    bool inputEvent(const InputEvent*);
 };
 
 class TurnController : public Controller {
@@ -143,6 +144,8 @@ void gameDestroyAllCreatures();
 /* etc */
 void gameBadCommand();
 const char* gameGetInput(int maxlen = 30);
+int gameTapKey(int x, int y);
+int gameTapCommand(Controller* con, const InputEvent* ev);
 int gameGetPlayer(bool canBeDisabled, bool canBeActivePlayer);
 void gameGetPlayerForCommand(bool (*commandFn)(int player), bool canBeDisabled, bool canBeActivePlayer);
 void gameDamageParty(int minDamage, int maxDamage);
