@@ -48,6 +48,13 @@ The source code is in `xu4-legacy-*.tar.gz`.
   and ending pictures, and the Apple-II-Music soundtrack plays the
   Mockingboard tunes.  Both are read from the disks when the game runs.
   See "Apple II Disk Images" in the README.
+- **Commodore 64 graphics & music.**  With the Program disk image (.d64)
+  of the C64 release next to the game files, the C64 module shows the C64
+  title, intro pictures, tiles, font and virtue cards, and the C64-Music
+  soundtrack plays the SID tunes through the game's own music player.  The
+  C64-Remastered module uses the tiles & intro art of the Ultima IV
+  Remastered fan release (u4remastered.d81).  See "C64 Disk Images" in the
+  README.
 - The module browser has separate Graphics and Music sections, so any
   soundtrack can go with any graphics, and lists only modules whose game
   data is present.

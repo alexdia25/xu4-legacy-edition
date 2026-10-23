@@ -4,6 +4,7 @@
 #include <string>
 
 #include "a2disk.h"
+#include "c64disk.h"
 #include "config.h"
 #include "docreader.h"
 #include "event.h"
@@ -248,7 +249,9 @@ static bool isExtensionOf(const char* name, const char* /*version*/,
 /*
  * Return true if the game data named in the module "requires" string is
  * present.  Each space separated item is "apple2" (the Ultima IV Apple II
- * disk images) or a file name looked for in the resource paths.
+ * disk images), "c64" (the Program disk of Ultima IV for C64),
+ * "c64remaster" (a disk image of Ultima IV Remastered for C64) or a file
+ * name looked for in the resource paths.
  */
 static bool hasRequiredData(const StringTable* modi)
 {
@@ -270,6 +273,12 @@ static bool hasRequiredData(const StringTable* modi)
 
         if (item == "apple2") {
             if (! a2_haveDisks())
+                return false;
+        } else if (item == "c64") {
+            if (! c64_haveDisk(C64_PROGRAM))
+                return false;
+        } else if (item == "c64remaster") {
+            if (! c64_haveRemaster())
                 return false;
         } else if (item == "u4upgrad.zip") {
             if (! u4isUpgradeAvailable())

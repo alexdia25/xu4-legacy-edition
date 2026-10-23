@@ -9,6 +9,8 @@
 
 #include "a2disk.h"
 #include "a2music.h"
+#include "c64disk.h"
+#include "c64music.h"
 
 #include "config.h"
 #include "context.h"
@@ -31,7 +33,8 @@
 #define BID_A2MUSIC BUFFER_LIMIT    // Two buffers for Apple II music.
 #define A2MUSIC_RATE    44100
 
-// Module music entry naming a tune on the Apple II disks ("disk/FILE:tune").
+// Module music entry naming a tune on the Apple II disks ("disk/FILE:tune")
+// or the C64 disks ("c64/disk/file:tune").
 #define XU4_A2MUSIC     CDI32(0xDA,0x7A,0xF0,0xA2)
 #define BUFFER_MS_FAILED    1
 
@@ -220,7 +223,7 @@ void soundStop() {
 
 #ifdef CONF_MODULE
 /*
- * Render a tune from the Apple II disks into the music buffer.
+ * Render a tune from the Apple II or C64 disks into the music buffer.
  */
 static bool music_loadApple2(const CDIEntry* ent, int bi)
 {
@@ -240,17 +243,29 @@ static bool music_loadApple2(const CDIEntry* ent, int bi)
     int tune = atoi(spec.c_str() + colon + 1);
     spec.resize(colon);
 
-    U4FILE* file = a2_open(spec.c_str());
-    if (! file)
-        return false;
-    std::vector<uint8_t> data(file->length());
-    data.resize(file->read(data.data(), 1, data.size()));
-    delete file;
-
     std::vector<int16_t> samples;
-    if (! a2_renderMusic(data.data(), data.size(), tune, A2MUSIC_RATE,
-                         samples))
-        return false;
+    if (spec.compare(0, 4, "c64/") == 0) {
+        // The tune is played by the game's music player.
+        std::vector<uint8_t> player, data;
+        if (! c64_read("program/musc", player) ||
+            ! c64_read(spec.c_str() + 4, data))
+            return false;
+        if (! c64_renderMusic(player.data(), player.size(),
+                              data.data(), data.size(), tune, A2MUSIC_RATE,
+                              samples))
+            return false;
+    } else {
+        U4FILE* file = a2_open(spec.c_str());
+        if (! file)
+            return false;
+        std::vector<uint8_t> data(file->length());
+        data.resize(file->read(data.data(), 1, data.size()));
+        delete file;
+
+        if (! a2_renderMusic(data.data(), data.size(), tune, A2MUSIC_RATE,
+                             samples))
+            return false;
+    }
     return faun_loadBufferPcm(bi,
                               FAUN_FMT_S16 | FAUN_FMT_STEREO | FAUN_FMT_44100,
                               samples.data(), samples.size() / 2) > 0.0f;

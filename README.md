@@ -45,6 +45,10 @@ especially for someone who has just downloaded the free release from
    soundtrack read the art and Mockingboard tunes of the Apple II release
    straight from its disk images (see
    [Apple II Disk Images](#apple-ii-disk-images)).
+ - **Commodore 64 graphics & music.**  The C64 module and C64-Music
+   soundtrack read the art and SID tunes of the C64 release from its disk
+   images, and the C64-Remastered module uses the art of the Ultima IV
+   Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
@@ -63,6 +67,12 @@ overworld near Britain, and the town of Yew.
 
 ![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
 ![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
+
+The C64 module (top) and the C64-Remastered module (bottom): the title,
+the moongate of the intro, the gypsy's cards and the first view of
+Britannia.
+
+![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
 
 The original XU4 readme follows.
 
@@ -164,7 +174,9 @@ out of the zipfile.  To use it select the U4-Upgrade module.
 
 The Apple-II module uses the graphics of the original Apple II release, and
 the Apple-II-Music soundtrack plays its Mockingboard music (see
-[Apple II Disk Images](#apple-ii-disk-images) below).
+[Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
+C64-Remastered modules do the same for the Commodore 64 release (see
+[C64 Disk Images](#c64-disk-images)).
 
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
@@ -211,6 +223,31 @@ them.  Put the four images in any of the places listed above, or in an
 
 Other files that come with the images (text notes, scans, `.woz` copies)
 aren't needed.
+
+### C64 Disk Images
+
+The C64 module reads the title screen, intro pictures, tiles, font and
+virtue cards straight from the disk images of Ultima IV for the Commodore
+64, and the C64-Music soundtrack plays its SID music by running the game's
+own music player.  Both need only the Program disk; the dungeons, shrines
+and ending still use the DOS pictures.
+
+The C64 release also came on two floppy disks used on both sides (Program,
+Britannia, Towne & Underworld), so a full set is four `.d64` images, though
+some sets name them "Disk 1" and "Disk 2".  The images are told apart by
+their contents, so the file names don't matter, and cracked copies work.
+The images must be plain 35 track `.d64` files.
+
+The C64-Remastered module uses the graphics of
+[Ultima IV Remastered](https://github.com/MagerValp/u4remastered) 2.2.1 by
+Per Olofsson & Vanja Utne: the more colorful tiles and the new intro
+pictures and cards.  It reads them from `u4remastered.d81`, or from
+`u4remastered-a.d64`.
+
+Put the images in any of the places listed above, or in a `c64` folder
+inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
+modules are only listed in the Game Module Browser when their disk images
+are found.
 
 ### Settings & Options
 
