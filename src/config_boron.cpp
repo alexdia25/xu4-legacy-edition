@@ -1175,11 +1175,13 @@ Config* configInit(const char* module, const char* soundtrack) {
 
     renderFound = u4find_pathc("render.pak", "", rpath, sizeof(rpath));
 
-    if (! findModule(module, mpath, sizeof(mpath)))
-        errorFatal("Cannot find module %s", module);
-
-    // Use the default game if the data the module reads is missing.
-    if (! moduleDataFound(mpath)) {
+    // Use the default game if the module (e.g. one saved by another xu4
+    // install) or the data it reads is missing.
+    if (! findModule(module, mpath, sizeof(mpath))) {
+        fprintf(stderr, "Cannot find module %s\n", module);
+        if (! findModule("Ultima-IV", mpath, sizeof(mpath)))
+            errorFatal("Cannot find module Ultima-IV");
+    } else if (! moduleDataFound(mpath)) {
         fprintf(stderr, "Game data for module %s not found\n", module);
         if (! findModule("Ultima-IV", mpath, sizeof(mpath)))
             errorFatal("Cannot find module Ultima-IV");
@@ -1187,10 +1189,14 @@ Config* configInit(const char* module, const char* soundtrack) {
 
     stFound = 0;
     if (soundtrack && soundtrack[0] != '\0') {
+        // A missing soundtrack (e.g. one saved by another xu4 install) falls
+        // back to the game music and is dropped from the settings.
         stFound = findModule(soundtrack, spath, sizeof(spath));
-        if (! stFound)
-            errorWarning("Cannot find module %s", soundtrack);
-        else if (! moduleDataFound(spath))
+        if (! stFound) {
+            fprintf(stderr, "Cannot find module %s\n", soundtrack);
+            if (xu4.settings && soundtrack == xu4.settings->soundtrack)
+                xu4.settings->setSoundtrack("");
+        } else if (! moduleDataFound(spath))
             stFound = 0;
     }
 
