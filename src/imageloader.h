@@ -35,6 +35,10 @@ enum ImageFiletype {
     FTYPE_C64CARDS,
     FTYPE_C64RCARDS,
     FTYPE_C64BEADS,
+    FTYPE_SMSTILES,
+    FTYPE_SMSPIC,
+    FTYPE_SMSTREE,
+    FTYPE_SMSFONT,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

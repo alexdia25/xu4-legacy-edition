@@ -10,6 +10,7 @@
 #include "imagemgr.h"
 #include "a2disk.h"
 #include "c64disk.h"
+#include "smsrom.h"
 #include "intro.h"
 #include "settings.h"
 #include "xu4.h"
@@ -347,6 +348,9 @@ U4FILE * ImageMgr::getImageFile(ImageInfo *info)
     } else if (strncmp(fn, "c64/", 4) == 0) {
         // C64 disk images; "c64/<disk>/<file>[+<file>]".
         file = c64_open(fn + 4);
+    } else if (strncmp(fn, "sms/", 4) == 0) {
+        // The SMS ROM; "sms/<offset>,<length>[+<offset>,<length>]".
+        file = sms_open(fn + 4);
 #ifdef CONF_MODULE
     } else if (isImageChunkId(fn)) {
         const CDIEntry* ent = xu4.config->imageFile(fn);

@@ -11,6 +11,7 @@
 #include "a2music.h"
 #include "c64disk.h"
 #include "c64music.h"
+#include "smsmusic.h"
 
 #include "config.h"
 #include "context.h"
@@ -33,8 +34,8 @@
 #define BID_A2MUSIC BUFFER_LIMIT    // Two buffers for Apple II music.
 #define A2MUSIC_RATE    44100
 
-// Module music entry naming a tune on the Apple II disks ("disk/FILE:tune")
-// or the C64 disks ("c64/disk/file:tune").
+// Module music entry naming a tune on the Apple II disks ("disk/FILE:tune"),
+// the C64 disks ("c64/disk/file:tune") or the SMS ROM ("sms/music:tune").
 #define XU4_A2MUSIC     CDI32(0xDA,0x7A,0xF0,0xA2)
 #define BUFFER_MS_FAILED    1
 
@@ -223,7 +224,8 @@ void soundStop() {
 
 #ifdef CONF_MODULE
 /*
- * Render a tune from the Apple II or C64 disks into the music buffer.
+ * Render a tune from the Apple II or C64 disks or the SMS ROM into the
+ * music buffer.
  */
 static bool music_loadApple2(const CDIEntry* ent, int bi)
 {
@@ -244,7 +246,11 @@ static bool music_loadApple2(const CDIEntry* ent, int bi)
     spec.resize(colon);
 
     std::vector<int16_t> samples;
-    if (spec.compare(0, 4, "c64/") == 0) {
+    if (spec.compare(0, 4, "sms/") == 0) {
+        // The tune is played by the game's sound driver.
+        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples))
+            return false;
+    } else if (spec.compare(0, 4, "c64/") == 0) {
         // The tune is played by the game's music player.
         std::vector<uint8_t> player, data;
         if (! c64_read("program/musc", player) ||

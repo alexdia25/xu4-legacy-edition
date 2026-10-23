@@ -72,7 +72,8 @@ modules:
       ldflags: -L/app/lib/x86_64-linux-gnu -L/app/lib/aarch64-linux-gnu
     build-commands:
       - make BORON=/app/lib/xu4-build/boron render.pak Ultima-IV.mod
-        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
+        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod
+        C64-Remastered.mod SMS.mod SMS-Music.mod
       - VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^legacy-//');
         FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I/app/include
         -DUSE_BORON -DCONF_MODULE -DVERSION=\\\"${VERSION:-flatpak}\\\"
@@ -86,7 +87,8 @@ modules:
       - install -D -m 755 src/xu4 /app/bin/xu4
       - install -d /app/share/xu4
       - install -m 644 -t /app/share/xu4 render.pak Ultima-IV.mod
-        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
+        U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod
+        C64-Remastered.mod SMS.mod SMS-Music.mod
       - install -D -m 644 icons/shield.png
         /app/share/icons/hicolor/48x48/apps/xu4.png
       - install -D -m 644 dist/flatpak/xu4-128.png

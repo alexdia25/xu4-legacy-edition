@@ -146,6 +146,9 @@ exe %xu4 [
 		%a2music.cpp
 		%c64disk.cpp
 		%c64music.cpp
+		%smsmusic.cpp
+		%smsrom.cpp
+		%smsz80.cpp
 		%annotation.cpp
 		%aura.cpp
 		%camp.cpp

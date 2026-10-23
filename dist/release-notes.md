@@ -55,6 +55,11 @@ The source code is in `xu4-legacy-*.tar.gz`.
   C64-Remastered module uses the tiles & intro art of the Ultima IV
   Remastered fan release (u4remastered.d81).  See "C64 Disk Images" in the
   README.
+- **Sega Master System graphics & music.**  With the ROM of the Master
+  System release (.sms) next to the game files, the SMS module shows its
+  map tiles, font and story pictures, and the SMS-Music soundtrack plays
+  its tunes through the game's own sound driver.  See "SMS ROM" in the
+  README.
 - The module browser has separate Graphics and Music sections, so any
   soundtrack can go with any graphics, and lists only modules whose game
   data is present.

@@ -49,6 +49,9 @@ especially for someone who has just downloaded the free release from
    soundtrack read the art and SID tunes of the C64 release from its disk
    images, and the C64-Remastered module uses the art of the Ultima IV
    Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
+ - **Sega Master System graphics & music.**  The SMS module and SMS-Music
+   soundtrack read the tiles, font, story pictures and music of the Master
+   System release from its ROM (see [SMS ROM](#sms-rom)).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
@@ -79,6 +82,11 @@ the moongate of the intro, the gypsy's cards and the first view of
 Britannia.
 
 ![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
+
+The SMS module: the title with the Master System tiles, a picture of the
+story and the first view of Britannia.
+
+![SMS module](doc/screenshots/sms-module.png)
 
 The original XU4 readme follows.
 
@@ -182,7 +190,8 @@ The Apple-II module uses the graphics of the original Apple II release, and
 the Apple-II-Music soundtrack plays its Mockingboard music (see
 [Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
 C64-Remastered modules do the same for the Commodore 64 release (see
-[C64 Disk Images](#c64-disk-images)).
+[C64 Disk Images](#c64-disk-images)), and the SMS & SMS-Music modules for
+the Sega Master System release (see [SMS ROM](#sms-rom)).
 
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
@@ -254,6 +263,22 @@ Put the images in any of the places listed above, or in a `c64` folder
 inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
 modules are only listed in the Game Module Browser when their disk images
 are found.
+
+### SMS ROM
+
+The SMS module reads the map tiles, font and story pictures of Ultima IV:
+Quest of the Avatar for the Sega Master System straight from its ROM, and
+the SMS-Music soundtrack plays its music by running the game's own sound
+driver on a model of the console's Z80 & PSG sound chip.  The title, the
+gypsy's abacus & cards and the dungeons still use the DOS pictures, and
+the game itself (maps, dungeons, talk) stays the DOS one.
+
+The ROM must be the Europe/USA release (512 KB, SHA-1
+`a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
+file name doesn't matter.  Put it in any of the places listed above, or in
+an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
+Windows.  The modules are only listed in the Game Module Browser when the
+ROM is found.  Nothing from the ROM is stored in the modules.
 
 ### Settings & Options
 
