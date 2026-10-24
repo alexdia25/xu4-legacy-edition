@@ -164,6 +164,33 @@ graphics: [
     image (name: inside filename: "sms/465ab,1637" filetype: smspic)
     image (name: wagon filename: "sms/48000,1490" filetype: smspic)
     image (name: gypsy filename: "sms/6af91,e70" filetype: smspic)
+    ; The gypsy's abacus: a bead of the chosen (white) and the rejected
+    ; (black) virtue on the rung of each question, in the column of the
+    ; virtue, as the SMS marks it.  The cards stand at either side.
+    image (name: abacus filename: "sms/47be2,152" filetype: smspic) [
+        bead_pos  128,24,   8,16
+        card_pos   56,24, 160, 1
+    ]
+    image (name: beads filename: "sms/47be2,152+2e180,439+2e5b9,77f+2ed38,60e+2f346,57d+36180,5eb+3676b,5b5+36d20,687+373a7,556" filetype: smscards) [
+        whitebead 0,112, 8,16
+        blackbead 8,112, 8,16
+    ]
+    image (name: cards1 filename: "sms/47be2,152+2e180,439+2e5b9,77f+2ed38,60e+2f346,57d+36180,5eb+3676b,5b5+36d20,687+373a7,556" filetype: smscards) [
+        honestycard        0,0, 48,112
+        compassioncard    48,0, 48,112
+    ]
+    image (name: cards2 filename: "sms/47be2,152+2e180,439+2e5b9,77f+2ed38,60e+2f346,57d+36180,5eb+3676b,5b5+36d20,687+373a7,556" filetype: smscards) [
+        valorcard         96,0, 48,112
+        justicecard      144,0, 48,112
+    ]
+    image (name: cards3 filename: "sms/47be2,152+2e180,439+2e5b9,77f+2ed38,60e+2f346,57d+36180,5eb+3676b,5b5+36d20,687+373a7,556" filetype: smscards) [
+        sacrificecard    192,0, 48,112
+        honorcard        240,0, 48,112
+    ]
+    image (name: cards4 filename: "sms/47be2,152+2e180,439+2e5b9,77f+2ed38,60e+2f346,57d+36180,5eb+3676b,5b5+36d20,687+373a7,556" filetype: smscards) [
+        spiritualitycard 288,0, 48,112
+        humilitycard     336,0, 48,112
+    ]
 ]
 
 tileanim: [

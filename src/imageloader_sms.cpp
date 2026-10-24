@@ -14,12 +14,18 @@
  *   smspic    A picture: a palette of 16 colors, then four bit planes of
  *             the tile patterns, the tile numbers & the tile attributes,
  *             each run-length coded.  The pictures of the story are 22x15
- *             tiles, others 32 wide.  A story picture is centered in the
- *             part of the 320x200 screen above the text.
+ *             tiles, others 32 wide (only full rows are drawn).  A picture
+ *             is centered across the 320x200 screen, 16 pixels from the top.
  *   smstree   The smspic picture of the lake & the stones, with the
  *             moongate (the map graphic, followed by the palette of the
  *             map graphics) put below the picture as it would be seen at
  *             the stones, and the bare ground beside it.
+ *   smscards  The smspic picture of the gypsy's abacus, then the eight
+ *             virtue cards, each four bit planes run-length coded followed
+ *             by 6x14 tile numbers & attributes (byte pairs).  The cards are
+ *             drawn in the colors of the abacus, 48x112 pixels side by side,
+ *             with the white & black beads (two tiles each of the abacus)
+ *             below them at 0,112 & 8,112.
  *   smsfont   The 96 text glyphs from the space, 8 bytes each with one
  *             bit per pixel.  They replace those of the DOS charset.ega,
  *             which keeps the symbols the game uses for its own glyphs
@@ -39,6 +45,10 @@
 #define SMS_PIC_Y       16
 #define SMS_GATE_X      (SMS_PIC_X + 37)    // The moongate at the stones.
 #define SMS_GATE_Y      (SMS_PIC_Y + 46)
+#define SMS_CARD_W      6       // Card size in tiles.
+#define SMS_CARD_H      14
+#define SMS_BEAD_WHITE  11      // Abacus tiles of the beads (upper half).
+#define SMS_BEAD_BLACK  9
 
 static void smsPut(Image* img, int x, int y, uint8_t color)
 {
@@ -127,40 +137,65 @@ static void smsGraphic(Image* img, int x, int y, const uint8_t* data,
     }
 }
 
-static Image* smsPicture(const std::vector<uint8_t>& data, size_t* end)
+/*
+ * Draw an 8x8 tile pattern with the attribute bits of the name table
+ * (1: tile number bit 8, 2: horizontal flip, 4: vertical flip).
+ */
+static void smsTile(Image* img, int tx, int ty,
+                    const std::vector<uint8_t>* planes, int name, int attr,
+                    const uint8_t* pal)
 {
+    int tile = name | ((attr & 1) << 8);
+    bool hflip = attr & 2;
+    bool vflip = attr & 4;
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            int c = smsPatternPixel(planes, tile, vflip ? 7 - y : y,
+                                    hflip ? 7 - x : x);
+            smsPut(img, tx + x, ty + y, pal[c]);
+        }
+    }
+}
+
+struct SmsPicture {
     std::vector<uint8_t> planes[4], names, attrs;
-    size_t pos = 16;
-    if (data.size() < 16 || ! smsPlanes(data, pos, planes) ||
-        ! smsUnpack(data, pos, names) || ! smsUnpack(data, pos, attrs) ||
-        names.size() != attrs.size())
+    const uint8_t* pal;
+    int w, h;
+
+    bool decode(const std::vector<uint8_t>& data, size_t& pos) {
+        pal = data.data() + pos;
+        pos += 16;
+        if (pos > data.size() || ! smsPlanes(data, pos, planes) ||
+            ! smsUnpack(data, pos, names) || ! smsUnpack(data, pos, attrs) ||
+            names.size() != attrs.size())
+            return false;
+        w = (names.size() == 22 * 15) ? 22 : 32;
+        h = names.size() / w;
+        return h > 0;
+    }
+};
+
+static Image* smsPicture(const std::vector<uint8_t>& data, size_t* end,
+                         SmsPicture* keep = NULL)
+{
+    SmsPicture local;
+    SmsPicture& pic = keep ? *keep : local;
+    size_t pos = 0;
+    if (! pic.decode(data, pos))
         return NULL;
-    const uint8_t* pal = data.data();
     if (end)
         *end = pos;
 
-    int w = (names.size() == 22 * 15) ? 22 : 32;
-    int h = (names.size() + w - 1) / w;
-    int x0 = (w == 22) ? SMS_PIC_X : 0;
-    int y0 = (w == 22) ? SMS_PIC_Y : 0;
-    if (x0 + w * 8 > 320 || y0 + h * 8 > 200)
+    int x0 = (320 - pic.w * 8) / 2;
+    int y0 = SMS_PIC_Y;
+    if (y0 + pic.h * 8 > 200)
         return NULL;
 
     Image* img = Image::create(320, 200);
     img->fill(Image::black);
-    for (size_t n = 0; n < names.size(); ++n) {
-        int tile = names[n] | ((attrs[n] & 1) << 8);
-        bool hflip = attrs[n] & 2;
-        bool vflip = attrs[n] & 4;
-        int tx = x0 + (n % w) * 8, ty = y0 + (n / w) * 8;
-        for (int y = 0; y < 8; ++y) {
-            for (int x = 0; x < 8; ++x) {
-                int c = smsPatternPixel(planes, tile, vflip ? 7 - y : y,
-                                        hflip ? 7 - x : x);
-                smsPut(img, tx + x, ty + y, pal[c]);
-            }
-        }
-    }
+    for (int n = 0; n < pic.w * pic.h; ++n)
+        smsTile(img, x0 + (n % pic.w) * 8, y0 + (n / pic.w) * 8, pic.planes,
+                pic.names[n], pic.attrs[n], pic.pal);
     return img;
 }
 
@@ -194,6 +229,41 @@ static Image* smsTree(const std::vector<uint8_t>& data)
     img->drawSubRectOn(img, SMS_TILE_W, 152, SMS_GATE_X, SMS_GATE_Y,
                        SMS_TILE_W, SMS_TILE_H);
     smsGraphic(img, 0, 152, &data[end], &data[end + 128], false);
+    return img;
+}
+
+static Image* smsCards(const std::vector<uint8_t>& data)
+{
+    SmsPicture abacus;
+    size_t pos = 0;
+    if (! abacus.decode(data, pos))
+        return NULL;
+
+    const int cw = SMS_CARD_W * 8;
+    const int names = SMS_CARD_W * SMS_CARD_H;
+    Image* img = Image::create(8 * cw, SMS_CARD_H * 8 + 16);
+    img->fill(Image::black);
+
+    std::vector<uint8_t> planes[4];
+    for (int card = 0; card < 8; ++card) {
+        if (! smsPlanes(data, pos, planes) || pos + 2 * names > data.size()) {
+            delete img;
+            return NULL;
+        }
+        for (int n = 0; n < names; ++n)
+            smsTile(img, card * cw + (n % SMS_CARD_W) * 8,
+                    (n / SMS_CARD_W) * 8, planes, data[pos + 2 * n],
+                    data[pos + 2 * n + 1], abacus.pal);
+        pos += 2 * names;
+    }
+
+    const int y = SMS_CARD_H * 8;
+    for (int half = 0; half < 2; ++half) {
+        smsTile(img, 0, y + half * 8, abacus.planes, SMS_BEAD_WHITE + half, 0,
+                abacus.pal);
+        smsTile(img, 8, y + half * 8, abacus.planes, SMS_BEAD_BLACK + half, 0,
+                abacus.pal);
+    }
     return img;
 }
 
@@ -243,6 +313,8 @@ static Image* loadImage_sms(U4FILE* file, int ftype)
             return smsTree(data);
         case FTYPE_SMSFONT:
             return smsFont(data);
+        case FTYPE_SMSCARDS:
+            return smsCards(data);
     }
     return NULL;
 }

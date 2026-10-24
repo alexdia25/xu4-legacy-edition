@@ -50,8 +50,8 @@ especially for someone who has just downloaded the free release from
    images, and the C64-Remastered module uses the art of the Ultima IV
    Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
  - **Sega Master System graphics & music.**  The SMS module and SMS-Music
-   soundtrack read the tiles, font, story pictures and music of the Master
-   System release from its ROM (see [SMS ROM](#sms-rom)).
+   soundtrack read the tiles, font, story pictures, virtue cards and music
+   of the Master System release from its ROM (see [SMS ROM](#sms-rom)).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
@@ -143,11 +143,11 @@ are found.
 
 ### SMS ROM
 
-The SMS module reads the map tiles, font and story pictures of Ultima IV:
-Quest of the Avatar for the Sega Master System straight from its ROM, and
-the SMS-Music soundtrack plays its music by running the game's own sound
-driver on a model of the console's Z80 & PSG sound chip.  The title, the
-gypsy's abacus & cards and the dungeons still use the DOS pictures, and
+The SMS module reads the map tiles, font, story pictures and the gypsy's
+abacus & virtue cards of Ultima IV: Quest of the Avatar for the Sega Master
+System straight from its ROM, and the SMS-Music soundtrack plays its music
+by running the game's own sound driver on a model of the console's Z80 &
+PSG sound chip.  The title and the dungeons still use the DOS pictures, and
 the game itself (maps, dungeons, talk) stays the DOS one.
 
 The ROM must be the Europe/USA release (512 KB, SHA-1
