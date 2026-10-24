@@ -310,6 +310,17 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     }
 
     gs->stage = (opt->flags & OPT_NO_INTRO) ? StagePlay : StageIntro;
+
+#ifdef DEBUG
+    // Audio test: play every sound & music track, then quit.
+    const char* tourDir = getenv("XU4_TEST_AUDIO");
+    if (tourDir) {
+        extern void testAudioTour(const char*);
+        testAudioTour(tourDir);
+        servicesFree(gs);
+        exit(0);
+    }
+#endif
 }
 
 static void servicesFreeGame(XU4GameServices* gs) {

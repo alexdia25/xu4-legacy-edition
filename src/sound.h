@@ -92,4 +92,12 @@ int  musicVolumeDec();
 int  musicVolumeInc();
 bool musicToggle();
 
+#ifdef DEBUG
+// Record sound requests made during a test replay (see event.cpp).
+void testSoundEvent(char kind, int id);
+#define TEST_SOUND_EVENT(kind,id)   testSoundEvent(kind,id)
+#else
+#define TEST_SOUND_EVENT(kind,id)
+#endif
+
 #endif /* SOUND_H */

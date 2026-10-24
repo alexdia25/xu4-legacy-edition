@@ -208,6 +208,64 @@ static bool testKey(int key)
     return false;
 }
 
+/*
+ * Append a sound request to sounds.txt in the test directory, with the
+ * (virtual) time it was made.
+ */
+void testSoundEvent(char kind, int id)
+{
+    static FILE* fp = NULL;
+    if (! xu4_testDir)
+        return;
+    if (! fp) {
+        std::string path(xu4_testDir);
+        path += "/sounds.txt";
+        fp = fopen(path.c_str(), "w");
+        if (! fp)
+            return;
+    }
+    fprintf(fp, "%u %c %d\n", getTicks_virtual, kind, id);
+    fflush(fp);
+}
+
+/*
+ * Play every sound effect & music track, one at a time with silence between
+ * them, so that the audio output can be recorded & compared.  Each item is
+ * written to tour.txt in dir as "kind id start-msec length-msec", with the
+ * start time counted from the first item.
+ */
+void testAudioTour(const char* dir)
+{
+    const int gapMs = 600;
+    const int musicMs = 4000;
+    std::string path(dir);
+    path += "/tour.txt";
+    FILE* fp = fopen(path.c_str(), "w");
+    if (! fp)
+        return;
+
+    msecSleep(1000);    // Let the audio device start.
+    uint32_t start = getTicks();
+
+    for (int i = 0; i < SOUND_MAX; ++i) {
+        int ms = soundDuration((Sound) i);
+        fprintf(fp, "s %d %u %d\n", i, getTicks() - start, ms);
+        if (ms > 0) {
+            soundPlay((Sound) i);
+            msecSleep(ms + gapMs);
+        }
+    }
+
+    for (int i = MUSIC_NONE + 1; i < MUSIC_MAX; ++i) {
+        fprintf(fp, "m %d %u %d\n", i, getTicks() - start, musicMs);
+        musicPlay(i);
+        msecSleep(musicMs);
+        musicStop();
+        msecSleep(gapMs);
+    }
+    fclose(fp);
+}
+
 #define TEST_END_CHECK(eh) \
     if (xu4_testDir && eh->replayEnded()) \
         eh->quitGame()
