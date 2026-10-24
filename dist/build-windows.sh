@@ -12,7 +12,10 @@ set -e
 
 VERSION=${1:-$(git describe --tags --always)}
 HOST=x86_64-w64-mingw32
-TOP=$(pwd)
+# Under Git Bash (MSYS) the native MinGW tools need Windows paths
+# ("C:/..."), which GNU tar would otherwise take for a remote host.
+TOP=$(pwd -W 2>/dev/null || pwd)
+case ${TOP} in ?:*) export TAR_OPTIONS=--force-local ;; esac
 WORK=${TOP}/build-win
 SYS=${WORK}/usr
 DL=${WORK}/dl
@@ -41,8 +44,11 @@ if [ ! -f ${SYS}/lib/libz.a ]; then
     unzip -qo ${DL}/boron-x86_64-w64-mingw32-static-${BORON_VER}.zip -d ${WORK}
 
     tar xzf ${DL}/zlib-${ZLIB_VER}.tar.gz -C ${WORK}
+    # WinLibs names its binutils without the host prefix.
+    AR=${HOST}-ar
+    command -v ${AR} >/dev/null || AR=ar
     make -s -C ${WORK}/zlib-${ZLIB_VER} -f win32/Makefile.gcc \
-        PREFIX=${HOST}- libz.a
+        PREFIX=${HOST}- AR=${AR} libz.a
     cp ${WORK}/zlib-${ZLIB_VER}/libz.a ${SYS}/lib
     cp ${WORK}/zlib-${ZLIB_VER}/{zlib.h,zconf.h} ${SYS}/include
 
@@ -57,7 +63,7 @@ git archive HEAD src | tar x -C ${SRC}
 FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I${SYS}/include \
  -I${WORK}/usr/include -DUSE_BORON -DCONF_MODULE -DUSE_GL \
  -DVERSION=\\\"${VERSION}\\\" -O3 -DNDEBUG"
-# WinLibs & MSYS2 name their binutils without the host prefix.
+# windres too may have no host prefix.
 WINDRES=${HOST}-windres
 command -v ${WINDRES} >/dev/null || WINDRES=windres
 ${WINDRES} -I ${SRC}/src/win32 ${SRC}/src/win32/xu4.rc \
