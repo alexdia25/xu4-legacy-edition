@@ -88,6 +88,40 @@ story and the first view of Britannia.
 
 ![SMS module](doc/screenshots/sms-module.png)
 
+### Why SDL3 Only
+
+XU4 could be built with several platform layers (GLV, GLFW, Allegro, SDL
+1) and used separate libraries for PNG images (libpng) and sound (Faun,
+with Ogg Vorbis and PulseAudio).  This fork now uses SDL3 for all of it:
+windows, input and gamepads, OpenGL setup, PNG loading and audio.  The
+remaining libraries are zlib for reading zip files and Boron, the
+scripting language of the game modules.
+
+Why we did this:
+
+ - **Fewer dependencies.**  One library replaces six, so building on a
+   new system needs only SDL3, Boron and zlib, and a Windows release ships
+   one DLL.
+ - **One code path.**  Every feature (gamepads, touch, the console menus)
+   only has to be written and tested once, instead of per backend or
+   being missing on some.
+ - **Checked to behave the same.**  The change was compared against the
+   previous version with the replay tests in [tools/test](tools/test):
+   scripted play from the title through a town, combat and a dungeon gave
+   identical screenshots and save games.
+
+Future benefits:
+
+ - **More platforms.**  SDL3 runs on Windows, macOS, Linux, Android, iOS
+   and the Steam Deck, so ports need little more than a build script.
+ - **Touch and controllers.**  SDL3's touch, gamepad and on-screen
+   keyboard support build on the mouse-only and console menu work.
+ - **Easier upkeep.**  Fewer libraries to update, and audio, video and
+   input now share one well maintained, widely used project.
+ - **Safe big changes.**  The replay tests run on every pull request, so
+   later rewrites can be checked against the previous version in the same
+   way.
+
 The original XU4 readme follows.
 
 [XU4]: https://xu4.sourceforge.net/
