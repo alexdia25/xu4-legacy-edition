@@ -13,10 +13,18 @@
 
 static int64_t getTicks_start = 0;
 
+// When non-zero, getTicks() returns getTicks_virtual (which the caller
+// advances) & msecSleep() returns at once.  Used for deterministic tests.
+int getTicks_useVirtual = 0;
+uint32_t getTicks_virtual = 0;
+
 // Return milliseconds elapsed since first call to getTicks().
 uint32_t getTicks()
 {
     int64_t now;
+
+    if (getTicks_useVirtual)
+        return getTicks_virtual;
 
 #ifdef _WIN32
     struct _timeb tb;
@@ -42,6 +50,8 @@ uint32_t getTicks()
 
 void msecSleep(uint32_t ms)
 {
+    if (getTicks_useVirtual)
+        return;
 #ifdef _WIN32
     Sleep(ms);
 #else

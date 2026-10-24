@@ -1,0 +1,36 @@
+# 06-dungeon with the U4-Upgrade module.
+#! module U4-Upgrade
+include newgame.inc
+key ctrl-c
+wait 10
+key m
+wait 20
+key ctrl-c
+wait 10
+key g
+type deceit
+key enter
+wait 20
+key e
+wait 60
+snap
+key c
+wait 10
+key l
+wait 60
+snap
+gap 20
+key up
+key up
+wait 20
+snap
+key left
+key up
+key up
+wait 20
+snap
+key right
+key right
+key up
+wait 30
+snap

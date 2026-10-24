@@ -113,6 +113,7 @@ void screenSetLayer(int layer, void (*renderFunc)(ScreenState*, void*),
                     void* data);
 bool screenLayerUsed(int layer);
 void screenSwapBuffers();
+void screenRequestSnapshot(const char* dir);
 void screenWait(int numberOfAnimationFrames);
 void screenUploadToGPU();
 

@@ -180,6 +180,39 @@ void EventHandler::expose() {
 
 #include "support/getTicks.c"
 
+#ifdef DEBUG
+// Set when replaying a test recording (--replay with XU4_TEST_DIR in the
+// environment).  Time is then counted in frames rather than read from the
+// clock so the replay is the same on every run, & the game exits when the
+// recording ends.
+const char* xu4_testDir = NULL;
+
+void testModeInit()
+{
+    xu4_testDir = getenv("XU4_TEST_DIR");
+    if (xu4_testDir)
+        getTicks_useVirtual = 1;
+}
+
+/*
+ * Handle the special keys of test recordings.
+ * Return true if the key was used.
+ */
+static bool testKey(int key)
+{
+    if (key == U4_TEST_SNAPSHOT) {
+        if (xu4_testDir)
+            screenRequestSnapshot(xu4_testDir);
+        return true;
+    }
+    return false;
+}
+
+#define TEST_END_CHECK(eh) \
+    if (xu4_testDir && eh->replayEnded()) \
+        eh->quitGame()
+#endif
+
 #ifdef GPU_PAUSE
 #include "gpu.h"
 #include "gui.h"
@@ -248,6 +281,11 @@ static int frameSleep(FrameSleep* fs, uint32_t waitTime) {
     uint32_t now;
     int32_t elapsed, elapsedLimit, frameAdjust;
     int i;
+
+    if (getTicks_useVirtual) {
+        getTicks_virtual += fs->frameInterval;
+        return (waitTime && getTicks_virtual >= waitTime) ? 1 : 0;
+    }
 
     now = getTicks();
     elapsed = now - fs->realTime;
@@ -319,9 +357,12 @@ bool EventHandler::wait_msecs(unsigned int msec) {
         eh->handleInputEvents(&waitCon, NULL);
 #ifdef DEBUG
         int key;
-        while ((key = eh->recordedKey()))
-            waitCon.notifyKeyPressed(key);
+        while ((key = eh->recordedKey())) {
+            if (! testKey(key))
+                waitCon.notifyKeyPressed(key);
+        }
         eh->recordTick();
+        TEST_END_CHECK(eh);
 #endif
         if (eh->runTime >= eh->timerInterval) {
             eh->runTime -= eh->timerInterval;
@@ -359,10 +400,13 @@ resume:
 #ifdef DEBUG
         int key;
         while ((key = recordedKey())) {
+            if (testKey(key))
+                continue;
             if (getController()->notifyKeyPressed(key) && updateScreen)
                 (*updateScreen)();
         }
         recordTick();
+        TEST_END_CHECK(this);
 #endif
         if (repeatCon)
             pointerRepeat();

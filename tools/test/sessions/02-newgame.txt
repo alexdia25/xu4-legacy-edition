@@ -1,0 +1,14 @@
+# Character creation, the starting position, Ztats, then Quit & Save.
+include newgame.inc
+wait 20
+snap
+key z
+wait 10
+key 1
+wait 20
+snap
+key esc
+wait 20
+key q
+wait 40
+snap

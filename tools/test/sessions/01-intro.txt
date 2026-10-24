@@ -1,0 +1,27 @@
+# Title sequence, intro map, main menu, Configure & About screens.
+seed 1234
+wait 40
+snap
+wait 120
+snap
+wait 300
+snap
+key esc
+wait 60
+snap
+key esc
+wait 30
+snap
+key c
+wait 30
+snap
+key up
+key enter
+wait 30
+snap
+key a
+wait 30
+snap
+key esc
+wait 30
+snap

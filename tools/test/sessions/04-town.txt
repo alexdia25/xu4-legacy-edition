@@ -1,0 +1,31 @@
+# Enter Moonglow and talk to the guard at the gate.
+include town.inc
+gap 10
+repeat 5 right
+wait 10
+snap
+key t
+key up
+wait 30
+snap
+type name
+key enter
+wait 20
+type job
+key enter
+wait 20
+snap
+wait 30
+type yes
+key enter
+wait 20
+type inn
+key enter
+wait 20
+type bye
+key enter
+wait 20
+snap
+key q
+wait 40
+snap

@@ -1,0 +1,34 @@
+# Walking, blocked moves, the cheat menu, items, peering at a gem and a
+# summoned creature on the world map.
+include newgame.inc
+gap 10
+key up
+key up
+key right
+key right
+wait 10
+snap
+repeat 4 left
+wait 10
+snap
+key ctrl-c
+wait 10
+key i
+wait 20
+key p
+wait 40
+snap
+key esc
+wait 30
+key ctrl-c
+wait 10
+key s
+type orc
+key enter
+wait 30
+gap 20
+repeat 12 space
+snap
+key q
+wait 40
+snap
