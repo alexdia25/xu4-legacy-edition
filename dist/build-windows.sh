@@ -57,7 +57,10 @@ git archive HEAD src | tar x -C ${SRC}
 FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I${SYS}/include \
  -I${WORK}/usr/include -DUSE_BORON -DCONF_MODULE -DUSE_GL \
  -DVERSION=\\\"${VERSION}\\\" -O3 -DNDEBUG"
-${HOST}-windres -I ${SRC}/src/win32 ${SRC}/src/win32/xu4.rc \
+# WinLibs & MSYS2 name their binutils without the host prefix.
+WINDRES=${HOST}-windres
+command -v ${WINDRES} >/dev/null || WINDRES=windres
+${WINDRES} -I ${SRC}/src/win32 ${SRC}/src/win32/xu4.rc \
     -o ${SRC}/src/xu4rc.o
 make -s -C ${SRC}/src -j8 xu4.exe UI=sdl3 EXEEXT=.exe \
     CC=${HOST}-gcc CXX=${HOST}-g++ \
