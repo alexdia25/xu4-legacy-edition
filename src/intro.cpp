@@ -751,9 +751,18 @@ void IntroController::drawBeasties() {
 void IntroController::drawBeastie(int beast, int vertoffset, int frame) {
     ASSERT(beast == 0 || beast == 1, "invalid beast: %d", beast);
 
-    backgroundArea.draw(beastiesImg, beastieSub[beast] + frame,
-                        beastiePos[beast][0],
-                        beastiePos[beast][1] + vertoffset);
+    const SubImage* si = beastiesImg->subImages + beastieSub[beast] + frame;
+    int h = si->height;
+
+    // The first subimage of a run of frames ("name N" in the module) spans
+    // the whole run, so take the frame height from the next one.
+    if (beastSteps && frame == 0)
+        h = si[1].height;
+
+    beastiesImg->image->drawSubRect(
+                        backgroundArea.x + beastiePos[beast][0],
+                        backgroundArea.y + beastiePos[beast][1] + vertoffset,
+                        si->x, si->y, si->width, h);
 }
 
 /**
