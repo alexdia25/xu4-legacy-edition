@@ -38,7 +38,24 @@ cleanup:
   - /lib/xu4-build
 
 modules:
-  # SDL3, libpng, libvorbis, PulseAudio & GL are in the runtime.
+  # SDL 3.4 is needed for SDL_LoadPNG (the runtime's SDL3 is older).
+  # It is linked statically and loads the runtime's GL, Wayland, X11 &
+  # PulseAudio libraries.
+  - name: sdl3
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      - -DSDL_SHARED=OFF
+      - -DSDL_STATIC=ON
+      - -DSDL_TEST_LIBRARY=OFF
+      - -DSDL_TESTS=OFF
+      - -DSDL_EXAMPLES=OFF
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/SDL.git
+        tag: release-3.4.18
+        commit: 829a65d769d935c4852f8159e964312c0957260a
 
   - name: boron
     buildsystem: simple
@@ -53,18 +70,6 @@ modules:
         url: https://github.com/0branch/boron.git
         tag: v2.0.8
         commit: 84e7a81f68aa7588419f7b164e94e096a1c3fa07
-
-  - name: faun
-    buildsystem: simple
-    build-commands:
-      - ./configure --static --no_flac --prefix /app
-      - make libfaun.a
-      - make install
-    sources:
-      - type: git
-        url: https://codeberg.org/wickedsmoke/faun.git
-        tag: v0.2.4
-        commit: df5bb9ae93bc064221227d64850fe3db8e156bd2
 
   - name: xu4
     buildsystem: simple
@@ -82,8 +87,7 @@ modules:
         -O2 -DNDEBUG";
         make -C src -j${FLATPAK_BUILDER_N_JOBS} xu4 UI=sdl3
         CFLAGS="$FLAGS" CXXFLAGS="$FLAGS" LDFLAGS="$LDFLAGS"
-        LIBS="-lSDL3 -lfaun -lboron -lpulse-simple -lpulse -lvorbisfile
-        -lGL -lpng -lz -lpthread -lm"
+        LIBS="-lSDL3 -lboron -lz -lpthread -ldl -lm"
       - install -D -m 755 src/xu4 /app/bin/xu4
       - install -d /app/share/xu4
       - install -m 644 -t /app/share/xu4 render.pak Ultima-IV.mod

@@ -1,7 +1,5 @@
 options [
-	os_api: 'glfw	 	"Platform API ('allegro 'glfw 'glv 'sdl)"
-	use_faun: true
-	sdk_dir: none		"Path to Boron/Faun headers and libraries (UNIX only)"
+	sdk_dir: none		"Path to Boron & SDL3 headers and libraries (UNIX only)"
 	gpu_render: false
 	make_util: true
 ]
@@ -34,68 +32,10 @@ exe %xu4 [
 		include-define "_WIN32"		; Needed to archive glad.*
 	]
 
-	switch os_api [
-		allegro [
-			unix [
-				libs pick [
-					[%allegro %faun %pulse-simple %pulse %vorbisfile]
-					[%allegro_acodec %allegro_audio %allegro]
-				] use_faun
-			]
-			win32 [
-				libs_from %../usr/lib pick [
-					[%allegro %faun %vorbisfile %ole32]
-					[%allegro_acodec %allegro_audio %allegro]
-				] use_faun
-			]
-			sources_from %src reduce [
-				%event_allegro.cpp
-				%screen_allegro.cpp
-				either use_faun
-					%sound_faun.cpp
-					%sound_allegro.cpp
-			]
-		]
-		glfw [
-			win32 [libs [%glfw3 %faun %vorbisfile %ole32]]
-			unix  [libs [%glfw %faun]]
-			sources_from %src [
-				%screen_glfw.cpp
-				%sound_faun.cpp
-			]
-		]
-		glv [
-			win32 [
-				include_from %src/glv/win32
-				libs [%faun %vorbisfile %ole32]
-				sources/flags [%src/glv/win32/glv.c] "-DUSE_CURSORS"
-			]
-			unix [
-				include_from %src/glv/x11
-				libs [%faun %Xcursor %X11]
-				sources/flags [%src/glv/x11/glv.c] "-DUSE_CURSORS"
-			]
-			sources_from %src [
-				%screen_glv.cpp
-				%sound_faun.cpp
-			]
-		]
-		sdl3 [
-			libs [%SDL3 %faun]
-			sources_from %src [
-				%screen_sdl3.cpp
-				%sound_faun.cpp
-			]
-		]
-		sdl [
-			include_from %/usr/include/SDL
-			libs [%SDL %faun]
-			sources_from %src [
-				%event_sdl.cpp
-				%screen_sdl.cpp
-				%sound_faun.cpp
-			]
-		]
+	libs %SDL3
+	sources_from %src [
+		%screen_sdl3.cpp
+		%sound_sdl3.cpp
 	]
 
 	;if use_boron [
@@ -103,8 +43,8 @@ exe %xu4 [
 		unix [
 			libs %boron
 			if sdk_dir [
-					; Needed for static libboron & libfaun.
-					libs [%pthread %pulse-simple %pulse %vorbisfile]
+					; Needed for static libboron.
+					libs [%pthread]
 			]
 		]
 		win32 [
@@ -120,21 +60,22 @@ exe %xu4 [
 
 	if gpu_render [cflags "-DGPU_RENDER"]
 	cflags "-DUSE_GL"
-	opengl
+	; OpenGL functions are obtained through SDL.
+	macx [opengl]
 
 	unix [
 		cflags "-Wno-unused-parameter"
-		libs [%png %z]
+		libs %z
 	]
 	win32 [
 		either msvc [
-			libs_from %../usr/lib [%libpng16 %zlib]
+			libs_from %../usr/lib [%zlib]
 			libs [%User32]
 		][
 			cflags "-Wno-unused-parameter"
-			;lflags "-static-libgcc"	; Causes problems with Allegro libs.
+			;lflags "-static-libgcc"
 			lflags "-static-libstdc++"
-			libs [%png %z]
+			libs %z
 		]
 		include_from %src/win32
 		sources/flags [%src/win32/xu4.rc] "-I src/win32"
@@ -214,9 +155,12 @@ exe %xu4 [
 		%lzw/u4decode.cpp
 
 		%support/notify.c
+		%support/sfx_gen.c
+		%support/stb_vorbis.c
 		%support/stringTable.c
 		%support/txf_draw.c
 		%support/unzip.c
+		%support/well512.c
 	]
 ]
 
@@ -231,12 +175,4 @@ if make_util [
 			%src/util/dumpsavegame.cpp
 		]
 	]
-]
-
-; cbuild makes the archive for mingw & glfw so add the Linux files as well.
-dist [
-	%src/screen_glv.cpp
-	%src/glv/x11/glv.c
-	%src/glv/x11/glv.h
-	%src/glv/x11/glv_keys.h
 ]

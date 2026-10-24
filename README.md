@@ -11,8 +11,8 @@ This fork aims to make Ultima IV smoother and easier to get into,
 especially for someone who has just downloaded the free release from
 [GOG].  Planned and in-progress work:
 
- - **Controller support.**  A platform independent gamepad layer, with a
-   new SDL3 backend (`./configure --sdl3`).  The Select (Back, −)
+ - **Controller support.**  A platform independent gamepad layer on
+   SDL3, which is now the only platform backend.  The Select (Back, −)
    button opens and closes the xu4 menu, and Start pauses.
  - **Console style menus.**  An optional interface modelled on the Sega
    Master System version: an action menu instead of one key per command,
@@ -188,6 +188,40 @@ story and the first view of Britannia.
 
 ![SMS module](doc/screenshots/sms-module.png)
 
+### Why SDL3 Only
+
+XU4 could be built with several platform layers (GLV, GLFW, Allegro, SDL
+1) and used separate libraries for PNG images (libpng) and sound (Faun,
+with Ogg Vorbis and PulseAudio).  This fork now uses SDL3 for all of it:
+windows, input and gamepads, OpenGL setup, PNG loading and audio.  The
+remaining libraries are zlib for reading zip files and Boron, the
+scripting language of the game modules.
+
+Why we did this:
+
+ - **Fewer dependencies.**  One library replaces six, so building on a
+   new system needs only SDL3, Boron and zlib, and a Windows release ships
+   one DLL.
+ - **One code path.**  Every feature (gamepads, touch, the console menus)
+   only has to be written and tested once, instead of per backend or
+   being missing on some.
+ - **Checked to behave the same.**  The change was compared against the
+   previous version with the replay tests in [tools/test](tools/test):
+   scripted play from the title through a town, combat and a dungeon gave
+   identical screenshots and save games.
+
+Future benefits:
+
+ - **More platforms.**  SDL3 runs on Windows, macOS, Linux, Android, iOS
+   and the Steam Deck, so ports need little more than a build script.
+ - **Touch and controllers.**  SDL3's touch, gamepad and on-screen
+   keyboard support build on the mouse-only and console menu work.
+ - **Easier upkeep.**  Fewer libraries to update, and audio, video and
+   input now share one well maintained, widely used project.
+ - **Safe big changes.**  The replay tests run on every pull request, so
+   later rewrites can be checked against the previous version in the same
+   way.
+
 The original XU4 readme follows.
 
 [XU4]: https://xu4.sourceforge.net/
@@ -222,7 +256,7 @@ it easy and convenient to play this classic on modern operating
 systems.  XU4 is primarily inspired by the much more ambitious project
 Exult.  Linux is the primary development platform but it gets built
 for Windows regularly.  It should be easy to port to any system with
-[Allegro] 5.2 or [GLFW] 3 support.
+[SDL] 3 support.
 
 XU4 isn't a new game based on the Ultima IV story -- it is a faithful
 recreation of the old game, right up to the crappy graphics.  If you
@@ -399,7 +433,6 @@ Please send an email to wickedsmoke@users.sourceforge.net if you are
 interested in helping.
 
 
-[Allegro]: https://liballeg.org/
-[GLFW]: https://www.glfw.org
+[SDL]: https://www.libsdl.org/
 [www.gog.com]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [XU4 Download]: https://xu4.sourceforge.net/download.html#release

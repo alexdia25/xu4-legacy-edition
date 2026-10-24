@@ -2,11 +2,11 @@
 #include <OpenGL/gl.h>
 #elif defined(__ANDROID__)
 #include <GLES3/gl31.h>
-#elif defined(_WIN32)
-#include "glad.h"
-#else
+#elif defined(USE_GLES)
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
+#else
+#include "glad.h"
 #endif
 
 #include "anim.h"
