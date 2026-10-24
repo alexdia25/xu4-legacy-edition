@@ -12,7 +12,10 @@ samples:
     level   Difference in loudness (RMS), dB.
     shape   Correlation of the volume envelopes (10 ms steps), 0-1.
     tone    Similarity of the average spectra, 0-1.
-    length  Difference in audible length, ms.
+    length  Difference in audible length, ms (sounds only).
+
+Short gaps of exact silence, where the player fell behind while recording,
+are removed first.
 
 If diff-dir is given, WAV files of both versions of every failing item are
 written there to listen to.  Exits with status 1 if anything fails.
@@ -29,6 +32,7 @@ STEP = RATE // 100              # Envelope step: 10 ms.
 SILENCE = 10 ** (-50 / 20)      # -50 dBFS
 SEARCH = 0.4                    # Seconds to search after the expected start.
 QUIET_STEPS = 25                # Silence before a sound starts: 250 ms.
+DROPOUT_MAX = RATE // 5         # Longest recording gap to remove: 200 ms.
 
 MAX_LEVEL_DB = 1.5
 MIN_SHAPE = 0.9
@@ -81,6 +85,22 @@ def starts(pcm):
     return np.array(found)
 
 
+def remove_dropouts(pcm):
+    """
+    Remove short runs of exact silence in the middle of a sound.  These are
+    where the player fell behind while recording (a real recording is never
+    exactly zero while sound is playing).
+    """
+    zero = ~pcm.any(axis=1)
+    edges = np.flatnonzero(np.diff(zero.astype(np.int8)))
+    keep = np.ones(len(pcm), dtype=bool)
+    # Runs of zeros start after a +1 edge and end at the next -1 edge.
+    for begin, end in zip(edges[:-1], edges[1:]):
+        if zero[begin + 1] and 0 < end - begin <= DROPOUT_MAX:
+            keep[begin + 1:end + 1] = False
+    return pcm[keep]
+
+
 def segments(items, pcm):
     """Cut out each played item, aligned on where its sound begins."""
     played = [it for it in items if it[3] > 0]
@@ -113,10 +133,11 @@ def segments(items, pcm):
         if at is None:
             segs[(kind, num)] = None
             continue
-        end = at + int(length * RATE)
+        size = int(length * RATE)
         if kind == 's':
-            end += int(0.3 * RATE)      # Allow for a longer tail.
-        segs[(kind, num)] = pcm[at:end]
+            size += int(0.3 * RATE)     # Allow for a longer tail.
+        seg = remove_dropouts(pcm[at:at + size + int(0.5 * RATE)])
+        segs[(kind, num)] = seg[:size]
     return segs
 
 
@@ -246,6 +267,8 @@ def main(before, after, diffdir=None):
             failed += 1
             continue
         r = compare(a, b)
+        if key[0] == 'm':
+            r['length'] = 0     # Music is stopped after a fixed time.
         bad = (abs(r['level']) > MAX_LEVEL_DB or r['shape'] < MIN_SHAPE or
                r['tone'] < MIN_TONE or abs(r['length']) > MAX_LENGTH_MS)
         print('%-22s %+6.1fdB %6.3f %6.3f %+5dms%s' % (name(*key),
