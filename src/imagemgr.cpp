@@ -209,6 +209,11 @@ void ImageMgr::fixupC64Intro(Image *im) {
     im->drawSubRectOn(im, 132, 33, 132, 0, 54, 5);
     im->fillRect(132, 0, 54, 5, 0, 0, 0);
 
+    // Clear the beasties in the top corners, as they are drawn over the
+    // image and slide down into place when the titles end.
+    im->fillRect(16, 0, 56, 32, 0, 0, 0);
+    im->fillRect(248, 0, 48, 32, 0, 0, 0);
+
     // Draw the "Lord British" signature (cyan, two pixels wide).
     const unsigned char* sigData = xu4.intro->getSigData();
     for (int i = 0; sigData[i] != 0; i += 2)
