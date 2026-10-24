@@ -27,9 +27,10 @@ especially for someone who has just downloaded the free release from
    tap your party or the message area for the action menu, tap the party
    list for the Ztats, and tap menu items, letters and numbers to pick
    them (tap outside a list to cancel).  Direction prompts take a tap
-   toward the target, the gypsy's questions a tap on a card, and the
-   action menu's Game Menu entry opens the xu4 menu.  No right button or
-   hovering is needed.  The first tap switches the console menus on.
+   toward the target and the gypsy's questions a tap on a card.  No right
+   button or hovering is needed.  The first tap switches the console
+   menus on.  The module list of the xu4 menu can be dragged, and its
+   Settings button opens the configuration menus, also during play.
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
    the flow of play, so the game can be played without leaving XU4.

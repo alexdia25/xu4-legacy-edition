@@ -31,6 +31,7 @@ public:
         WI_LIST,
         WI_OK,
         WI_DOCS,
+        WI_SETTINGS,
         WI_QUIT,
         WI_CANCEL,
         WI_COUNT
@@ -55,6 +56,12 @@ private:
     WorkBuffer* work;
     float listScroll;
     float listScrollTarget;
+    float dragScroll;           // listScrollTarget when the list was pressed.
+    int   dragY;                // Where the list was pressed.
+    bool  dragged;              // The list was dragged since it was pressed.
+public:
+    bool  openSettings;         // Settings was picked.
+private:
     float lineHeight;
     float psizeList;            // List font point size.
     float descenderList;        // List font descender * point size.
@@ -65,6 +72,7 @@ private:
     void moveCursor(int dir);
     void readDocuments();
     void selectModule(const GuiArea* area, int y);
+    float maxScroll() const;
     void layout();
     void generateListItems();
     void animateScroll();

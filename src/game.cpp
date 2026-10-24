@@ -123,6 +123,18 @@ void GameController::conclude() {
     screenSetMouseCursor(MC_DEFAULT);
 }
 
+/*
+ * Show the borders and map again after something else (the in-game
+ * configuration menus) has used the screen.
+ */
+void GameController::redrawScreen()
+{
+    if (borderAttr)
+        screenSetLayer(LAYER_HUD, renderHud, this);
+    mapArea.reinit();
+    gameUpdateScreen();
+}
+
 void GameController::renderHud(ScreenState* ss, void* data)
 {
     //GameController* gc = (GameController*) data;
@@ -903,12 +915,10 @@ static void smsQuitMenu() {
  * The SMS style action menu.  The guessed action comes first, followed by
  * the other commands which make sense here.  Talk is moved to the top when
  * someone is in reach, unless the guess is a real one for this spot (Klimb,
- * Enter, a chest...).  Game Menu (the xu4 menu, so that it can be reached
- * without a keyboard) and Quit Game are always last.  Returns the command key,
+ * Enter, a chest...).  Quit Game is always last.  Returns the command key,
  * or -1 if the menu was cancelled.
  */
 #define QUIT_KEY    -2
-#define OPTIONS_KEY -3
 
 static int smsActionMenu() {
     struct Action {
@@ -924,8 +934,7 @@ static int smsActionMenu() {
         {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
         {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
         {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
-        {'q', "Save Game"}, {OPTIONS_KEY, "Game Menu"},
-        {QUIT_KEY, "Quit Game"}
+        {'q', "Save Game"}, {QUIT_KEY, "Quit Game"}
     };
     const int count = sizeof(actions) / sizeof(Action);
     const SaveGame* sg = c->saveGame;
@@ -1034,11 +1043,6 @@ static int smsActionMenu() {
         return -1;
     if (keys[pick] == QUIT_KEY) {
         smsQuitMenu();
-        return -1;
-    }
-    if (keys[pick] == OPTIONS_KEY) {
-        // The xu4 menu, as opened by Escape or the gamepad Select button.
-        xu4_selectGame();
         return -1;
     }
     return keys[pick];

@@ -78,6 +78,7 @@ public:
 
     bool initContext();
     void updateMoons(bool showmoongates);
+    void redrawScreen();
 
     static void flashTile(const Coords &coords, MapTile tile, int timeFactor);
     static void flashTile(const Coords &coords, Symbol tilename, int timeFactor);

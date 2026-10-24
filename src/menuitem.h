@@ -50,6 +50,7 @@ public:
     bool getClosesMenu() const;
 
     void setId(int id);
+    void setText(const char* t) { text = t; }
     void setX(int xpos);
     void setY(int ypos);
     void setHighlighted(bool h = true);

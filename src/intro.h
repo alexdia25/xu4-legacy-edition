@@ -96,6 +96,8 @@ public:
     uint8_t *getSigData();
     void updateScreen();
     void timerFired();
+    void configureInGame();
+    void openConfigure();
 
     void updateConfMenu(MenuEvent &event);
     void updateVideoMenu(MenuEvent &event);
@@ -298,6 +300,7 @@ private:
     bool apple2Title;       // Titles use Apple II colors.
     bool c64Title;          // Titles use C64 colors.
     bool smsTitle;          // Titles drawn from the SMS title image.
+    bool inGame;            // Configuring during play (configureInGame).
 };
 
 #endif

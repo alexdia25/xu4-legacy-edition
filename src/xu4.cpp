@@ -458,7 +458,20 @@ begin_game:
 void xu4_selectGame() {
     if (! xu4.gameBrowser)
         xu4.gameBrowser = new GameBrowser;
+    xu4.gameBrowser->openSettings = false;
     xu4.eventHandler->runController(xu4.gameBrowser);
+
+    // The Settings button opens the configuration menus, over the game
+    // when playing.
+    if (xu4.gameBrowser->openSettings) {
+        xu4.gameBrowser->openSettings = false;
+        if (! xu4.intro)
+            xu4.intro = new IntroController;
+        if (xu4.stage == StagePlay)
+            xu4.intro->configureInGame();
+        else
+            xu4.intro->openConfigure();
+    }
 }
 
 /**

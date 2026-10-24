@@ -9,6 +9,8 @@
 
 #include "intro.h"
 #include "discourse.h"
+#include "game.h"
+#include "image.h"
 
 #include "debug.h"
 #include "error.h"
@@ -178,7 +180,8 @@ IntroController::IntroController() :
     bSkipTitles(false),
     apple2Title(false),
     c64Title(false),
-    smsTitle(false)
+    smsTitle(false),
+    inGame(false)
 {
     // initialize menus
     confMenu.setTitle("XU4 Configuration:", 0, 0);
@@ -722,6 +725,8 @@ void IntroController::drawMapAnimated() {
  * Draws the animated beasts in the upper corners of the screen.
  */
 void IntroController::drawBeasties() {
+    if (inGame || ! binData)
+        return;
     if (beastSteps) {
         int step = (getTicks() / beastStepMs) % beastSteps;
         drawBeastie(0, beastieOffset, step);
@@ -1294,6 +1299,86 @@ void IntroController::runMenu(Menu *menu, TextView *view, bool withBeasties) {
     view->hideCursor();
 }
 
+/*
+ * Go to the configuration menus from the title screen (for the Settings
+ * button of the xu4 menu).
+ */
+void IntroController::openConfigure() {
+    if (mode == INTRO_TITLES) {
+        skipTitles();
+        return;
+    }
+    if (mode == INTRO_MAP)
+        keyPressed(U4_SPACE);
+    if (mode == INTRO_MENU)
+        keyPressed('c');
+}
+
+/*
+ * Run the configuration menus during play, over the game screen, which is
+ * put back afterwards.  This is how the settings are reached from the xu4
+ * menu without going back to the title screen.
+ */
+void IntroController::configureInGame() {
+    GameController* game = xu4.game;
+    bool wasCutScene = game->cutScene;
+    const ScreenState* ss = screenState();
+    bool cursor = ss->cursorVisible;
+    int cursorX = ss->cursorX;
+    int cursorY = ss->cursorY;
+    Image* saved = Image::duplicate(xu4.screenImage);
+
+    // Stop the game from drawing the map & stats over the menus.
+    game->cutScene = true;
+    xu4.eventHandler->setScreenUpdate(NULL);
+    screenHideCursor();
+#ifdef GPU_RENDER
+    screenDisableMap();
+#endif
+    screenSetLayer(LAYER_HUD, NULL, NULL);
+
+    // The option backgrounds are fixed up with data from title.exe.
+    uint16_t saveGroup = xu4_setResourceGroup(StageIntro);
+    bool loadBin = (binData == NULL);
+    if (loadBin) {
+        binData = new IntroBinData();
+        binData->load();
+    }
+    inGame = true;
+    settingsChanged = *xu4.settings;
+    listenerId = gs_listen(1<<SENDER_MENU, introNotice, this);
+
+    // The video settings need the graphics to be reloaded, which can only
+    // be done from the title screen.
+    MenuItem* videoItem = confMenu.getItemById(MI_CONF_VIDEO);
+    MenuItem* backItem  = confMenu.getItemById(CANCEL);
+    videoItem->setVisible(false);
+    backItem->setText("\017 Return to Game");
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    runMenu(&confMenu, &extendedMenuArea, false);
+
+    videoItem->setVisible(true);
+    backItem->setText("\017 Main Menu");
+    gs_unplug(listenerId);
+    inGame = false;
+    if (loadBin) {
+        delete binData;
+        binData = NULL;
+    }
+    xu4_freeResourceGroup(StageIntro);
+    xu4_setResourceGroup(saveGroup);
+
+    saved->draw(0, 0);
+    delete saved;
+    game->cutScene = wasCutScene;
+    xu4.eventHandler->setScreenUpdate(&gameUpdateScreen);
+    game->redrawScreen();
+    screenSetCursorPixel(cursorX, cursorY);
+    screenShowCursor(cursor);
+}
+
 /**
  * Timer callback for the intro sequence.  Handles animating the intro
  * map, the beasties, etc..
@@ -1418,6 +1503,11 @@ void IntroController::updateVideoMenu(MenuEvent &event) {
                 xu4.settings->setData(settingsChanged);
                 xu4.settings->write();
 
+                if (inGame) {
+                    screenReInit();
+                    break;
+                }
+
                 /* FIXME: resize images, etc. */
                 deleteIntro();  // delete intro stuff
                 screenReInit();
@@ -1480,7 +1570,10 @@ void IntroController::updateSoundMenu(MenuEvent &event) {
                 // save settings
                 xu4.settings->setData(settingsChanged);
                 xu4.settings->write();
-                musicPlay(introMusic);
+                if (inGame)
+                    musicPlayLocale();
+                else
+                    musicPlay(introMusic);
                 break;
             case CANCEL:
                 musicSetVolume(xu4.settings->musicVol);

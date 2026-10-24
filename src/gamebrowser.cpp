@@ -89,6 +89,10 @@ GameBrowser::GameBrowser()
     tipTimer   = 0;
     tipX = tipY = 0;
     listScroll = listScrollTarget = 0.0f;
+    dragScroll = 0.0f;
+    dragY = 0;
+    openSettings = false;
+    dragged = false;
     psizeList = 20.0f;
     atree = NULL;
     reader = NULL;
@@ -559,7 +563,8 @@ void GameBrowser::layout()
             FONT_N, 0, FONT_VSIZE, 20, LIST_DIM, 32, 9, STORE_AREA,
             FROM_BOTTOM,
             FONT_N, 1, FONT_VSIZE, 22,
-            LAYOUT_H, SPACING_PER, 5, FIX_WIDTH_EM, 52,
+            LAYOUT_H, SPACING_PER, 3, FIX_WIDTH_EM, 42,
+                BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
@@ -567,7 +572,7 @@ void GameBrowser::layout()
             LAYOUT_END,
         LAYOUT_END
     };
-    const void* guiData[7];
+    const void* guiData[8];
     const void** data = guiData;
     const ScreenState* ss = screenState();
 
@@ -581,6 +586,7 @@ void GameBrowser::layout()
     *data++ = "Game Modules";
     *data++ = "Play";
     *data++ = "Docs";
+    *data++ = "Settings";
     *data++ = "Quit";
     *data   = "Cancel";
 
@@ -777,6 +783,13 @@ bool GameBrowser::keyPressed(int key)
             readDocuments();
             return true;
 
+        case 's':
+            // The settings are run by xu4_selectGame() once this closes.
+            soundPlay(SOUND_UI_CLICK);
+            openSettings = true;
+            xu4.eventHandler->setControllerDone(true);
+            return true;
+
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);
             return true;
@@ -805,6 +818,17 @@ int GameBrowser::listRowAt(const GuiArea* area, int screenY)
     float y = screenY - listScroll - descenderList;
     float row = (float) (area->y2 - y) / itemHeightP;
     return (int) row;
+}
+
+/*
+ * Return the largest listScroll value (the end of the list in view).
+ */
+float GameBrowser::maxScroll() const
+{
+    const GuiArea* area = gbox + WI_LIST;
+    float areaH = area->y2 - area->y;
+    float endY = (itemHeightP * modFormat.used) - descenderList - areaH;
+    return (endY > 0.0f) ? endY : 0.0f;
 }
 
 void GameBrowser::selectModule(const GuiArea* area, int screenY)
@@ -876,18 +900,30 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
                         buttonDown = hit->wid;
                         buttonMode = 1;
 
-                        if (hit->wid == WI_LIST)
-                            selectModule((const GuiArea*) hit, y);
+                        // The list is picked from on release so that
+                        // it can be dragged to scroll it.
+                        if (hit->wid == WI_LIST) {
+                            dragY = y;
+                            dragScroll = listScrollTarget;
+                            dragged = false;
+                        }
                     } else {
                         if (buttonDown == hit->wid) {
                             // NOTE: Sound is only played on Cancel to avoid
                             //       abrupt cutoff during reset/quit.
                             switch (hit->wid) {
+                            case WI_LIST:
+                                if (! dragged)
+                                    selectModule((const GuiArea*) hit, y);
+                                break;
                             case WI_OK:
                                 keyPressed(U4_ENTER);
                                 break;
                             case WI_DOCS:
                                 keyPressed('d');
+                                break;
+                            case WI_SETTINGS:
+                                keyPressed('s');
                                 break;
                             case WI_CANCEL:
                                 soundPlay(SOUND_UI_CLICK);
@@ -907,7 +943,21 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
             break;
 
         case IE_MOUSE_MOVE:
-            if (buttonDown >= WI_OK) {
+            if (buttonDown == WI_LIST) {
+                // Drag the list (y is up in screenMousePos).
+                screenMousePos(ev, x, y);
+                int dy = y - dragY;
+                if (dragged || dy > 4 || dy < -4) {
+                    float s = dragScroll + dy;
+                    float end = maxScroll();
+                    if (s > end)
+                        s = end;
+                    if (s < 0.0f)
+                        s = 0.0f;
+                    listScroll = listScrollTarget = s;
+                    dragged = true;
+                }
+            } else if (buttonDown >= WI_OK) {
                 screenMousePos(ev, x, y);
                 if (insideArea(gbox + buttonDown, x, y))
                     buttonMode = 1;
@@ -923,10 +973,7 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
 
         case IE_MOUSE_WHEEL:
             if (ev->y < 0) {
-                const GuiArea* area = gbox + WI_LIST;
-                float areaH = area->y2 - area->y;
-                float endY = (itemHeightP * modFormat.used) - descenderList;
-                endY -= areaH;
+                float endY = maxScroll();
                 listScrollTarget += itemHeightP * 2.0f;     // Scroll down.
                 if (listScrollTarget > endY)
                     listScrollTarget = endY;
