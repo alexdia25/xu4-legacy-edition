@@ -57,6 +57,106 @@ especially for someone who has just downloaded the free release from
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
 freeware from [GOG].  No game data is stored in this repository.
 
+### Game Modules
+
+The Game Module Browser, opened with the Escape key, lists the modules
+in two sections: Graphics, where one game module is chosen, and Music, where
+one soundtrack module (or the game's own music) is chosen.  Space or a click
+picks a module and Enter or Play starts with the checked pair.
+
+The Apple-II module uses the graphics of the original Apple II release, and
+the Apple-II-Music soundtrack plays its Mockingboard music (see
+[Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
+C64-Remastered modules do the same for the Commodore 64 release (see
+[C64 Disk Images](#c64-disk-images)), and the SMS & SMS-Music modules for
+the Sega Master System release (see [SMS ROM](#sms-rom)).  A module is only
+listed when the files it needs are found.
+
+### Data Folders
+
+XU4 Legacy Edition looks for the game data, modules, disk images and ROMs
+in the same places as XU4 (listed under Running in the original readme
+below), and on Windows also in `C:\GOG Games\Ultima 4 - Quest of the Avatar`,
+where the GOG release installs by default.
+
+The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
+modules, disk images and the SMS ROM) and `~/.config/xu4` (settings and
+saved games), so put the files there.
+
+### Apple II Disk Images
+
+The Apple-II module reads its graphics straight from the disk images of
+Ultima IV for the Apple II, and the Apple-II-Music soundtrack reads the
+Mockingboard tunes from them.  These are only listed in the Game Module
+Browser when all four disks are found.  The DOS game files are still needed for
+everything else.
+
+The release came on two floppy disks, used on both sides, so there are four
+disk images:
+
+| Disk side | Contents                          |
+|-----------|-----------------------------------|
+| Program    | Title screen, intro pictures, tiles & font |
+| Britannia  | World map, combat maps & shrines           |
+| Towne      | Towns, castles & conversations             |
+| Underworld | Dungeons, the Abyss & the ending           |
+
+Each image must be a 140 KB (143,360 byte) file in DOS 3.3 sector order,
+which usually has a `.dsk` or `.do` extension.  Images in other formats
+(`.po`, `.nib`, `.woz`, `.2mg`) are not read; tools such as CiderPress can
+convert them.  Cracked copies such as the 4am crack work.
+
+The file names don't matter, since xu4 tells the disks apart by the files on
+them.  Put the four images in any of the [data folders](#data-folders), or in an
+`apple2` folder inside one of them.  For example:
+
+ - Windows: `%LOCALAPPDATA%\xu4\apple2\`
+ - Linux: `~/.local/share/xu4/apple2/`
+
+Other files that come with the images (text notes, scans, `.woz` copies)
+aren't needed.
+
+### C64 Disk Images
+
+The C64 module reads the title screen, intro pictures, tiles, font and
+virtue cards straight from the disk images of Ultima IV for the Commodore
+64, and the C64-Music soundtrack plays its SID music by running the game's
+own music player.  Both need only the Program disk; the dungeons, shrines
+and ending still use the DOS pictures.
+
+The C64 release also came on two floppy disks used on both sides (Program,
+Britannia, Towne & Underworld), so a full set is four `.d64` images, though
+some sets name them "Disk 1" and "Disk 2".  The images are told apart by
+their contents, so the file names don't matter, and cracked copies work.
+The images must be plain 35 track `.d64` files.
+
+The C64-Remastered module uses the graphics of
+[Ultima IV Remastered](https://github.com/MagerValp/u4remastered) 2.2.1 by
+Per Olofsson & Vanja Utne: the more colorful tiles and the new intro
+pictures and cards.  It reads them from `u4remastered.d81`, or from
+`u4remastered-a.d64`.
+
+Put the images in any of the [data folders](#data-folders), or in a `c64` folder
+inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
+modules are only listed in the Game Module Browser when their disk images
+are found.
+
+### SMS ROM
+
+The SMS module reads the map tiles, font and story pictures of Ultima IV:
+Quest of the Avatar for the Sega Master System straight from its ROM, and
+the SMS-Music soundtrack plays its music by running the game's own sound
+driver on a model of the console's Z80 & PSG sound chip.  The title, the
+gypsy's abacus & cards and the dungeons still use the DOS pictures, and
+the game itself (maps, dungeons, talk) stays the DOS one.
+
+The ROM must be the Europe/USA release (512 KB, SHA-1
+`a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
+file name doesn't matter.  Put it in any of the [data folders](#data-folders), or in
+an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
+Windows.  The modules are only listed in the Game Module Browser when the
+ROM is found.  Nothing from the ROM is stored in the modules.
+
 ### Screenshots
 
 The DOS graphics with the console style menus: the action menu, and the
@@ -177,108 +277,20 @@ available as closed-source freeware from [www.gog.com].
 
 Some graphics and sounds are stored in module files which have a `.mod`
 extension.  Soundtrack modules that only contain music streams are also
-available.  The Game Module Browser, opened with the Escape key, lists them
-in two sections: Graphics, where one game module is chosen, and Music, where
-one soundtrack module (or the game's own music) is chosen.  Space or a click
-picks a module and Enter or Play starts with the checked pair.  Modules can be
+available.  One game module and one soundtrack module can be selected using
+the Game Module Browser, which is opened with the Escape key.  Modules can be
 found on the [XU4 Download] page.
 
 If you have the optional u4upgrad.zip XU4 can read the data files straight
 out of the zipfile.  To use it select the U4-Upgrade module.
 
-The Apple-II module uses the graphics of the original Apple II release, and
-the Apple-II-Music soundtrack plays its Mockingboard music (see
-[Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
-C64-Remastered modules do the same for the Commodore 64 release (see
-[C64 Disk Images](#c64-disk-images)), and the SMS & SMS-Music modules for
-the Sega Master System release (see [SMS ROM](#sms-rom)).
-
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
  - On Linux: `$HOME/.local/share/xu4`, `/usr/share/xu4` & `/usr/local/share/xu4`
- - On Windows: `%LOCALAPPDATA%\xu4` & `C:\GOG Games\Ultima 4 - Quest of the Avatar`
-   (where the GOG release installs by default)
-
-The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
-modules and the Apple II disk images) and `~/.config/xu4` (settings and
-saved games), so put the files there.
+ - On Windows: `%LOCALAPPDATA%\xu4`
 
 The DOS game zipfiles (ultima4.zip & u4upgrad.zip) don't need to be unpacked,
 but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
-
-### Apple II Disk Images
-
-The Apple-II module reads its graphics straight from the disk images of
-Ultima IV for the Apple II, and the Apple-II-Music soundtrack reads the
-Mockingboard tunes from them.  These are only listed in the Game Module
-Browser when all four disks are found.  The DOS game files are still needed for
-everything else.
-
-The release came on two floppy disks, used on both sides, so there are four
-disk images:
-
-| Disk side | Contents                          |
-|-----------|-----------------------------------|
-| Program    | Title screen, intro pictures, tiles & font |
-| Britannia  | World map, combat maps & shrines           |
-| Towne      | Towns, castles & conversations             |
-| Underworld | Dungeons, the Abyss & the ending           |
-
-Each image must be a 140 KB (143,360 byte) file in DOS 3.3 sector order,
-which usually has a `.dsk` or `.do` extension.  Images in other formats
-(`.po`, `.nib`, `.woz`, `.2mg`) are not read; tools such as CiderPress can
-convert them.  Cracked copies such as the 4am crack work.
-
-The file names don't matter, since xu4 tells the disks apart by the files on
-them.  Put the four images in any of the places listed above, or in an
-`apple2` folder inside one of them.  For example:
-
- - Windows: `%LOCALAPPDATA%\xu4\apple2\`
- - Linux: `~/.local/share/xu4/apple2/`
-
-Other files that come with the images (text notes, scans, `.woz` copies)
-aren't needed.
-
-### C64 Disk Images
-
-The C64 module reads the title screen, intro pictures, tiles, font and
-virtue cards straight from the disk images of Ultima IV for the Commodore
-64, and the C64-Music soundtrack plays its SID music by running the game's
-own music player.  Both need only the Program disk; the dungeons, shrines
-and ending still use the DOS pictures.
-
-The C64 release also came on two floppy disks used on both sides (Program,
-Britannia, Towne & Underworld), so a full set is four `.d64` images, though
-some sets name them "Disk 1" and "Disk 2".  The images are told apart by
-their contents, so the file names don't matter, and cracked copies work.
-The images must be plain 35 track `.d64` files.
-
-The C64-Remastered module uses the graphics of
-[Ultima IV Remastered](https://github.com/MagerValp/u4remastered) 2.2.1 by
-Per Olofsson & Vanja Utne: the more colorful tiles and the new intro
-pictures and cards.  It reads them from `u4remastered.d81`, or from
-`u4remastered-a.d64`.
-
-Put the images in any of the places listed above, or in a `c64` folder
-inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
-modules are only listed in the Game Module Browser when their disk images
-are found.
-
-### SMS ROM
-
-The SMS module reads the map tiles, font and story pictures of Ultima IV:
-Quest of the Avatar for the Sega Master System straight from its ROM, and
-the SMS-Music soundtrack plays its music by running the game's own sound
-driver on a model of the console's Z80 & PSG sound chip.  The title, the
-gypsy's abacus & cards and the dungeons still use the DOS pictures, and
-the game itself (maps, dungeons, talk) stays the DOS one.
-
-The ROM must be the Europe/USA release (512 KB, SHA-1
-`a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
-file name doesn't matter.  Put it in any of the places listed above, or in
-an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
-Windows.  The modules are only listed in the Game Module Browser when the
-ROM is found.  Nothing from the ROM is stored in the modules.
 
 ### Settings & Options
 
