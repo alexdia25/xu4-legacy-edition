@@ -41,6 +41,14 @@
  *             dragon's fire.  The 56 steps of the left figure (32x24
  *             frames) are stacked down the image, followed by the 56
  *             steps of the fire & the dragon (48x24).
+ *   smswindow A picture of the map window (the Codex, the visions, the
+ *             end): a palette of 16 colors, the pictures, then the bank
+ *             (16K) holding their patterns.  A picture is the address of
+ *             its patterns in the bank, the number of columns, the height
+ *             in pixels & the tile numbers, column by column (8 pixels
+ *             wide).  A second picture is the rune of a vision, placed
+ *             where the SMS puts it in the window.  The 132x132 window is
+ *             centered in the 176x176 map area of the 320x200 image.
  *   smsfont   The 96 text glyphs from the space, 8 bytes each with one
  *             bit per pixel.  They replace those of the DOS charset.ega,
  *             which keeps the symbols the game uses for its own glyphs
@@ -468,6 +476,60 @@ static Image* smsBeasts(const std::vector<uint8_t>& data)
     return img;
 }
 
+#define SMS_WIN_COLS    17      // Pattern columns of the map window.
+#define SMS_WIN_SIZE    132     // Visible width & height (11 tiles of 12).
+#define SMS_WIN_X       (8 + (176 - SMS_WIN_SIZE) / 2)
+#define SMS_BANK        0x4000
+
+static Image* smsWindow(const std::vector<uint8_t>& data)
+{
+    if (data.size() < 16 + SMS_BANK)
+        return NULL;
+    const uint8_t* pal = &data[0];
+    const uint8_t* bank = &data[data.size() - SMS_BANK];
+    size_t end = data.size() - SMS_BANK;
+
+    // The window patterns: 8 pixel wide columns of 4 bytes per row.
+    const int colBytes = 0x220;
+    std::vector<uint8_t> win(SMS_WIN_COLS * colBytes, 0);
+    int at[2] = { 0, 0x0DA0 - 0x20 };   // Where $7E78 is called to draw.
+
+    size_t pos = 16;
+    for (int n = 0; n < 2 && pos + 4 <= end; ++n) {
+        int base = (data[pos] | data[pos+1] << 8) - 0x8000;
+        int cols = data[pos+2];
+        int rows = data[pos+3];
+        pos += 4;
+        for (int c = 0; c < cols; ++c) {
+            int d = at[n] + c * colBytes;
+            for (int left = rows; left > 0; left -= 8) {
+                if (pos >= end)
+                    return NULL;
+                int src = base + data[pos++] * 32;
+                int len = (left >= 8) ? 32 : left * 4;
+                if (src < 0 || src + len > SMS_BANK ||
+                    d + len > int(win.size()))
+                    return NULL;
+                memcpy(&win[d], bank + src, len);
+                d += len;
+            }
+        }
+    }
+
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
+    for (int y = 0; y < SMS_WIN_SIZE; ++y) {
+        for (int x = 0; x < SMS_WIN_SIZE; ++x) {
+            const uint8_t* row = &win[(x >> 3) * colBytes + y * 4];
+            int c = 0;
+            for (int k = 0; k < 4; ++k)
+                c |= ((row[k] >> (7 - (x & 7))) & 1) << k;
+            smsPut(img, SMS_WIN_X + x, SMS_WIN_X + y, pal[c]);
+        }
+    }
+    return img;
+}
+
 static Image* smsFont(const std::vector<uint8_t>& data)
 {
     if (data.size() < 96 * 8)
@@ -520,6 +582,8 @@ static Image* loadImage_sms(U4FILE* file, int ftype)
             return smsTitle(data);
         case FTYPE_SMSBEASTS:
             return smsBeasts(data);
+        case FTYPE_SMSWINDOW:
+            return smsWindow(data);
     }
     return NULL;
 }

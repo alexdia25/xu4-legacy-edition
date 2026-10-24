@@ -42,6 +42,7 @@ enum ImageFiletype {
     FTYPE_SMSCARDS,
     FTYPE_SMSTITLE,
     FTYPE_SMSBEASTS,
+    FTYPE_SMSWINDOW,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

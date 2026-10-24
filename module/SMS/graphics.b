@@ -214,6 +214,32 @@ graphics: [
         spiritualitycard 288,0, 48,112
         humilitycard     336,0, 48,112
     ]
+    ; The endgame pictures, drawn in the map window as on the SMS.  Each
+    ; answer to the Codex lights another line of its symbol (in the white
+    ; of the fade palette at $0930), so the picture for an answer includes
+    ; those before it.
+    image (name: honesty filename: "sms/dcce,5+930,1+dcd4,a+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: compassn filename: "sms/dcce,5+930,2+dcd5,9+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: valor filename: "sms/dcce,5+930,3+dcd6,8+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: justice filename: "sms/dcce,5+930,4+dcd7,7+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: sacrific filename: "sms/dcce,5+930,5+dcd8,6+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: honor filename: "sms/dcce,5+930,6+dcd9,5+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: spirit filename: "sms/dcce,5+930,7+dcda,4+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: humility filename: "sms/dcce,5+930,8+dcdb,3+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: truth filename: "sms/dcce,5+930,9+dcdc,2+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: love filename: "sms/dcce,5+930,a+dcdd,1+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: courage filename: "sms/dcce,5+930,b+dcde,0+4cbee,125+4c000,4000" filetype: smswindow)
+    image (name: infinity filename: "sms/dcbe,10+41e59,125+40000,4000" filetype: smswindow)
+    image (name: stoncrcl filename: "sms/dcde,10+554c1,125+54000,4000" filetype: smswindow)
+    ; The visions of the shrines: the frame & a rune of INFINITY.
+    image (name: rune1 filename: "sms/7c83,10+40923,125+40a48,1d+40000,4000" filetype: smswindow)
+    image (name: rune2 filename: "sms/7c83,10+40923,125+40a65,1d+40000,4000" filetype: smswindow)
+    image (name: rune3 filename: "sms/7c83,10+40923,125+40a82,1d+40000,4000" filetype: smswindow)
+    image (name: rune4 filename: "sms/7c83,10+40923,125+40a48,1d+40000,4000" filetype: smswindow)
+    image (name: rune5 filename: "sms/7c83,10+40923,125+40a65,1d+40000,4000" filetype: smswindow)
+    image (name: rune6 filename: "sms/7c83,10+40923,125+40a48,1d+40000,4000" filetype: smswindow)
+    image (name: rune7 filename: "sms/7c83,10+40923,125+40a9f,1d+40000,4000" filetype: smswindow)
+    image (name: rune8 filename: "sms/7c83,10+40923,125+40abc,1d+40000,4000" filetype: smswindow)
 ]
 
 tileanim: [

@@ -145,12 +145,14 @@ are found.
 
 ### SMS ROM
 
-The SMS module reads the title screen, map tiles, font, story pictures and
-the gypsy's abacus & virtue cards of Ultima IV: Quest of the Avatar for the
-Sega Master System straight from its ROM, and the SMS-Music soundtrack
-plays its music by running the game's own sound driver on a model of the
-console's Z80 & PSG sound chip.  The dungeons still use the DOS pictures,
-and the game itself (maps, dungeons, talk) stays the DOS one.
+The SMS module reads the title screen, map tiles, font, story pictures,
+the gypsy's abacus & virtue cards, the shrine visions and the pictures of
+the end (the Codex, infinity and the stone circle) of Ultima IV: Quest of
+the Avatar for the Sega Master System straight from its ROM, and the
+SMS-Music soundtrack plays its music by running the game's own sound driver
+on a model of the console's Z80 & PSG sound chip.  The dungeons still use
+the DOS pictures, and the game itself (maps, dungeons, talk) stays the DOS
+one.
 
 The ROM must be the Europe/USA release (512 KB, SHA-1
 `a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
