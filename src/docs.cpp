@@ -6,14 +6,20 @@
  * single ULTIMA4.TXT file.  Older releases had separate HISTORY.TXT,
  * WISDOM.TXT, HINTS.TXT & KEYBOARD.TXT files.  The combined file is split
  * into those documents so that they can be read separately.
+ *
+ * Downloads which already include the separate files are also supported.
+ * These are found with the game files, or in a docs folder next to them,
+ * whatever the case of the file names.
  */
 
 #include <cctype>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 #include "docs.h"
 #include "filesystem.h"
 #include "settings.h"
+#include "processDir.h"
 #include "u4file.h"
 #include "xu4.h"
 
@@ -226,9 +232,66 @@ static bool readFile(const string& path, string& text) {
     return true;
 }
 
+struct DocScan {
+    string dir;
+    vector<string> subdirs;
+    string found[DOC_COUNT];
+};
+
+static bool sameName(const char* a, const char* b) {
+    for (; *a && *b; ++a, ++b) {
+        if (tolower((unsigned char) *a) != tolower((unsigned char) *b))
+            return false;
+    }
+    return *a == *b;
+}
+
+static int scanDocs(const char* name, int type, void* user) {
+    DocScan* scan = (DocScan*) user;
+    if (type == PDIR_DIR) {
+        if (sameName(name, "docs") || sameName(name, "doc") ||
+            sameName(name, "manual") || sameName(name, "manuals"))
+            scan->subdirs.push_back(scan->dir + "/" + name);
+        return PDIR_CONTINUE;
+    }
+    if (type != PDIR_FILE && type != PDIR_LINK)
+        return PDIR_CONTINUE;
+    for (int i = 0; i < DOC_COUNT; ++i) {
+        if (scan->found[i].empty() && sameName(name, docNames[i]))
+            scan->found[i] = scan->dir + "/" + name;
+    }
+    return PDIR_CONTINUE;
+}
+
+/*
+ * Find the separate document files included with some releases.
+ * The game directories are searched first, then any docs folder in them.
+ */
+static void gameDocs(string found[DOC_COUNT]) {
+    DocScan scan;
+    static const char* subdirs[] = { "", "/u4", "/ultima4", NULL };
+    const StringTable* st = &xu4.resourcePaths;
+    const char* root = sst_strings(st);
+    for (uint32_t i = 0; i < st->used; ++i) {
+        for (const char** sub = subdirs; *sub; ++sub) {
+            scan.dir = string(root + sst_start(st, i)) + *sub;
+            processDir(scan.dir.c_str(), scanDocs, &scan);
+        }
+    }
+    for (size_t i = 0; i < scan.subdirs.size(); ++i) {
+        scan.dir = scan.subdirs[i];
+        processDir(scan.dir.c_str(), scanDocs, &scan);
+    }
+    for (int i = 0; i < DOC_COUNT; ++i) {
+        found[i] = scan.found[i];
+        if (xu4.verbose && ! found[i].empty())
+            printf("Document: %s\n", found[i].c_str());
+    }
+}
+
 /*
  * Read a document from the docs directory of the user path, or from the
- * separate files of older releases found with the game files.
+ * separate files of releases which include them with the game files.
  * Return false if the document is not found.
  */
 bool docsLoad(GameDocument doc, string& text) {
@@ -236,25 +299,24 @@ bool docsLoad(GameDocument doc, string& text) {
     if (readFile(xu4.settings->getUserPath() + "docs/" + docNames[doc], text))
         return true;
 
-    string upper(docNames[doc]);
-    for (size_t i = 0; i < upper.size(); ++i)
-        upper[i] = toupper((unsigned char) upper[i]);
-    string path = u4find_path(upper.c_str(), &u4Path.u4ForDOSPaths);
-    if (path.empty())
-        path = u4find_path(docNames[doc], &u4Path.u4ForDOSPaths);
-    return ! path.empty() && readFile(path, text);
+    string found[DOC_COUNT];
+    gameDocs(found);
+    return ! found[doc].empty() && readFile(found[doc], text);
 }
 
 /*
  * If ULTIMA4.TXT is found with the game files, split it into documents in
- * the docs directory of the user path.  Existing documents are kept.
+ * the docs directory of the user path.  Existing documents, and those
+ * included as separate files with the game, are kept.
  */
 void docsExtract(const string& userPath) {
     string dir = userPath + "docs/";
+    string shipped[DOC_COUNT];
+    gameDocs(shipped);
     int i;
 
     for (i = 0; i < DOC_COUNT; ++i) {
-        if (! Path::exists(dir + docNames[i]))
+        if (shipped[i].empty() && ! Path::exists(dir + docNames[i]))
             break;
     }
     if (i == DOC_COUNT)
@@ -279,7 +341,7 @@ void docsExtract(const string& userPath) {
 
     for (i = 0; i < DOC_COUNT; ++i) {
         string path = dir + docNames[i];
-        if (Path::exists(path))
+        if (! shipped[i].empty() || Path::exists(path))
             continue;
         FILE* fp = FileSystem::openFile(path, "wb");
         if (fp) {

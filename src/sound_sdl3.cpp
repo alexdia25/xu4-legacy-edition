@@ -515,6 +515,7 @@ static int loadSoundBuffer(int sound)
 
 void soundPlay(Sound sound, int limitMSec)
 {
+    TEST_SOUND_EVENT('s', sound);
     ASSERT(sound < SOUND_MAX, "Invalid soundPlay() id");
 
     // Do nothing if muted or soundInit failed.
@@ -551,6 +552,7 @@ void soundPlay(Sound sound, int limitMSec)
  * Play a line of spoken dialogue.
  */
 void soundSpeakLine(int streamId, int line, bool wait) {
+    TEST_SOUND_EVENT('v', streamId * 1000 + line);
 #ifdef CONF_MODULE
     if (soundVolume <= 0.0f || streamId < 1)
         return;
@@ -734,6 +736,7 @@ static bool music_start(int track, int mode) {
 
 void musicPlay(int track)
 {
+    TEST_SOUND_EVENT('m', track);
     if (musicEnabled && musicVolume > 0.0f)
         music_start(track, PLAY_LOOP);
 }
@@ -745,6 +748,7 @@ void musicPlayLocale()
 
 void musicStop()
 {
+    TEST_SOUND_EVENT('x', 0);
     currentTrack = MUSIC_NONE;
     if (musicStream) {
         SDL_LockAudioStream(musicStream);
@@ -756,6 +760,7 @@ void musicStop()
 
 void musicFadeOut(int msec)
 {
+    TEST_SOUND_EVENT('o', msec);
     if (currentTrack != MUSIC_NONE) {
         currentTrack = MUSIC_NONE;
         if (xu4.settings->volumeFades && msec > 0 && musicStream) {
@@ -771,6 +776,7 @@ void musicFadeOut(int msec)
 
 void musicFadeIn(int msec, bool loadFromMap)
 {
+    TEST_SOUND_EVENT('i', msec);
     int mode = PLAY_LOOP;
 
     if (xu4.settings->volumeFades && msec > 0) {

@@ -891,7 +891,7 @@ process-cfg [
 				a2shapes a2font a2hgr a2spk a2cards a2beads a2dngd
 				a2view a2reveal
 				c64tiles c64font c64hires c64multi c64tree c64cards c64rcards
-				c64beads smstiles smspic smstree smsfont
+				c64beads smstiles smspic smstree smsfont smscards
 			] ftype
 			; Skip name which can be 'tiles (assuming name is first).
 			none-zero select skip at 2 'tiles

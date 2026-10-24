@@ -1,6 +1,7 @@
 # Replay tests: build xu4 before & after a change, replay the recorded
-# sessions in tools/test/sessions with both, and require every screenshot &
-# saved game to match.
+# sessions in tools/test/sessions with both, and require every screenshot,
+# saved game & sound request to match.  Then record every sound effect &
+# music track from both and compare them.
 
 name: Tests
 
@@ -27,6 +28,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q cmake ninja-build xvfb imagemagick \
+            pulseaudio pulseaudio-utils python3-numpy \
             zlib1g-dev libpng-dev libvorbis-dev libpulse-dev \
             libgl1-mesa-dev libegl1-mesa-dev libgl1-mesa-dri \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
@@ -104,7 +106,32 @@ jobs:
           done
 
       - name: Compare
-        run: tools/test/compare.sh out/base/results out/head/results out/diff
+        run: |
+          # Commits from before the sound tests have no sound logs.
+          if ! grep -q testSoundEvent ../base/src/event.cpp; then
+            rm -f out/head/results/*/sounds.txt
+          fi
+          tools/test/compare.sh out/base/results out/head/results out/diff
+
+      - name: Record audio
+        if: always()
+        run: |
+          export DISPLAY=:99
+          for T in base head; do
+            SRC=$([ $T = head ] && echo . || echo ../base)
+            if grep -q testAudioTour $SRC/src/event.cpp; then
+              XU4_TEST_DATA=$PWD/out/$T/data tools/test/audio.sh out/$T/xu4 out/$T/audio
+            fi
+          done
+
+      - name: Compare audio
+        if: always()
+        run: |
+          if [ -f out/base/audio/tour.txt ]; then
+            python3 tools/test/audiocmp.py out/base/audio out/head/audio out/audio-diff
+          else
+            echo "The base commit has no audio tour; skipped."
+          fi
 
       - name: Upload results
         if: always()
@@ -113,5 +140,7 @@ jobs:
           name: replay-results
           path: |
             out/diff
+            out/audio-diff
             out/*/results
+            out/*/audio/*.txt
           if-no-files-found: ignore
