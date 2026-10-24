@@ -370,9 +370,12 @@ enum SpecialRow {
     ROW_GAME_MUSIC      // Music of the selected game module.
 };
 
+// The font carries over from one row to the next, so the headings select
+// font 1 for the module names below them.  (A trailing "\x12\x00" here
+// was cut off by sst_append, which stops at the zero.)
 static const char* specialLabel[3] = {
-    "\x12\x01\x13\x09Graphics\x12\x00",
-    "\x12\x01\x13\x09Music\x12\x00",
+    "\x12\x01\x13\x09Graphics",
+    "\x12\x01\x13\x09Music",
     "    Game music"
 };
 
@@ -521,9 +524,9 @@ static void readModuleList(StringTable* modFiles, StringTable* modFormat,
             itemText = modulePath + 4;
             len += 4;
             if (it.category == MOD_SOUNDTRACK) {
-                // Green musical note symbol.
+                // Green musical note symbol, then back to font 1.
                 memcpy(itemText + len,
-                       " \x12\x02\x13\x21N\x12\x00\x13\x00", 10);
+                       " \x12\x02\x13\x21N\x12\x01\x13\x00", 10);
                 len += 10;
             }
         } else {
