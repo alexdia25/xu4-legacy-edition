@@ -185,10 +185,11 @@ Britannia.
 
 ![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
 
-The SMS module: the Master System title screen, a picture of the
-story and the first view of Britannia.
+The SMS module, using the tiles of the Sega Master System release: the
+overworld near Britain, and the town of Yew.
 
-![SMS module](doc/screenshots/sms-module.png)
+![SMS tiles on the overworld](doc/screenshots/sms-overworld.png)
+![SMS tiles in Yew, with the action menu](doc/screenshots/sms-town.png)
 
 ### Why SDL3 Only
 
