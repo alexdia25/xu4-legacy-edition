@@ -57,7 +57,9 @@ them with tolerances:
 - Sound durations (the game waits on some) must match exactly.
 - Each item's loudness must be within 1.5 dB, its volume envelope must
   correlate at 0.9 or better, its average spectrum must be at least 0.95
-  similar, and its audible length within 60 ms.
+  similar, and a sound's audible length must be within 60 ms.
+- Gaps where the recording fell behind (short runs of exact silence) are
+  removed, and each half second is lined up separately.
 
 Failing items are written as before and after WAV files to the diff
 directory to listen to.  Two recordings of the same build pass with all
