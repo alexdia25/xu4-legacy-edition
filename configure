@@ -29,11 +29,6 @@ while [ "$1" != "" ]; do
   shift
 done
 
-leq() {
-  [[ $1 = $2 ]] && echo true || echo false
-}
-
-echo "Generating make.config & project.config"
-printf "os_api: \'${PLATFORM}\ngpu_render: $(leq ${GPU} all)\n" >project.config
+echo "Generating make.config"
 printf "PREFIX=${PREFIX}\nUI=${PLATFORM}\nGPU=${GPU}\n" >make.config
-echo "Now type make (or copr) to build."
+echo "Now type make to build."

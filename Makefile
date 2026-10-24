@@ -46,7 +46,7 @@ SMS.mod: module/SMS/*.b
 SMS-Music.mod: module/SMS-Music/*.b
 	$(BORON) -s tools/pack-xu4.b module/SMS-Music
 
-.PHONY: clean download mod snapshot
+.PHONY: clean download mod
 
 clean:
 	make -C src -f $(MFILE_OS) clean
@@ -68,10 +68,3 @@ install: src/xu4 $(MODULES) u4upgrad.zip
 	install -m 644 -t $(DESTDIR)/share/xu4 $(MODULES) u4upgrad.zip
 	install -D -m 644 icons/shield.png $(DESTDIR)/share/icons/hicolor/48x48/apps/xu4.png
 	install -D -m 644 dist/xu4.desktop $(DESTDIR)/share/applications/xu4.desktop
-
-snapshot: $(MODULES)
-	@rm -f project.tar.gz
-	copr -c
-	tools/cbuild windows
-	tools/cbuild linux
-	cp /tmp/xu4-linux.tar.gz /tmp/xu4-win32.zip ../web/download

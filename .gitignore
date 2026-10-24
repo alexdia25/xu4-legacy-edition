@@ -3,6 +3,5 @@ src/xu4
 *.mod
 *.pak
 make.config
-project.config
 build-linux/
 build-win/

@@ -6,7 +6,6 @@ This document describes the various ways to build binaries & packages.
 The following build systems are provided:
 
  - [GNU Make] for developers.
- - [Copr] for developers.
  - The `dist/build-linux.sh` & `dist/build-windows.sh` scripts for release
    packages.
 
@@ -58,7 +57,7 @@ target to the previous make command will do that.
 
 ### configure
 
-The configure script can be used to customize both Make & Copr builds.
+The configure script can be used to customize the Make build.
 The default options match what is used for release builds.
 Configure does not need to be run if this is what you want.
 To see the configure options run:
@@ -78,17 +77,6 @@ The following commands should get you running:
 This downloads the original game archives, builds the binary, packs the game
 modules, and then runs the program.
 
-### Copr
-
-The following commands should get you running:
-
-    ./configure
-    make download
-    make mod
-    copr
-    ./xu4
-
-
 Release Builds
 --------------
 
@@ -105,7 +93,6 @@ are downloaded to build-linux/ & build-win/.
 
 
 [GNU Make]: https://www.gnu.org/software/make/manual/html_node/index.html#toc-Overview-of-make
-[Copr]: http://urlan.sourceforge.io/copr.html
 [build dependencies]: https://wiki.libsdl.org/SDL3/README-linux#build-dependencies
 
 
