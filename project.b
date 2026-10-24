@@ -85,6 +85,11 @@ exe %xu4 [
 	sources_from %src [
 		%a2disk.cpp
 		%a2music.cpp
+		%c64disk.cpp
+		%c64music.cpp
+		%smsmusic.cpp
+		%smsrom.cpp
+		%smsz80.cpp
 		%annotation.cpp
 		%aura.cpp
 		%camp.cpp

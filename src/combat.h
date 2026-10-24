@@ -40,6 +40,7 @@ public:
 
     // Controller Methods
     virtual bool keyPressed(int key);
+    virtual bool inputEvent(const InputEvent*);
     virtual bool isCombatController() const { return true; }
 
     // TurnController Method

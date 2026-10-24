@@ -58,7 +58,7 @@ static char* sst_make(StringTable* st, int len)
         sst_resize(st, DEFAULT_AVAIL);
     else if (st->used == st->avail || storeUsedNew > storeAvail)
         sst_resize(st, st->avail * 2);
-    assert(storeUsedNew <= storeAvail);
+    assert(storeUsedNew <= st->avail * st->allocLen);
 
     ent = st->table + st->used;
     ent->start = st->storeUsed;

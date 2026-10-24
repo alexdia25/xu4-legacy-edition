@@ -286,6 +286,8 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
 
 #ifdef DEBUG
     if (opt->flags & OPT_REPLAY) {
+        extern void testModeInit();
+        testModeInit();
         seed = gs->eventHandler->replay(opt->recordFile);
         if (! seed) {
             servicesFree(gs);

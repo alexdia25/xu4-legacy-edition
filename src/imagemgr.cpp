@@ -9,6 +9,8 @@
 #include "imageloader.h"
 #include "imagemgr.h"
 #include "a2disk.h"
+#include "c64disk.h"
+#include "smsrom.h"
 #include "intro.h"
 #include "settings.h"
 #include "xu4.h"
@@ -202,6 +204,21 @@ void ImageMgr::fixupApple2Intro(Image *im) {
     im->fillRect(ax + 7, 104, 266, 80, 0, 0, 0);
 }
 
+void ImageMgr::fixupC64Intro(Image *im) {
+    // Move "present" from the top to between "Origin Systems" & "Ultima".
+    im->drawSubRectOn(im, 132, 33, 132, 0, 54, 5);
+    im->fillRect(132, 0, 54, 5, 0, 0, 0);
+
+    // Draw the "Lord British" signature (cyan, two pixels wide).
+    const unsigned char* sigData = xu4.intro->getSigData();
+    for (int i = 0; sigData[i] != 0; i += 2)
+        im->fillRect(20 + sigData[i], 0xBF - sigData[i+1], 2, 1,
+                     112, 164, 178);
+
+    // Clear the map window, where the intro map is drawn.
+    im->fillRect(8, 104, 304, 80, 0, 0, 0);
+}
+
 /*
  * Each VGA vision component must be XORed with all the previous
  * vision components to get the actual image.
@@ -328,6 +345,12 @@ U4FILE * ImageMgr::getImageFile(ImageInfo *info)
     } else if (strncmp(fn, "a2/", 3) == 0) {
         // Apple II disk images; "a2/<disk>/<file>[+<file>]".
         file = a2_open(fn + 3);
+    } else if (strncmp(fn, "c64/", 4) == 0) {
+        // C64 disk images; "c64/<disk>/<file>[+<file>]".
+        file = c64_open(fn + 4);
+    } else if (strncmp(fn, "sms/", 4) == 0) {
+        // The SMS ROM; "sms/<offset>,<length>[+<offset>,<length>]".
+        file = sms_open(fn + 4);
 #ifdef CONF_MODULE
     } else if (isImageChunkId(fn)) {
         const CDIEntry* ent = xu4.config->imageFile(fn);
@@ -630,6 +653,9 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
         break;
     case FIXUP_APPLE2INTRO:
         fixupApple2Intro(unscaled);
+        break;
+    case FIXUP_C64INTRO:
+        fixupC64Intro(unscaled);
         break;
     case FIXUP_TRANSPARENT0:
         fixupTransparent(unscaled, Image::black);

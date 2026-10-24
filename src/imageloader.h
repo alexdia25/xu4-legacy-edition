@@ -27,6 +27,18 @@ enum ImageFiletype {
     FTYPE_A2DNGD,       // Dungeon view geometry (not an image).
     FTYPE_A2VIEW,
     FTYPE_A2REVEAL,
+    FTYPE_C64TILES,
+    FTYPE_C64FONT,
+    FTYPE_C64HIRES,
+    FTYPE_C64MULTI,
+    FTYPE_C64TREE,
+    FTYPE_C64CARDS,
+    FTYPE_C64RCARDS,
+    FTYPE_C64BEADS,
+    FTYPE_SMSTILES,
+    FTYPE_SMSPIC,
+    FTYPE_SMSTREE,
+    FTYPE_SMSFONT,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

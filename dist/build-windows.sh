@@ -72,7 +72,8 @@ rm -rf ${OUT}
 mkdir -p ${OUT}
 cp ${SRC}/src/xu4.exe ${OUT}
 cp ${SYS}/bin/SDL3.dll ${OUT}
-for f in render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod; do
+for f in render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod \
+         C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod; do
     [ -f ${TOP}/$f ] || make -s -C ${TOP} $f
     cp ${TOP}/$f ${OUT}
 done

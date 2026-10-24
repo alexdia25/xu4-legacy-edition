@@ -1,0 +1,117 @@
+# Replay tests: build xu4 before & after a change, replay the recorded
+# sessions in tools/test/sessions with both, and require every screenshot &
+# saved game to match.
+
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  SDL_VER: 3.4.18
+  BORON_VER: 2.0.8
+  FAUN_VER: 0.2.4
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q cmake ninja-build xvfb imagemagick \
+            zlib1g-dev libpng-dev libvorbis-dev libpulse-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libgl1-mesa-dri \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxss-dev libxfixes-dev libxtst-dev libwayland-dev \
+            libxkbcommon-dev libdecor-0-dev libasound2-dev \
+            libudev-dev libdbus-1-dev libdrm-dev libgbm-dev
+
+      - name: Cache SDKs & game data
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/sdk
+            ~/data
+          key: test-sdk-${{ env.SDL_VER }}-${{ env.BORON_VER }}-${{ env.FAUN_VER }}
+
+      - name: Build SDKs & download game data
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          SDK=~/sdk
+          git clone -q --depth 1 -b release-${SDL_VER} https://github.com/libsdl-org/SDL /tmp/sdl
+          cmake -S /tmp/sdl -B /tmp/sdl-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$SDK -DCMAKE_INSTALL_LIBDIR=lib \
+            -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF \
+            -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF >/dev/null
+          cmake --build /tmp/sdl-build >/dev/null
+          cmake --install /tmp/sdl-build >/dev/null
+          git clone -q --depth 1 -b v${BORON_VER} https://github.com/0branch/boron /tmp/boron
+          (cd /tmp/boron && ./configure --static && make -j4 >/dev/null)
+          mkdir -p $SDK/include/boron $SDK/bin
+          cp /tmp/boron/include/*.h $SDK/include/boron
+          cp /tmp/boron/libboron.a $SDK/lib
+          cp /tmp/boron/boron $SDK/bin
+          # Faun is only needed to build trees from before the SDL3 audio.
+          git clone -q --depth 1 -b v${FAUN_VER} https://codeberg.org/wickedsmoke/faun /tmp/faun
+          (cd /tmp/faun && ./configure --static --no_flac >/dev/null && make libfaun.a >/dev/null)
+          cp /tmp/faun/libfaun.a $SDK/lib
+          cp /tmp/faun/faun.h $SDK/include
+          mkdir -p ~/data
+          curl -sSfL -o ~/data/ultima4.zip https://ultima.thatfleminggent.com/ultima4.zip
+          curl -sSfL -o ~/data/u4upgrad.zip \
+            "https://sourceforge.net/projects/xu4/files/Ultima%204%20VGA%20Upgrade/1.3/u4upgrad.zip/download"
+
+      - name: Choose the base commit
+        id: base
+        run: |
+          BASE=${{ github.event.pull_request.base.sha || github.event.before }}
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE=$(git rev-parse HEAD~1)
+          fi
+          echo "sha=$BASE" >> $GITHUB_OUTPUT
+          echo "Comparing $(git rev-parse --short HEAD) against $(git rev-parse --short $BASE)"
+
+      - name: Build before & after
+        run: |
+          export SDK_DIR=~/sdk
+          git worktree add -q ../base ${{ steps.base.outputs.sha }}
+          for T in base head; do
+            SRC=$([ $T = head ] && echo . || echo ../base)
+            tools/test/build.sh $SRC out/$T/xu4
+            mkdir -p out/$T/data
+            cp ~/data/*.zip out/$T/data
+            make -s -C $SRC BORON=$SDK_DIR/bin/boron render.pak Ultima-IV.mod U4-Upgrade.mod
+            cp $SRC/render.pak $SRC/Ultima-IV.mod $SRC/U4-Upgrade.mod out/$T/data
+          done
+
+      - name: Replay
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99
+          sleep 2
+          for T in base head; do
+            echo "== $T"
+            XU4_TEST_DATA=$PWD/out/$T/data tools/test/run.sh out/$T/xu4 out/$T/results
+          done
+
+      - name: Compare
+        run: tools/test/compare.sh out/base/results out/head/results out/diff
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: replay-results
+          path: |
+            out/diff
+            out/*/results
+          if-no-files-found: ignore

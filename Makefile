@@ -5,7 +5,8 @@ MFILE_OS=Makefile
 # Note: xu4 is hardcoded to look in /usr & /usr/local only!
 DESTDIR ?= /usr/local
 
-MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod
+MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod \
+	C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod
 BORON=boron
 REND=module/render
 
@@ -29,6 +30,21 @@ Apple-II.mod: module/Apple-II/*.b
 
 Apple-II-Music.mod: module/Apple-II-Music/*.b
 	$(BORON) -s tools/pack-xu4.b module/Apple-II-Music
+
+C64.mod: module/C64/*.b
+	$(BORON) -s tools/pack-xu4.b module/C64
+
+C64-Music.mod: module/C64-Music/*.b
+	$(BORON) -s tools/pack-xu4.b module/C64-Music
+
+C64-Remastered.mod: module/C64-Remastered/*.b
+	$(BORON) -s tools/pack-xu4.b module/C64-Remastered
+
+SMS.mod: module/SMS/*.b
+	$(BORON) -s tools/pack-xu4.b module/SMS
+
+SMS-Music.mod: module/SMS-Music/*.b
+	$(BORON) -s tools/pack-xu4.b module/SMS-Music
 
 .PHONY: clean download mod snapshot
 

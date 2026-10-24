@@ -1,0 +1,27 @@
+# Attack the guard of Moonglow, cast Magic Missile and fight a few rounds.
+include town.inc
+gap 10
+repeat 5 right
+wait 10
+key a
+key up
+wait 60
+snap
+key c
+wait 10
+key m
+wait 10
+key up
+wait 80
+snap
+gap 30
+key a
+key up
+wait 40
+key a
+key left
+wait 40
+snap
+repeat 6 space
+wait 40
+snap

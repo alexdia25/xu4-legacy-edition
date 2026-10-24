@@ -176,7 +176,8 @@ IntroController::IntroController() :
     titles(),                   // element list
     title(titles.begin()),      // element iterator
     bSkipTitles(false),
-    apple2Title(false)
+    apple2Title(false),
+    c64Title(false)
 {
     // initialize menus
     confMenu.setTitle("XU4 Configuration:", 0, 0);
@@ -539,7 +540,8 @@ bool IntroController::keyPressed(int key) {
 }
 
 bool IntroController::inputEvent(const InputEvent* ev) {
-    if (ev->type == IE_MOUSE_PRESS && ev->n == CMOUSE_LEFT)
+    int px, py;
+    if (EventHandler::pointerTap(ev, &px, &py))
     {
         if (mode == INTRO_TITLES || mode == INTRO_MAP)
             keyPressed(U4_SPACE);
@@ -1152,8 +1154,16 @@ void IntroController::startQuestions() {
         // wait for an answer
         int choice;
         if (EventHandler::smsMenus()) {
+            // Tapping a card (the left or right half above the text) picks
+            // its virtue.
             static const char* ab[2] = { "A", "B" };
-            choice = EventHandler::chooseInline(&questionArea, ab, 2) ? 'b' : 'a';
+            const int16_t half = U4_SCREEN_W / 2;
+            const int16_t cardsH = INTRO_TEXT_Y * CHAR_HEIGHT;
+            const int16_t cards[8] = {
+                0, 0, half, cardsH,  half, 0, half, cardsH
+            };
+            choice = EventHandler::chooseInline(&questionArea, ab, 2, cards)
+                        ? 'b' : 'a';
         } else
             choice = EventHandler::readChoice("ab");
 
@@ -1860,6 +1870,7 @@ void IntroController::getTitleSourceData()
     if (!info)
         errorLoadImage(BKGD_INTRO);
     apple2Title = (info->fixup == FIXUP_APPLE2INTRO);
+    c64Title = (info->fixup == FIXUP_C64INTRO);
 
     // for each element, get the source data
     for (unsigned i=0; i < titles.size(); i++)
@@ -1886,6 +1897,8 @@ void IntroController::getTitleSourceData()
 
                 RGBA color = apple2Title ?
                         info->image->setColor(255, 255, 255) :
+                             c64Title ?
+                        info->image->setColor(112, 164, 178) : // C64 cyan
                         info->image->setColor(0, 255, 255);    // cyan for EGA
                 int blue[16] = {255, 250, 226, 226, 210, 194, 161, 161,
                                 129,  97,  97,  64,  64,  32,  32,   0};
@@ -1897,7 +1910,8 @@ void IntroController::getTitleSourceData()
                     x = srcData[titles[i].animStepMax] - 0x4C;
                     y = 0xC0 - srcData[titles[i].animStepMax+1];
 
-                    if (xu4.imageMgr->usingVGA() && ! apple2Title)
+                    if (xu4.imageMgr->usingVGA() && ! apple2Title &&
+                        ! c64Title)
                     {
                         // yellow gradient
                         color = info->image->setColor(255, (y == 2 ? 250 : 255), blue[y-1]);
@@ -1932,10 +1946,11 @@ void IntroController::getTitleSourceData()
                 for (int y=0; y < titles[i].rh; y++)
                 {
                     // Here x is set to exclude PRESENT at top of image.
-                    int x = (y < 6 && ! apple2Title) ? 133 : 0;
+                    bool moved = apple2Title || c64Title;
+                    int x = (y < 6 && ! moved) ? 133 : 0;
                     for ( ; x < titles[i].rw ; x++)
                     {
-                        if (apple2Title &&
+                        if (moved &&
                             x >= px0 && x < px0 + pres.rw &&
                             y >= py0 && y < py0 + pres.rh)
                             continue;
@@ -2064,6 +2079,8 @@ bool IntroController::updateTitle()
                 title->animStep++;
                 if (apple2Title)
                     color = title->destImage->setColor(20, 207, 253);
+                else if (c64Title)
+                    color = title->destImage->setColor(112, 164, 178);
                 else
                     color = title->destImage->setColor(128, 0, 0); // dark red for the underline
 

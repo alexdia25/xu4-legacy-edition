@@ -374,3 +374,29 @@ bool MenuController::keyPressed(int key) {
     return handled;
 }
 
+
+/*
+ * Tapping an item highlights and activates it (a setting goes to its next
+ * value).
+ */
+bool MenuController::inputEvent(const InputEvent* ev) {
+    int cx, cy;
+    if (ev->type == IE_MOUSE_WHEEL) {
+        if (ev->y)
+            keyPressed((ev->y > 0) ? U4_UP : U4_DOWN);
+    } else if (EventHandler::pointerTap(ev, &cx, &cy)) {
+        view->mouseTextPos(ev->x, ev->y, cx, cy);
+        for (Menu::MenuItemList::iterator it = menu->begin();
+             it != menu->end(); ++it) {
+            const MenuItem* mi = *it;
+            if (mi->isVisible() && cy == mi->getY() &&
+                cx >= mi->getX() - 1 &&
+                cx < mi->getX() + (int) mi->getText().size()) {
+                menu->setCurrent(it);
+                keyPressed(U4_ENTER);
+                break;
+            }
+        }
+    }
+    return true;
+}

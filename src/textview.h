@@ -45,6 +45,7 @@ public:
     int cursorX() const { return _cursorX; }
     int cursorY() const { return _cursorY; }
     int columns() const { return _cols; }
+    int rows() const { return _rows; }
     int charWidth() const { return _charW; }
     void setCharWidth(int w);
 

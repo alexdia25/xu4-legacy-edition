@@ -294,6 +294,7 @@ private:
     int  introMusic;
     bool bSkipTitles;
     bool apple2Title;       // Titles use Apple II colors.
+    bool c64Title;          // Titles use C64 colors.
 };
 
 #endif

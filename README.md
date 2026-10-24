@@ -21,6 +21,15 @@ especially for someone who has just downloaded the free release from
    can be played with a D-pad and two buttons.  It switches on by itself
    when a gamepad is used, or can be turned on for keyboard play with
    Configure > Enhanced Interface Options > Console (SMS) Menus.
+ - **Mouse-only and touch play.**  The console menus can also be played
+   with just taps (left clicks), as a step towards touch screens: tap
+   the map to move toward the tap (hold to keep walking, drag to steer),
+   tap your party or the message area for the action menu, tap the party
+   list for the Ztats, and tap menu items, letters and numbers to pick
+   them (tap outside a list to cancel).  Direction prompts take a tap
+   toward the target, the gypsy's questions a tap on a card, and the
+   action menu's Game Menu entry opens the xu4 menu.  No right button or
+   hovering is needed.  The first tap switches the console menus on.
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
    the flow of play, so the game can be played without leaving XU4.
@@ -36,6 +45,13 @@ especially for someone who has just downloaded the free release from
    soundtrack read the art and Mockingboard tunes of the Apple II release
    straight from its disk images (see
    [Apple II Disk Images](#apple-ii-disk-images)).
+ - **Commodore 64 graphics & music.**  The C64 module and C64-Music
+   soundtrack read the art and SID tunes of the C64 release from its disk
+   images, and the C64-Remastered module uses the art of the Ultima IV
+   Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
+ - **Sega Master System graphics & music.**  The SMS module and SMS-Music
+   soundtrack read the tiles, font, story pictures and music of the Master
+   System release from its ROM (see [SMS ROM](#sms-rom)).
  - **More platforms.**
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
@@ -54,6 +70,23 @@ overworld near Britain, and the town of Yew.
 
 ![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
 ![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
+
+The C64 module, using the tiles of the Commodore 64 release: the
+overworld near Britain, and the town of Yew.
+
+![C64 tiles on the overworld](doc/screenshots/c64-overworld.png)
+![C64 tiles in Yew, with the action menu](doc/screenshots/c64-town.png)
+
+The C64 module (top) and the C64-Remastered module (bottom): the title,
+the moongate of the intro, the gypsy's cards and the first view of
+Britannia.
+
+![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
+
+The SMS module: the title with the Master System tiles, a picture of the
+story and the first view of Britannia.
+
+![SMS module](doc/screenshots/sms-module.png)
 
 The original XU4 readme follows.
 
@@ -155,7 +188,10 @@ out of the zipfile.  To use it select the U4-Upgrade module.
 
 The Apple-II module uses the graphics of the original Apple II release, and
 the Apple-II-Music soundtrack plays its Mockingboard music (see
-[Apple II Disk Images](#apple-ii-disk-images) below).
+[Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
+C64-Remastered modules do the same for the Commodore 64 release (see
+[C64 Disk Images](#c64-disk-images)), and the SMS & SMS-Music modules for
+the Sega Master System release (see [SMS ROM](#sms-rom)).
 
 XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
@@ -202,6 +238,47 @@ them.  Put the four images in any of the places listed above, or in an
 
 Other files that come with the images (text notes, scans, `.woz` copies)
 aren't needed.
+
+### C64 Disk Images
+
+The C64 module reads the title screen, intro pictures, tiles, font and
+virtue cards straight from the disk images of Ultima IV for the Commodore
+64, and the C64-Music soundtrack plays its SID music by running the game's
+own music player.  Both need only the Program disk; the dungeons, shrines
+and ending still use the DOS pictures.
+
+The C64 release also came on two floppy disks used on both sides (Program,
+Britannia, Towne & Underworld), so a full set is four `.d64` images, though
+some sets name them "Disk 1" and "Disk 2".  The images are told apart by
+their contents, so the file names don't matter, and cracked copies work.
+The images must be plain 35 track `.d64` files.
+
+The C64-Remastered module uses the graphics of
+[Ultima IV Remastered](https://github.com/MagerValp/u4remastered) 2.2.1 by
+Per Olofsson & Vanja Utne: the more colorful tiles and the new intro
+pictures and cards.  It reads them from `u4remastered.d81`, or from
+`u4remastered-a.d64`.
+
+Put the images in any of the places listed above, or in a `c64` folder
+inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
+modules are only listed in the Game Module Browser when their disk images
+are found.
+
+### SMS ROM
+
+The SMS module reads the map tiles, font and story pictures of Ultima IV:
+Quest of the Avatar for the Sega Master System straight from its ROM, and
+the SMS-Music soundtrack plays its music by running the game's own sound
+driver on a model of the console's Z80 & PSG sound chip.  The title, the
+gypsy's abacus & cards and the dungeons still use the DOS pictures, and
+the game itself (maps, dungeons, talk) stays the DOS one.
+
+The ROM must be the Europe/USA release (512 KB, SHA-1
+`a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
+file name doesn't matter.  Put it in any of the places listed above, or in
+an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
+Windows.  The modules are only listed in the Game Module Browser when the
+ROM is found.  Nothing from the ROM is stored in the modules.
 
 ### Settings & Options
 

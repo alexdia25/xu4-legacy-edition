@@ -15,6 +15,9 @@
 
 #include "a2disk.h"
 #include "a2music.h"
+#include "c64disk.h"
+#include "c64music.h"
+#include "smsmusic.h"
 
 #include "config.h"
 #include "context.h"
@@ -476,6 +479,13 @@ static int loadSoundBuffer(int sound)
     SoundBuffer* buf = buffers + sound;
     uint16_t ms;
 
+    // Without audio no sound is loaded, so durations are zero (as with Faun).
+    if (! audioDev) {
+        bufferMs[sound] = BUFFER_MS_FAILED;
+        bufferResGroup[sound] = xu4.resGroup;
+        return BUFFER_MS_FAILED;
+    }
+
 #ifdef CONF_MODULE
     const CDIEntry* ent = config_soundFile(sound);
     if (ent && readFileChunk(xu4.config->modulePath(ent), ent->offset,
@@ -622,7 +632,8 @@ void soundStop() {
 
 #ifdef CONF_MODULE
 /*
- * Render a tune from the Apple II disks and start playing it.
+ * Render a tune from the Apple II or C64 disks or the SMS ROM and start
+ * playing it.
  */
 static bool music_playApple2(const CDIEntry* ent, int mode)
 {
@@ -638,16 +649,34 @@ static bool music_playApple2(const CDIEntry* ent, int mode)
     int tune = atoi(spec.c_str() + colon + 1);
     spec.resize(colon);
 
-    U4FILE* file = a2_open(spec.c_str());
-    if (! file)
-        return false;
-    std::vector<uint8_t> data(file->length());
-    data.resize(file->read(data.data(), 1, data.size()));
-    delete file;
-
     std::vector<int16_t> samples;
-    if (! a2_renderMusic(data.data(), data.size(), tune, A2MUSIC_RATE,
-                         samples) || samples.size() < 2)
+    if (spec.compare(0, 4, "sms/") == 0) {
+        // The tune is played by the game's sound driver.
+        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples))
+            return false;
+    } else if (spec.compare(0, 4, "c64/") == 0) {
+        // The tune is played by the game's music player.
+        std::vector<uint8_t> player, data;
+        if (! c64_read("program/musc", player) ||
+            ! c64_read(spec.c_str() + 4, data))
+            return false;
+        if (! c64_renderMusic(player.data(), player.size(),
+                              data.data(), data.size(), tune, A2MUSIC_RATE,
+                              samples))
+            return false;
+    } else {
+        U4FILE* file = a2_open(spec.c_str());
+        if (! file)
+            return false;
+        std::vector<uint8_t> data(file->length());
+        data.resize(file->read(data.data(), 1, data.size()));
+        delete file;
+
+        if (! a2_renderMusic(data.data(), data.size(), tune, A2MUSIC_RATE,
+                             samples))
+            return false;
+    }
+    if (samples.size() < 2)
         return false;
 
     std::vector<float> pcm(samples.size());

@@ -87,6 +87,7 @@ class MenuController : public WaitableController<void *> {
 public:
     MenuController(Menu *menu, TextView *view);
     bool keyPressed(int key);
+    bool inputEvent(const InputEvent*);
 
 protected:
     Menu *menu;

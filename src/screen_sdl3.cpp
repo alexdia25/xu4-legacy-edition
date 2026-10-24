@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 #include <SDL3/SDL.h>
 
 #define MAX_CURSORS 4
@@ -429,10 +430,45 @@ void screenIconify() {
 
 extern void screenRender();
 
+static const char* snapshotDir = NULL;
+static int snapshotCount = 0;
+
+/*
+ * Save the next frame drawn as a PPM image in dir (used by tests).
+ */
+void screenRequestSnapshot(const char* dir)
+{
+    snapshotDir = dir;
+}
+
+static void writeSnapshot(SDL_Window* win)
+{
+    int w, h;
+    char path[512];
+
+    SDL_GetWindowSizeInPixels(win, &w, &h);
+    std::vector<uint8_t> pix(w * h * 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pix.data());
+
+    snprintf(path, sizeof(path), "%s/%03d.ppm", snapshotDir, ++snapshotCount);
+    FILE* fp = fopen(path, "wb");
+    if (fp) {
+        fprintf(fp, "P6\n%d %d\n255\n", w, h);
+        for (int y = h - 1; y >= 0; --y)
+            fwrite(pix.data() + y * w * 3, 1, w * 3, fp);
+        fclose(fp);
+    }
+}
+
 void screenSwapBuffers()
 {
     CPU_START()
     screenRender();
+    if (snapshotDir) {
+        writeSnapshot(SGL->view);
+        snapshotDir = NULL;
+    }
     SDL_GL_SwapWindow(SGL->view);
     CPU_END("ut:")
 }

@@ -151,6 +151,8 @@ static void setFromRawData(Image *image, int width, int height, int bpp, unsigne
 #include "imageloader_png.cpp"
 #include "imageloader_u4.cpp"
 #include "imageloader_apple2.cpp"
+#include "imageloader_c64.cpp"
+#include "imageloader_sms.cpp"
 
 
 Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
@@ -178,6 +180,22 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
     case FTYPE_A2VIEW:
     case FTYPE_A2REVEAL:
         return loadImage_apple2(file, ftype, width);
+
+    case FTYPE_C64TILES:
+    case FTYPE_C64FONT:
+    case FTYPE_C64HIRES:
+    case FTYPE_C64MULTI:
+    case FTYPE_C64TREE:
+    case FTYPE_C64CARDS:
+    case FTYPE_C64RCARDS:
+    case FTYPE_C64BEADS:
+        return loadImage_c64(file, ftype);
+
+    case FTYPE_SMSTILES:
+    case FTYPE_SMSPIC:
+    case FTYPE_SMSTREE:
+    case FTYPE_SMSFONT:
+        return loadImage_sms(file, ftype);
     }
     return NULL;
 }

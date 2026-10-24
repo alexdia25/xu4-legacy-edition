@@ -45,6 +45,9 @@
 #define U4_PAD_B        0x1F1   // Escape, except on the map or in combat.
 #define U4_PAD_SELECT   0x1F2   // Open or close the xu4 (Escape) menu.
 
+// Only found in test recordings (see tools/test).
+#define U4_TEST_SNAPSHOT 0x1FE  // Save the next frame to XU4_TEST_DIR.
+
 enum InputEventType {
     IE_MOUSE_MOVE,
     IE_MOUSE_PRESS,
@@ -163,7 +166,15 @@ public:
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
     static int  chooseInline(TextView* view, const char* const* items,
-                             int count);
+                             int count, const int16_t* tapAreas = NULL);
+
+    /* Pointer (mouse & touch) functions */
+    static void pointerPos(const InputEvent* ev, int* x, int* y);
+    static bool pointerTap(const InputEvent* ev, int* x, int* y);
+    void setPointerRepeat(Controller* con, int key, int delay = 300);
+    bool pointerHeld(const Controller* con) const {
+        return repeatCon == con;
+    }
 
     /* Static functions */
     static bool timerQueueEmpty();
@@ -214,6 +225,7 @@ public:
     uint32_t replay(const char* file) {
         return irec_replay(&inputRec, file);
     }
+    bool replayEnded() const { return inputRec.mode == 0; }
 #endif
 
     void advanceFlourishAnim() {
@@ -226,6 +238,7 @@ public:
 protected:
     void handleInputEvents(Controller*, updateScreenCallback);
     bool runPause();
+    void pointerRepeat();
 
     FrameSleep fs;
     uint32_t timerInterval;     // Milliseconds between timedEvents ticks.
@@ -241,6 +254,9 @@ protected:
     std::vector<Controller *> controllers;
     std::list<const _MouseArea*> mouseAreaSets;
     updateScreenCallback updateScreen;
+    Controller* repeatCon;      // Controller sent repeatKey while held.
+    int repeatKey;
+    uint32_t repeatTime;
     char readStringBuf[33];
 };
 
