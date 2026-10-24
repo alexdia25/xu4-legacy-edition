@@ -96,6 +96,8 @@ private:
     static void gameNotice(int, void*, void*);
     static void renderHud(ScreenState* ss, void* data);
     void initScreenWithoutReloadingState();
+    void setHud();
+    void drawBorderImage(bool all);
     void initMoons();
 
     void avatarMoved(MoveEvent &event);

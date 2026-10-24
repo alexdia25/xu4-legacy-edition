@@ -17,6 +17,7 @@
 #include "error.h"
 #include "image32.h"
 #include "gpu.h"
+#include "gui.h"
 #include "intro.h"
 #include "item.h"
 #include "imagemgr.h"
@@ -123,6 +124,42 @@ void GameController::conclude() {
     screenSetMouseCursor(MC_DEFAULT);
 }
 
+static float* emitMenuIcon(float* attr);
+
+/*
+ * Show the borders (and the menu icon when the mouse is enabled).
+ */
+void GameController::setHud()
+{
+    float* attr = gpu_beginTris(xu4.gpu, GPU_DLIST_HUD);
+    if (attr) {
+        memcpy(attr, borderAttr, borderAttrLen * sizeof(float));
+        attr += borderAttrLen;
+        if (xu4.settings->mouseOptions.enabled)
+            attr = emitMenuIcon(attr);
+        gpu_endTris(xu4.gpu, GPU_DLIST_HUD, attr);
+    }
+    screenSetLayer(LAYER_HUD, renderHud, this);
+}
+
+/*
+ * Draw the borders on the screen image when there is no HUD draw list.
+ * If all is false only the corner with the menu icon is drawn.
+ */
+void GameController::drawBorderImage(bool all)
+{
+    ImageInfo* info = xu4.imageMgr->get(BKGD_BORDERS);
+    if (all)
+        info->image->draw(0, 0);
+    else
+        info->image->drawSubRect(0, 0, 0, 0, 8, 8);
+    if (xu4.settings->mouseOptions.enabled) {
+        xu4.screenImage->fillRect(0, 0, 8, 8, 0, 0, 0);
+        for (int y = 1; y < 7; y += 2)
+            xu4.screenImage->fillRect(1, y, 6, 1, 255, 255, 255);
+    }
+}
+
 /*
  * Show the borders and map again after something else (the in-game
  * configuration menus) has used the screen.
@@ -130,7 +167,9 @@ void GameController::conclude() {
 void GameController::redrawScreen()
 {
     if (borderAttr)
-        screenSetLayer(LAYER_HUD, renderHud, this);
+        setHud();
+    else
+        drawBorderImage(false);
     mapArea.reinit();
     gameUpdateScreen();
 }
@@ -142,23 +181,43 @@ void GameController::renderHud(ScreenState* ss, void* data)
     gpu_drawGui(xu4.gpu, GPU_DLIST_HUD, WID_NONE, 0);
 }
 
+/*
+ * Add the menu icon, three bars in the top left corner of the border,
+ * which opens the xu4 menu when tapped (see gameTapCommand).
+ */
+#define MENU_ICON_TAP   16      // Size of the tap area in screen pixels.
+
+static float* emitMenuIcon(float* attr)
+{
+    const ScreenState* ss = screenState();
+    float sx = ss->aspectW / float(U4_SCREEN_W);
+    float sy = ss->aspectH / float(U4_SCREEN_H);
+    float rect[4];
+    rect[0] = 0.0f;
+    rect[1] = sy * (U4_SCREEN_H - 8);
+    rect[2] = sx * 8;
+    rect[3] = sy * 8;
+    attr = gui_emitQuadCi(attr, rect, COL_BLACK);
+    for (int y = 1; y < 7; y += 2) {
+        rect[0] = sx;
+        rect[1] = sy * (U4_SCREEN_H - y - 1);
+        rect[2] = sx * 6;
+        rect[3] = sy;
+        attr = gui_emitQuadCi(attr, rect, COL_WHITE);
+    }
+    return attr;
+}
+
 void GameController::initScreenWithoutReloadingState()
 {
     musicPlayLocale();
 
+    free(borderAttr);
     borderAttr = xu4.config->newDrawList(BKGD_BORDERS, &borderAttrLen);
-    if (borderAttr) {
-        float* attr = gpu_beginTris(xu4.gpu, GPU_DLIST_HUD);
-        if (attr) {
-            memcpy(attr, borderAttr, borderAttrLen * sizeof(float));
-            gpu_endTris(xu4.gpu, GPU_DLIST_HUD, attr + borderAttrLen);
-        }
-
-        screenSetLayer(LAYER_HUD, renderHud, this);
-    } else {
-        ImageInfo* info = xu4.imageMgr->get(BKGD_BORDERS);
-        info->image->draw(0, 0);
-    }
+    if (borderAttr)
+        setHud();
+    else
+        drawBorderImage(true);
 
     c->stats->update(); /* draw the party stats */
 
@@ -1647,7 +1706,8 @@ int gameTapKey(int x, int y) {
  * Handle a pointer event for the map views (exploring and combat).
  * Tapping the map moves toward the tap, and holding it down keeps moving
  * (dragging steers).  Tapping the party, or the message area, opens the
- * action menu; tapping the party list shows the Ztats.
+ * action menu; tapping the party list shows the Ztats.  The menu icon in
+ * the top left corner opens the xu4 menu.
  * Returns the command key for a tap, or 0.
  */
 static bool tapRepeats(int key) {
@@ -1683,6 +1743,10 @@ int gameTapCommand(Controller* con, const InputEvent* ev) {
     case IE_MOUSE_PRESS:
         if (! EventHandler::pointerTap(ev, &x, &y))
             break;
+        if (x < MENU_ICON_TAP && y < MENU_ICON_TAP) {
+            xu4_selectGame();
+            break;
+        }
         key = gameTapKey(x, y);
         if (key) {
             if (tapRepeats(key))
