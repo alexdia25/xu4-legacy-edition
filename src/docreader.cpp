@@ -204,7 +204,10 @@ void DocReader::openDocument(int n)
             "    This document was not found.\n\n"
             "    The free GOG release of Ultima IV includes the printed\n"
             "    documents as ULTIMA4.TXT.  Place it with the game files\n"
-            "    and xu4 will split it into separate documents.\n\n"
+            "    and xu4 will split it into separate documents.  Releases\n"
+            "    with separate History.txt, Wisdom.txt, Hints.txt and\n"
+            "    Keyboard.txt files are also found there, or in a docs\n"
+            "    folder beside the game files.\n\n"
             "    The documents can also be put in the docs folder of\n"
             "    ";
         text += xu4.settings->getUserPath();
