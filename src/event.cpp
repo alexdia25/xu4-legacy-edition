@@ -244,7 +244,10 @@ void testAudioTour(const char* dir)
     if (! fp)
         return;
 
-    msecSleep(1000);    // Let the audio device start.
+    // Let the audio device & recording start (some recorders begin when the
+    // first sound plays and miss its start).
+    soundPlay(SOUND_UI_TICK);
+    msecSleep(1000);
     uint32_t start = getTicks();
 
     for (int i = 0; i < SOUND_MAX; ++i) {
