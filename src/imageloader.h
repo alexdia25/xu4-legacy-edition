@@ -40,6 +40,8 @@ enum ImageFiletype {
     FTYPE_SMSTREE,
     FTYPE_SMSFONT,
     FTYPE_SMSCARDS,
+    FTYPE_SMSTITLE,
+    FTYPE_SMSBEASTS,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

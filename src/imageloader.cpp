@@ -196,6 +196,8 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
     case FTYPE_SMSTREE:
     case FTYPE_SMSFONT:
     case FTYPE_SMSCARDS:
+    case FTYPE_SMSTITLE:
+    case FTYPE_SMSBEASTS:
         return loadImage_sms(file, ftype);
     }
     return NULL;

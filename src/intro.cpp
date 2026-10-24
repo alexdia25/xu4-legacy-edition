@@ -177,7 +177,8 @@ IntroController::IntroController() :
     title(titles.begin()),      // element iterator
     bSkipTitles(false),
     apple2Title(false),
-    c64Title(false)
+    c64Title(false),
+    smsTitle(false)
 {
     // initialize menus
     confMenu.setTitle("XU4 Configuration:", 0, 0);
@@ -352,6 +353,19 @@ bool IntroController::init() {
             beastiePos[i][0] = pos->x;
             beastiePos[i][1] = pos->y;
         }
+    }
+
+    // With the optional beast_steps subimage (width: the number of
+    // frames, height: milliseconds per frame) both beasties step through
+    // their frames in order, as the SMS figures do, instead of following
+    // the frame tables of the DOS title.
+    beastSteps = 0;
+    std::map<Symbol, int>::const_iterator it =
+        beastiesImg->subImageIndex.find(xu4.config->intern("beast_steps"));
+    if (it != beastiesImg->subImageIndex.end()) {
+        const SubImage* steps = beastiesImg->subImages + it->second;
+        beastSteps  = steps->width;
+        beastStepMs = steps->height ? steps->height : 1;
     }
     }
 
@@ -708,8 +722,16 @@ void IntroController::drawMapAnimated() {
  * Draws the animated beasts in the upper corners of the screen.
  */
 void IntroController::drawBeasties() {
-    drawBeastie(0, beastieOffset, binData->beastie1FrameTable[beastie1Cycle]);
-    drawBeastie(1, beastieOffset, binData->beastie2FrameTable[beastie2Cycle]);
+    if (beastSteps) {
+        int step = (getTicks() / beastStepMs) % beastSteps;
+        drawBeastie(0, beastieOffset, step);
+        drawBeastie(1, beastieOffset, step);
+    } else {
+        drawBeastie(0, beastieOffset,
+                    binData->beastie1FrameTable[beastie1Cycle]);
+        drawBeastie(1, beastieOffset,
+                    binData->beastie2FrameTable[beastie2Cycle]);
+    }
     if (beastieOffset < 0)
         beastieOffset++;
 }
@@ -1871,12 +1893,14 @@ void IntroController::getTitleSourceData()
         errorLoadImage(BKGD_INTRO);
     apple2Title = (info->fixup == FIXUP_APPLE2INTRO);
     c64Title = (info->fixup == FIXUP_C64INTRO);
+    smsTitle = (info->fixup == FIXUP_SMSINTRO);
 
     // for each element, get the source data
     for (unsigned i=0; i < titles.size(); i++)
     {
-        if ((titles[i].method != SIGNATURE)
-            && (titles[i].method != BAR))
+        // The SMS signature & underline are drawn from the image.
+        if (smsTitle || ((titles[i].method != SIGNATURE)
+            && (titles[i].method != BAR)))
         {
             // create a place to store the source image
             titles[i].srcImage = Image::create(titles[i].rw, titles[i].rh);
@@ -1892,6 +1916,25 @@ void IntroController::getTitleSourceData()
         {
             case SIGNATURE:
             {
+                if (smsTitle) {
+                    // The pixels of the image, a column at a time, as if
+                    // written from left to right.
+                    for (int x = 0; x < titles[i].rw; ++x) {
+                        for (int y = 0; y < titles[i].rh; ++y) {
+                            titles[i].srcImage->getPixel(x, y, r, g, b, a);
+                            if (r || g || b) {
+                                AnimPlot plot = {
+                                    uint8_t(x+1), uint8_t(y+1),
+                                    uint8_t(r), uint8_t(g), uint8_t(b), 255
+                                };
+                                titles[i].plotData.push_back(plot);
+                            }
+                        }
+                    }
+                    titles[i].animStepMax = titles[i].plotData.size();
+                    break;
+                }
+
                 // PLOT: "Lord British"
                 srcData = getSigData();
 
@@ -1946,7 +1989,7 @@ void IntroController::getTitleSourceData()
                 for (int y=0; y < titles[i].rh; y++)
                 {
                     // Here x is set to exclude PRESENT at top of image.
-                    bool moved = apple2Title || c64Title;
+                    bool moved = apple2Title || c64Title || smsTitle;
                     int x = (y < 6 && ! moved) ? 133 : 0;
                     for ( ; x < titles[i].rw ; x++)
                     {
@@ -2055,13 +2098,15 @@ bool IntroController::updateTitle()
     {
         case SIGNATURE:
         {
+            // The DOS signature is plotted in pixel pairs.
+            int plotW = smsTitle ? 1 : 2;
             while (animStepTarget > title->animStep)
             {
                 // blit the pixel-pair to the src surface
                 title->destImage->fillRect(
                     title->plotData[title->animStep].x,
                     title->plotData[title->animStep].y,
-                    2,
+                    plotW,
                     1,
                     title->plotData[title->animStep].r,
                     title->plotData[title->animStep].g,
@@ -2073,6 +2118,13 @@ bool IntroController::updateTitle()
 
         case BAR:
         {
+            if (smsTitle) {
+                // The underline of the image, drawn from left to right.
+                title->animStep = animStepTarget;
+                title->srcImage->drawSubRectOn(title->destImage, 1, 1, 0, 0,
+                                    title->animStep, title->srcImage->height());
+                break;
+            }
             RGBA color;
             while (animStepTarget > title->animStep)
             {
@@ -2178,8 +2230,9 @@ bool IntroController::updateTitle()
             }
 
             // Re-draw the PRESENT area.
-            title->srcImage->drawSubRectOn(title->destImage, 73, 1,
-                72, 0, 58, 5);
+            if (! smsTitle)
+                title->srcImage->drawSubRectOn(title->destImage, 73, 1,
+                    72, 0, 58, 5);
             break;
         }
 

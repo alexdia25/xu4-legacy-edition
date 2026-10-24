@@ -26,6 +26,21 @@
  *             drawn in the colors of the abacus, 48x112 pixels side by side,
  *             with the white & black beads (two tiles each of the abacus)
  *             below them at 0,112 & 8,112.
+ *   smstitle  The title screen, which the SMS builds in video memory: the
+ *             two palettes, the names of "present" ($C5CE), the frame
+ *             tiles (bank $15 $80BE), then bank $14 from $8000: the names
+ *             of the logo (12 rows), the line strokes of the signature,
+ *             the patterns of "and", the underline, "present", "Origin
+ *             Systems, Inc." & of "Ultima IV" (three planes).  The logo
+ *             goes at the top of the 320x200 image & the frame of the map
+ *             below it, the width of the screen.
+ *   smsbeasts The figures in the top corners of the title: the sprite
+ *             palette, the three tables of animation steps (bank 3
+ *             $889D), then bank $14 $9610: the tile patterns, the 12 tiles
+ *             of each figure frame & the four tiles of each frame of the
+ *             dragon's fire.  The 56 steps of the left figure (32x24
+ *             frames) are stacked down the image, followed by the 56
+ *             steps of the fire & the dragon (48x24).
  *   smsfont   The 96 text glyphs from the space, 8 bytes each with one
  *             bit per pixel.  They replace those of the DOS charset.ega,
  *             which keeps the symbols the game uses for its own glyphs
@@ -49,6 +64,10 @@
 #define SMS_CARD_H      14
 #define SMS_BEAD_WHITE  11      // Abacus tiles of the beads (upper half).
 #define SMS_BEAD_BLACK  9
+#define SMS_LOGO_X      32      // The title logo (32x12 tiles).
+#define SMS_LOGO_ROWS   12
+#define SMS_FRAME_Y     96      // The frame of the title map.
+#define SMS_FIG_STEPS   56      // Animation steps of the title figures.
 
 static void smsPut(Image* img, int x, int y, uint8_t color)
 {
@@ -267,6 +286,188 @@ static Image* smsCards(const std::vector<uint8_t>& data)
     return img;
 }
 
+/*
+ * A copy of the video memory patterns: 4 bytes (planes) per pixel row.
+ */
+struct SmsVram {
+    uint8_t pat[0x200 * 32];
+
+    SmsVram() { memset(pat, 0, sizeof(pat)); }
+    void set(int tile, const uint8_t* src, int len) {
+        memcpy(pat + tile * 32, src, len);
+    }
+    int pixel(int tile, int y, int x) const {
+        const uint8_t* row = pat + tile * 32 + y * 4;
+        int c = 0;
+        for (int k = 0; k < 4; ++k)
+            c |= ((row[k] >> (7 - x)) & 1) << k;
+        return c;
+    }
+    // Draw a name (tile number, attribute bits 9 hflip, 10 vflip, 11
+    // sprite palette).  Color 0 of the sprite palette is transparent.
+    void draw(Image* img, int tx, int ty, int name, const uint8_t* pal) {
+        int tile = name & 0x1FF;
+        if (tile == 0)
+            return;
+        const uint8_t* pp = (name & 0x800) ? pal + 16 : pal;
+        for (int y = 0; y < 8; ++y) {
+            for (int x = 0; x < 8; ++x) {
+                int c = pixel(tile, (name & 0x400) ? 7 - y : y,
+                                    (name & 0x200) ? 7 - x : x);
+                if (c || ! (name & 0x800))
+                    smsPut(img, tx + x, ty + y, pp[c]);
+            }
+        }
+    }
+};
+
+#define SMS_TITLE_DATA  (16 + 16 + 14 + 0x140 + 0x1410)
+
+static Image* smsTitle(const std::vector<uint8_t>& data)
+{
+    if (data.size() < SMS_TITLE_DATA)
+        return NULL;
+    const uint8_t* pal = &data[0];          // Background, then sprite.
+    const uint8_t* present = &data[32];
+    const uint8_t* frame = &data[46];
+    const uint8_t* b14 = &data[46 + 0x140]; // Bank $14 from $8000.
+    SmsVram* vram = new SmsVram;
+    int i, y;
+
+    vram->set(0xE9, frame, 0x140);
+    vram->set(0x10E, b14 + 0x500, 3 * 32);          // and
+    vram->set(0x111, b14 + 0x5E0, 13 * 32);         // Origin Systems, Inc.
+    vram->set(0x1F2, b14 + 0x560, 4 * 32);          // The underline.
+    for (i = 0; i < 6; ++i) {                       // present
+        vram->set(0x11E + i, b14 + 0x5C0, 12);
+        memcpy(vram->pat + (0x11E + i) * 32 + 12, b14 + 0x780 + i * 32, 20);
+    }
+    for (i = 0; i < 126; ++i) {                     // Ultima IV
+        for (y = 0; y < 8; ++y)
+            memcpy(vram->pat + (0x142 + i) * 32 + y * 4,
+                   b14 + 0x840 + i * 24 + y * 3, 3);
+    }
+
+    uint16_t names[SMS_LOGO_ROWS * 32];
+    for (i = 0; i < SMS_LOGO_ROWS * 32; ++i)
+        names[i] = b14[i * 2] | (b14[i * 2 + 1] << 8);
+    // Row 4: the underline with "present" in the middle (put there as the
+    // title is drawn).  The fire of the dragon is left to smsbeasts.
+    for (i = 7; i < 26; ++i)
+        names[4 * 32 + i] = 0x9F5;
+    names[4 * 32 + 25] = 0x9F3;
+    for (i = 0; i < 7; ++i)
+        names[4 * 32 + 13 + i] = present[i * 2] | (present[i * 2 + 1] << 8);
+    names[1 * 32 + 25] = names[1 * 32 + 26] = 0;
+    names[2 * 32 + 25] = names[2 * 32 + 26] = 0;
+
+    // Plot the signature, a list of strokes: the first point (x, y), then
+    // steps of a byte each (low nibble x, high nibble y, signed) up to $88.
+    // A 0 ends the list.
+    size_t pos = 0x380;
+    while (pos + 2 < 0x500 && b14[pos]) {
+        int x = b14[pos++];
+        y = b14[pos++];
+        for (;;) {
+            int n = names[(y >> 3) % SMS_LOGO_ROWS * 32 + (x >> 3)] & 0x1FF;
+            uint8_t* row = vram->pat + n * 32 + (y & 7) * 4;
+            uint8_t bit = 0x80 >> (x & 7);
+            row[0] |= bit;
+            row[1] &= ~bit;
+            row[2] &= ~bit;
+            row[3] &= ~bit;
+            if (pos >= 0x500)
+                break;
+            uint8_t step = b14[pos++];
+            if (step == 0x88)
+                break;
+            x = (x + (int8_t(step << 4) >> 4)) & 0xFF;
+            y = (y + (int8_t(step) >> 4)) & 0xFF;
+        }
+    }
+
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
+    for (i = 0; i < SMS_LOGO_ROWS * 32; ++i)
+        vram->draw(img, SMS_LOGO_X + (i % 32) * 8, (i / 32) * 8, names[i],
+                   pal);
+
+    // The frame of the map, as wide as the screen.
+    const int rows = 12, cols = 40;
+    for (y = 0; y < rows; ++y) {
+        int ty = SMS_FRAME_Y + y * 8;
+        for (i = 0; i < cols; ++i) {
+            int n;
+            if (y == 0)
+                n = (i == 0) ? 0xE9 : (i == cols - 1) ? 0xEB : 0xEA;
+            else if (y == rows - 1)
+                n = (i == 0) ? 0xEF : (i == cols - 1) ? 0xF2 :
+                    (i == cols - 2) ? 0xF1 : 0xF0;
+            else if (i == 0)
+                n = (y == 1) ? 0xEC : 0xEE;
+            else if (i == cols - 1)
+                n = 0xED;
+            else
+                continue;
+            vram->draw(img, i * 8, ty, n, pal);
+        }
+    }
+    delete vram;
+    return img;
+}
+
+#define SMS_BEAST_DATA  (16 + 3 * SMS_FIG_STEPS + 0x1878)
+
+static Image* smsBeasts(const std::vector<uint8_t>& data)
+{
+    if (data.size() < SMS_BEAST_DATA)
+        return NULL;
+    uint8_t pal[32];
+    memset(pal, 0, 16);
+    memcpy(pal + 16, &data[0], 16);
+    const uint8_t* steps = &data[16];
+    const uint8_t* b14 = &data[16 + 3 * SMS_FIG_STEPS];    // From $9610.
+    const uint8_t* figTiles = b14 + 0x15A0;     // 12 per frame ($ABB0).
+    const uint8_t* fire = b14 + 0x1678;         // $AC88
+
+    SmsVram* vram = new SmsVram;
+    Image* img = Image::create(48, 2 * 24 * SMS_FIG_STEPS);
+    img->fill(Image::black);
+
+    // The fire stays as last drawn when a step has none ($FF), so go
+    // around the steps once to find what is shown at the start.
+    int fireFrame = -1;
+    for (int pass = 0; pass < 2; ++pass) {
+        for (int s = 0; s < SMS_FIG_STEPS; ++s) {
+            if (steps[2 * SMS_FIG_STEPS + s] != 0xFF)
+                fireFrame = steps[2 * SMS_FIG_STEPS + s] & 3;
+            if (pass == 0)
+                continue;
+
+            int y = s * 24;
+            for (int fig = 0; fig < 2; ++fig) {
+                const uint8_t* ft = figTiles + steps[fig * SMS_FIG_STEPS + s] * 12;
+                for (int k = 0; k < 12; ++k) {
+                    vram->set(1 + k, b14 + ft[k] * 32, 32);
+                    vram->draw(img, fig * 16 + (k & 3) * 8,
+                               fig * 24 * SMS_FIG_STEPS + y + (k >> 2) * 8,
+                               0x800 | (1 + k), pal);
+                }
+            }
+            if (fireFrame >= 0) {
+                for (int k = 0; k < 4; ++k) {
+                    vram->set(1 + k, fire + fireFrame * 0x80 + k * 32, 32);
+                    vram->draw(img, (k & 1) * 8,
+                               24 * SMS_FIG_STEPS + y + 8 + (k >> 1) * 8,
+                               0x800 | (1 + k), pal);
+                }
+            }
+        }
+    }
+    delete vram;
+    return img;
+}
+
 static Image* smsFont(const std::vector<uint8_t>& data)
 {
     if (data.size() < 96 * 8)
@@ -315,6 +516,10 @@ static Image* loadImage_sms(U4FILE* file, int ftype)
             return smsFont(data);
         case FTYPE_SMSCARDS:
             return smsCards(data);
+        case FTYPE_SMSTITLE:
+            return smsTitle(data);
+        case FTYPE_SMSBEASTS:
+            return smsBeasts(data);
     }
     return NULL;
 }

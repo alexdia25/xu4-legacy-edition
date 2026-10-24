@@ -234,6 +234,8 @@ private:
     int beastieOffset;
     int beastieSub[2];
     int16_t beastiePos[2][2];   // Screen x,y of each beastie.
+    int16_t beastSteps;     // Frames stepped through in order (SMS), or 0.
+    int16_t beastStepMs;    // Duration of each of the beastSteps.
     bool beastiesVisible;
     int sleepCycles;
     int menuSel;            // Console menu cursor on the main menu.
@@ -295,6 +297,7 @@ private:
     bool bSkipTitles;
     bool apple2Title;       // Titles use Apple II colors.
     bool c64Title;          // Titles use C64 colors.
+    bool smsTitle;          // Titles drawn from the SMS title image.
 };
 
 #endif

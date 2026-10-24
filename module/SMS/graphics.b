@@ -152,6 +152,29 @@ graphics: [
         at 0,840 tile_fire_phantom 2
     ]
     image (name: charset filename: "sms/3fb58,300" filetype: smsfont tiles: 256)
+    ; The title screen built as the SMS does: the signature, logo & frame
+    ; from bank $14, drawn centred in a 320 wide image.
+    image (name: title filename: "sms/7c83,10+dc28,10+c5ce,e+540be,140+50000,1410" filetype: smstitle fixup: smsintro) [
+        options_top  0, 32, 320,128
+        options_btm  0,112, 320, 80
+        t_signature 104, 0, 120,16
+        t_and       152,18,  24, 5
+        t_bar        88,33, 148, 1
+        t_origin     88,24, 148, 8
+        t_present   136,35,  56, 5
+        t_title      40,48, 240,48
+        t_subtitle   40,41,   8, 4
+        t_map         0,96, 320,96
+    ]
+    ; The figure (left) and the dragon with its fire (right), one frame
+    ; for each of the 56 steps of the SMS animation.
+    image (name: beasties filename: "sms/dc28,10+c89d,a8+51610,1878" filetype: smsbeasts) [
+        at 0,0    size 32,24 beast0frame00 56
+        at 0,1344 size 48,24 beast1frame00 56
+        beast0_pos   40,0, 1,1
+        beast1_pos  232,0, 1,1
+        beast_steps   0,0, 56,67
+    ]
     ; The pictures of the story.  The SMS moongate rises at the stones by
     ; the lake.
     image (name: tree filename: "sms/4a8a9,1244+1a180,80+7c83,10" filetype: smstree) [

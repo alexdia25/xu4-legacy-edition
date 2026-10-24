@@ -657,6 +657,8 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
     case FIXUP_C64INTRO:
         fixupC64Intro(unscaled);
         break;
+    case FIXUP_SMSINTRO:
+        break;      // The smstitle loader has put everything in place.
     case FIXUP_TRANSPARENT0:
         fixupTransparent(unscaled, Image::black);
         break;
