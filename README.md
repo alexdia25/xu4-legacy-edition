@@ -37,7 +37,8 @@ especially for someone who has just downloaded the free release from
    the flow of play, so the game can be played without leaving XU4.
    The ULTIMA4.TXT file of the GOG release is split into separate
    documents, which can be read from the Docs button of the Escape
-   menu (D key, or Y on a gamepad).  Planned: the Book of Mystic Wisdom
+   menu (D key, or Y on a gamepad).  A Runes tab shows the rune for
+   each letter, and some words written in runes.  Planned: the Book of Mystic Wisdom
    opening automatically at the right page during play (spells,
    reagents, virtues), and the History of Britannia offered when the
    game prompts for it.

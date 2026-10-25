@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Shows the History, Wisdom, Hints & Keyboard documents so that they can be
- * read without leaving the game.  The text keeps the layout of the original
+ * read without leaving the game, and a table of the runes for reading the
+ * runic signs & the world map.  The text keeps the layout of the original
  * fixed width files: runs of spaces are aligned to character columns while
  * words are drawn with the proportional GUI font.
  */
 
 #include <math.h>
+#include <cctype>
 #include <cstring>
 #include <algorithm>
 
@@ -28,6 +30,11 @@ using std::string;
 #define QUAD_ATTR   (6 * ATTR_COUNT)
 #define MIN_COLUMNS 60      // Narrowest text area in columns.
 #define MAX_FONT_SIZE 0.045f    // Largest text, as a fraction of the height.
+#define TAB_COUNT   (DOC_COUNT + 1)
+#define DOC_RUNES   DOC_COUNT   // The rune table tab.
+#define FONT_RUNES  3           // Index in ScreenState::fontTable.
+#define RUNE_MARK   '\x01'      // Starts a segment drawn in runes.
+#define RUNE_SCALE  1.7f        // Size of runes relative to the text.
 
 enum ReaderRegions {
     REGION_FRAME,
@@ -77,6 +84,87 @@ static float* emitCentered(float* attr, TxfDrawState* ds, const GuiArea* area,
 }
 
 /*
+ * Return a word spelled in runes, using the combined runes for TH, EE, NG,
+ * EA & ST (character codes 127-131 of the runes font).
+ */
+static string runeSpelling(const char* word)
+{
+    static const char* pairs[5] = { "TH", "EE", "NG", "EA", "ST" };
+    string out(1, RUNE_MARK);
+    while (*word) {
+        int i;
+        for (i = 0; i < 5; ++i) {
+            if (word[0] == pairs[i][0] && word[1] == pairs[i][1])
+                break;
+        }
+        if (i < 5) {
+            out.push_back(char(127 + i));
+            word += 2;
+        } else
+            out.push_back(*word++);
+    }
+    return out;
+}
+
+// Put text at a column of a line.
+static void putColumn(string& line, size_t col, const string& text)
+{
+    if (line.size() < col)
+        line.append(col - line.size(), ' ');
+    line += text;
+}
+
+/*
+ * Make the rune table document.
+ */
+static string runesText()
+{
+    static const char* letters[31] = {
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+        "TH", "EE", "NG", "EA", "ST"
+    };
+    static const char* words[] = {
+        "Honesty", "Compassion", "Valor", "Justice", "Sacrifice", "Honor",
+        "Spirituality", "Humility", "", "Truth", "Love", "Courage", "",
+        "The Deep Forest", "The Isle of Deeds", "Fens of the Dead", NULL
+    };
+    string text;
+
+    text += "                      The Runes of Britannia\n\n";
+    text += "    The runes are written for the letters of our alphabet, and\n"
+            "    five runes stand for a pair of letters: TH, EE, NG, EA & ST.\n";
+    text += "\n\n";
+
+    for (int row = 0; row < 8; ++row) {
+        string line;
+        for (int col = 0; col < 4; ++col) {
+            int n = row * 4 + col;
+            if (n >= 31)
+                break;
+            putColumn(line, 6 + col * 14, letters[n]);
+            putColumn(line, 11 + col * 14, runeSpelling(letters[n]));
+        }
+        text += line + "\n\n";
+    }
+
+    text += "\n                        Words in Runes\n\n";
+    for (const char** it = words; *it; ++it) {
+        string line;
+        if (**it) {
+            string upper(*it);
+            for (size_t i = 0; i < upper.size(); ++i)
+                upper[i] = toupper((unsigned char) upper[i]);
+            putColumn(line, 6, *it);
+            putColumn(line, 26, runeSpelling(upper.c_str()));
+            line += "\n";
+        }
+        text += line + "\n";
+    }
+    return text;
+}
+
+/*
  * Split text into lines, removing carriage returns and expanding tabs.
  */
 static void splitLines(const string& text, std::vector<string>& lines)
@@ -108,6 +196,7 @@ static void splitLines(const string& text, std::vector<string>& lines)
  */
 template<typename Func>
 static float layoutLine(const string& line, const TxfHeader* tf,
+                        const TxfHeader* runeTf,
                         float columnEm, float spaceEm, Func func)
 {
     size_t len = line.size();
@@ -131,8 +220,14 @@ static float layoutLine(const string& line, const TxfHeader* tf,
             x = std::max(x, start * columnEm);
 
         const uint8_t* seg = (const uint8_t*) line.data() + start;
-        func(x, seg, i - start);
-        endX = x + txf_emWidth(tf, seg, i - start);
+        size_t len = i - start;
+        if (*seg == RUNE_MARK) {
+            func(x, seg, len);
+            endX = x + txf_emWidth(runeTf, seg + 1, len - 1) * RUNE_SCALE;
+        } else {
+            func(x, seg, len);
+            endX = x + txf_emWidth(tf, seg, len);
+        }
     }
     return endX;
 }
@@ -199,7 +294,9 @@ void DocReader::openDocument(int n)
     string text;
 
     doc = n;
-    if (! docsLoad(GameDocument(n), text)) {
+    if (n == DOC_RUNES) {
+        text = runesText();
+    } else if (! docsLoad(GameDocument(n), text)) {
         text = "\n\n"
             "    This document was not found.\n\n"
             "    The free GOG release of Ultima IV includes the printed\n"
@@ -255,9 +352,9 @@ void DocReader::layout()
 
     // Tabs across the top, Back button at the bottom right.
     float tabY = panelY2 - pad - tabH;
-    float tabW = W * 0.17f;
+    float tabW = W * 0.15f;
     float x = mx + pad;
-    for (i = 0; i < DOC_COUNT; ++i) {
+    for (i = 0; i < TAB_COUNT; ++i) {
         setArea(gbox + WI_TAB + i, x, tabY, x + tabW, tabY + tabH, WI_TAB + i);
         x += tabW + pad * 0.5f;
     }
@@ -270,6 +367,7 @@ void DocReader::layout()
     // Size the text so that the widest line of the document fits.
     const GuiArea* area = gbox + WI_TEXT;
     const TxfHeader* tf = ss->fontTable[0];
+    const TxfHeader* runeTf = ss->fontTable[FONT_RUNES];
     float barW = W * 0.012f;
     textPad = pad;
     float textW = (area->x2 - area->x) - textPad * 2.0f - barW;
@@ -277,7 +375,7 @@ void DocReader::layout()
     float spaceEm = txf_emWidth(tf, (const uint8_t*) " ", 1);
     float widest = MIN_COLUMNS * colEm;
     for (const string& line : lines) {
-        float w = layoutLine(line, tf, colEm, spaceEm,
+        float w = layoutLine(line, tf, runeTf, colEm, spaceEm,
                              [](float, const uint8_t*, size_t) {});
         if (widest < w)
             widest = w;
@@ -302,11 +400,13 @@ void DocReader::layout()
     attr = emitArea(attr, area, COL_DK_BROWN);
 
     txf_begin(&ds, 1, tabH * 0.55f, 0.0f, 0.0f);
-    for (i = 0; i < DOC_COUNT; ++i) {
+    for (i = 0; i < TAB_COUNT; ++i) {
         const GuiArea* tab = gbox + WI_TAB + i;
         bool cur = (i == doc);
+        const char* title = (i == DOC_RUNES) ? "Runes" :
+                            docsTitle(GameDocument(i));
         attr = emitArea(attr, tab, cur ? COL_LT_BLUE : COL_DK_BROWN);
-        attr = emitCentered(attr, &ds, tab, docsTitle(GameDocument(i)),
+        attr = emitCentered(attr, &ds, tab, title,
                             cur ? COL_TX_BLACK : COL_BEIGE);
     }
     attr = emitArea(attr, gbox + WI_BACK, COL_DK_BROWN);
@@ -340,6 +440,8 @@ void DocReader::generateText()
 
     ds.fontTable = screenState()->fontTable;
     txf_begin(&ds, 0, psize, 0.0f, 0.0f);
+    const TxfHeader* textTf = ds.tf;
+    const TxfHeader* runeTf = ds.fontTable[FONT_RUNES];
     float spaceEm = txf_emWidth(ds.tf, (const uint8_t*) " ", 1);
     float columnEm = columnW / psize;
 
@@ -359,12 +461,20 @@ void DocReader::generateText()
         if (attr + line.size() * QUAD_ATTR > limit)
             break;
 
-        layoutLine(line, ds.tf, columnEm, spaceEm,
+        layoutLine(line, textTf, runeTf, columnEm, spaceEm,
             [&](float x, const uint8_t* seg, size_t len) {
                 ds.x = ds.marginL = x * psize;
                 ds.y = y;
                 ds.prev = NULL;
-                attr = gui_emitText(&ds, attr, (const char*) seg, len);
+                if (*seg == RUNE_MARK) {
+                    ds.tf = runeTf;
+                    txf_setFontSize(&ds, psize * RUNE_SCALE);
+                    attr = gui_emitText(&ds, attr, (const char*) seg + 1,
+                                        len - 1);
+                    ds.tf = textTf;
+                    txf_setFontSize(&ds, psize);
+                } else
+                    attr = gui_emitText(&ds, attr, (const char*) seg, len);
             });
     }
     lineCount = n - firstLine;
@@ -444,19 +554,19 @@ bool DocReader::keyPressed(int key)
             return true;
         case U4_LEFT:
             soundPlay(SOUND_UI_TICK);
-            openDocument((doc + DOC_COUNT - 1) % DOC_COUNT);
+            openDocument((doc + TAB_COUNT - 1) % TAB_COUNT);
             return true;
         case U4_RIGHT:
         case U4_TAB:
         case 'z':
             soundPlay(SOUND_UI_TICK);
-            openDocument((doc + 1) % DOC_COUNT);
+            openDocument((doc + 1) % TAB_COUNT);
             return true;
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);
             return true;
         default:
-            if (key >= '1' && key < '1' + DOC_COUNT) {
+            if (key >= '1' && key < '1' + TAB_COUNT) {
                 soundPlay(SOUND_UI_TICK);
                 openDocument(key - '1');
                 return true;

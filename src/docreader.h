@@ -32,7 +32,7 @@ public:
     enum Widgets {
         WI_TEXT,
         WI_TAB,
-        WI_BACK = WI_TAB + DOC_COUNT,
+        WI_BACK = WI_TAB + DOC_COUNT + 1,     // Last tab is the runes.
         WI_COUNT
     };
 
