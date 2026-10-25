@@ -177,6 +177,14 @@ topics of a conversation.
 ![DOS graphics with the console action menu](doc/screenshots/dos-action-menu.png)
 ![DOS graphics with conversation topics](doc/screenshots/dos-talk-topics.png)
 
+The world map with the DOS tiles: all of Britannia with the cloth map's
+place names in runes, the moon phase at each moongate, and the party
+framed in yellow (on Verity Isle); then zoomed in, with the names in
+English.
+
+![World map with runes](doc/screenshots/dos-worldmap.png)
+![World map zoomed in, with English names](doc/screenshots/dos-worldmap-zoom.png)
+
 The Apple-II module, using the tiles of the Apple II release: the
 overworld near Britain, and the town of Yew.
 
