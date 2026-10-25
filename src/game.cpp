@@ -1669,13 +1669,17 @@ bool GameController::keyPressed(int key) {
  * Turn a tap on the map at screen pixel x,y into a key: the direction from
  * the party (or the current fighter in combat) toward the tap, or U4_ENTER
  * when the party itself is tapped.  In the dungeon the directions are
- * forward, back and turn.  Returns 0 if x,y is not on the map.
+ * forward, back and turn.  Returns 0 if x,y is not on the map or its
+ * border.
  */
 int gameTapKey(int x, int y) {
+    // The border around the map counts as well, so that a fighter on the
+    // edge of a combat map can be moved off it to flee.
     x -= BORDER_WIDTH;
     y -= BORDER_HEIGHT;
-    if (x < 0 || y < 0 ||
-        x >= VIEWPORT_W * TILE_WIDTH || y >= VIEWPORT_H * TILE_HEIGHT)
+    if (x < -BORDER_WIDTH || y < -BORDER_HEIGHT ||
+        x >= VIEWPORT_W * TILE_WIDTH + BORDER_WIDTH ||
+        y >= VIEWPORT_H * TILE_HEIGHT + BORDER_HEIGHT)
         return 0;
 
     // Large maps are centered on the party; small ones (combat) are not.
@@ -1693,8 +1697,9 @@ int gameTapKey(int x, int y) {
         }
     }
 
-    int dx = x / TILE_WIDTH - ox;
-    int dy = y / TILE_HEIGHT - oy;
+    // Tile column & row, rounding down for the border (negative x, y).
+    int dx = (x + TILE_WIDTH) / TILE_WIDTH - 1 - ox;
+    int dy = (y + TILE_HEIGHT) / TILE_HEIGHT - 1 - oy;
     if (dx == 0 && dy == 0)
         return U4_ENTER;
     if (abs(dx) > abs(dy))
