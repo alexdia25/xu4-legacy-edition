@@ -2,9 +2,9 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
-## New in 1.1 (pre-release)
+## New in 1.1
 
-This is a test build of the coming 1.1 release.  Since 1.0:
+Since 1.0:
 
 - **World map** of Britannia drawn with the chosen module's tiles, with
   the cloth map's place names in runes or English, the moon phases at

@@ -117,7 +117,12 @@ jobs:
             gh release upload "$TAG" out/* --clobber
             gh release edit "$TAG" --notes-file dist/release-notes.md
           else
+            # Only tags like legacy-1.1-pre1 or legacy-1.1-rc1 are pre-releases.
+            case "$TAG" in
+              *-pre*|*-rc*|*-beta*) PRE=--prerelease ;;
+              *) PRE=--latest ;;
+            esac
             gh release create "$TAG" out/* --target "$GITHUB_SHA" \
               --title "XU4 Legacy Edition ${TAG#legacy-}" \
-              --notes-file dist/release-notes.md --prerelease
+              --notes-file dist/release-notes.md $PRE
           fi
