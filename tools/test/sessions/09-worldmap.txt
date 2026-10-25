@@ -1,0 +1,34 @@
+# The world map: opened with the gamepad's left shoulder, zoomed, panned,
+# switched to English and closed, then opened from the xu4 menu.
+include newgame.inc
+gap 10
+key pad-l
+wait 30
+snap
+key pad-r
+wait 30
+snap
+wait 12
+snap
+key pad-r
+key left
+key up
+wait 30
+snap
+key r
+wait 20
+snap
+key r
+key esc
+wait 20
+key esc
+wait 20
+snap
+key m
+wait 30
+snap
+key esc
+wait 20
+key esc
+wait 20
+snap

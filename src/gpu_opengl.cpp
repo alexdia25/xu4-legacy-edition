@@ -809,6 +809,33 @@ uint32_t gpu_makeTexture(const Image32* img)
     return tex;
 }
 
+/*
+ * Create a texture which is drawn reduced with mipmaps (smooth) and enlarged
+ * with nearest filtering (crisp pixels).
+ */
+uint32_t gpu_makeTextureMip(const Image32* img)
+{
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->w, img->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    return tex;
+}
+
+int gpu_maxTextureSize()
+{
+    GLint size = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &size);
+    return size;
+}
+
 void gpu_blitTexture(uint32_t tex, int x, int y, const Image32* img)
 {
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -867,6 +894,39 @@ void gpu_drawTextureScaled(void* res, uint32_t tex)
     glDisable(GL_BLEND);
     glBindVertexArray(gr->vao[ GLOB_QUAD ]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+/*
+ * Draw a texture (with alpha blending) into a rectangle of the viewport.
+ *
+ * \param rect    Four values of (x, y, width, height) in pixels from the
+ *                bottom left of the viewport.
+ */
+void gpu_drawImage(void* res, uint32_t tex, const float* rect,
+                   int viewW, int viewH)
+{
+    OpenGLResources* gr = (OpenGLResources*) res;
+    float mat[16];
+
+    // Map the -1,1 quad onto rect.
+    m4_loadIdentity(mat);
+    mat[0]  = rect[2] / viewW;
+    mat[5]  = rect[3] / viewH;
+    mat[12] = (rect[0] * 2.0f + rect[2]) / viewW - 1.0f;
+    mat[13] = (rect[1] * 2.0f + rect[3]) / viewH - 1.0f;
+
+    glUseProgram(gr->shadeColor);
+    glUniformMatrix4fv(gr->slocTrans, 1, GL_FALSE, mat);
+
+    glActiveTexture(GL_TEXTURE0 + GTU_CMAP);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBindVertexArray(gr->vao[ GLOB_QUAD ]);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glUniformMatrix4fv(gr->slocTrans, 1, GL_FALSE, m4_identity);
 }
 
 /*

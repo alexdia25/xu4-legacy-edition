@@ -40,6 +40,8 @@ static int buttonKey(int b) {
         case PAD_Y:     return 'z';         // Ztats
         case PAD_BACK:  return U4_PAD_SELECT;
         case PAD_START: return U4_PAD_START;
+        case PAD_LSHOULDER: return U4_PAD_L;
+        case PAD_RSHOULDER: return U4_PAD_R;
         case PAD_UP:    return U4_UP;
         case PAD_DOWN:  return U4_DOWN;
         case PAD_LEFT:  return U4_LEFT;

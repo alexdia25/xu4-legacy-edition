@@ -82,6 +82,7 @@ CXXSRCS=\
         tileview.cpp \
         u4file.cpp \
         view.cpp \
+        worldmap.cpp \
         xu4.cpp \
         lzw/u4decode.cpp \
         lzw/u6decode.cpp \

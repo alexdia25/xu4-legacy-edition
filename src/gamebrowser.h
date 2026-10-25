@@ -31,6 +31,7 @@ public:
         WI_LIST,
         WI_OK,
         WI_DOCS,
+        WI_MAP,
         WI_SETTINGS,
         WI_QUIT,
         WI_CANCEL,
@@ -71,6 +72,7 @@ private:
     void pick(int row);
     void moveCursor(int dir);
     void readDocuments();
+    void showWorldMap();
     void selectModule(const GuiArea* area, int y);
     float maxScroll() const;
     void layout();

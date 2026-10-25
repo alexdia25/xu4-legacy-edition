@@ -44,6 +44,8 @@
 #define U4_PAD_START    0x1F0   // Pause, like the SMS console button.
 #define U4_PAD_B        0x1F1   // Escape, except on the map or in combat.
 #define U4_PAD_SELECT   0x1F2   // Open or close the xu4 (Escape) menu.
+#define U4_PAD_L        0x1F3   // Left shoulder: open the world map.
+#define U4_PAD_R        0x1F4   // Right shoulder.
 
 // Only found in test recordings (see tools/test).
 #define U4_TEST_SNAPSHOT 0x1FE  // Save the next frame to XU4_TEST_DIR.

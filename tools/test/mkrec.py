@@ -8,7 +8,8 @@ Script lines (# starts a comment):
     gap N           Frames between keys from now on (default 4).
     key NAME...     Press keys: a single character, or one of
                     up down left right enter esc space tab backspace,
-                    f1-f12, alt-X, ctrl-X, pad-start pad-b pad-select.
+                    f1-f12, alt-X, ctrl-X, pad-start pad-b pad-select
+                    pad-l pad-r.
     type TEXT       Type the rest of the line as characters.
     snap            Save a screenshot (to XU4_TEST_DIR) of the next frame.
     repeat N KEY    Press KEY N times.
@@ -34,6 +35,7 @@ NAMES = {
     'up': ord('['), 'down': ord('/'), 'left': ord(';'), 'right': ord("'"),
     'enter': 13, 'esc': 27, 'space': 32, 'tab': 9, 'backspace': 8,
     'pad-start': 0x1F0, 'pad-b': 0x1F1, 'pad-select': 0x1F2,
+    'pad-l': 0x1F3, 'pad-r': 0x1F4,
     'snap': 0x1FE,
 }
 

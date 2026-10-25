@@ -40,8 +40,11 @@ static const float colorBlack[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 static const char* fontFiles[] = {
     "cfont-comfortaa.txf",
     "cfont-avatar.txf",
-    "cfont-symbols.txf"
+    "cfont-symbols.txf",
+    "cfont-runesI.txf"      // Britannian runes (see tools/rune-glyphs.py).
 };
+
+#define FONT_COUNT  (sizeof(fontFiles) / sizeof(fontFiles[0]))
 
 /*
  * Load textured font metrics.
@@ -76,7 +79,7 @@ struct Screen {
     ImageInfo* gemTilesInfo;
     char* msgBuffer;
     ScreenState state;
-    TxfHeader* txf[3];
+    TxfHeader* txf[FONT_COUNT];
     short needPrompt;
     short colorFG;
     uint16_t clearCount;
@@ -125,14 +128,13 @@ struct Screen {
         renderMapView = NULL;
 #endif
         txf[0] = NULL;
-        loadFonts(fontFiles, 3, txf);
+        loadFonts(fontFiles, FONT_COUNT, txf);
     }
 
     ~Screen() {
         if (txf[0]) {
-            free(txf[0]);
-            free(txf[1]);
-            free(txf[2]);
+            for (size_t i = 0; i < FONT_COUNT; ++i)
+                free(txf[i]);
         }
         delete dungeonView;
         delete[] msgBuffer;

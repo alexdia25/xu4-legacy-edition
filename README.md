@@ -41,6 +41,13 @@ especially for someone who has just downloaded the free release from
    opening automatically at the right page during play (spells,
    reagents, virtues), and the History of Britannia offered when the
    game prompts for it.
+ - **World map.**  The Map button of the Escape menu (M key, or the left
+   shoulder button on a gamepad) shows all of Britannia drawn with the
+   tiles of the chosen module, like the cloth map that came with the game.
+   The moongates are marked with the moon phase which opens them, and the
+   names written on the cloth map are shown in runes, or in English with
+   R (Y on a gamepad).  Zoom with +/- (A/X, the shoulder buttons, the
+   mouse wheel or a tap) and pan with the arrows or by dragging.
  - **Pixel-sharp graphics by default.**  The video filter defaults to
    point scaling instead of HQX.
  - **Apple II graphics & music.**  The Apple-II module and Apple-II-Music

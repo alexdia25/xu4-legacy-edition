@@ -8,6 +8,7 @@
 #include <list>
 
 #include "event.h"
+#include "worldmap.h"
 
 #include "config.h"
 #include "context.h"
@@ -1498,6 +1499,13 @@ bool EventHandler::globalKeyHandler(int key) {
             xu4.eventHandler->setControllerDone(true);
         else
             xu4_selectGame();
+        return true;
+
+    case U4_PAD_L:
+        // Open the world map, unless a menu (or the map) is showing.
+        if (screenLayerUsed(LAYER_TOP_MENU))
+            return false;
+        worldMapShow();
         return true;
 
 #if defined(MACOSX)

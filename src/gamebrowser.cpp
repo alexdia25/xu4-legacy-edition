@@ -8,6 +8,7 @@
 #include "smsrom.h"
 #include "config.h"
 #include "docreader.h"
+#include "worldmap.h"
 #include "event.h"
 #include "image32.h"
 #include "intro.h"
@@ -572,10 +573,11 @@ void GameBrowser::layout()
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
                 BUTTON_DT_S, STORE_AREA,
+                BUTTON_DT_S, STORE_AREA,
             LAYOUT_END,
         LAYOUT_END
     };
-    const void* guiData[8];
+    const void* guiData[9];
     const void** data = guiData;
     const ScreenState* ss = screenState();
 
@@ -589,6 +591,7 @@ void GameBrowser::layout()
     *data++ = "Game Modules";
     *data++ = "Play";
     *data++ = "Docs";
+    *data++ = "Map";
     *data++ = "Settings";
     *data++ = "Quit";
     *data   = "Cancel";
@@ -786,6 +789,12 @@ bool GameBrowser::keyPressed(int key)
             readDocuments();
             return true;
 
+        case 'm':
+        case U4_PAD_L:
+            soundPlay(SOUND_UI_CLICK);
+            showWorldMap();
+            return true;
+
         case 's':
             // The settings are run by xu4_selectGame() once this closes.
             soundPlay(SOUND_UI_CLICK);
@@ -810,6 +819,20 @@ void GameBrowser::readDocuments()
     xu4.eventHandler->runController(reader);
 
     // The reader replaced the GUI vertex data & layer.
+    buttonDown = WID_NONE;
+    tipId = WID_NONE;
+    work->dirty = (1 << work->regionCount) - 1;
+    screenSetLayer(LAYER_TOP_MENU, renderBrowser, this);
+}
+
+/*
+ * Show the world map, then return to the module list.
+ */
+void GameBrowser::showWorldMap()
+{
+    worldMapShow();
+
+    // The map replaced the GUI vertex data & layer.
     buttonDown = WID_NONE;
     tipId = WID_NONE;
     work->dirty = (1 << work->regionCount) - 1;
@@ -924,6 +947,9 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
                                 break;
                             case WI_DOCS:
                                 keyPressed('d');
+                                break;
+                            case WI_MAP:
+                                keyPressed('m');
                                 break;
                             case WI_SETTINGS:
                                 keyPressed('s');
