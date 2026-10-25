@@ -2,6 +2,29 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.1 (pre-release)
+
+This is a test build of the coming 1.1 release.  Since 1.0:
+
+- **World map** of Britannia drawn with the chosen module's tiles, with
+  the cloth map's place names in runes or English, the moon phases at
+  the moongates and the party's position marked (M key, Map in the
+  Escape menu, or View Map in the action menu).
+- **Runes tab** in the Docs reader: the rune for each letter and the
+  combined runes, and the virtues and some place names in runes.
+- **Commodore 64 and Sega Master System graphics & music** modules,
+  read from your own disk image or ROM, plus C64-Remastered.
+- **Mouse-only and touch play**: move, open menus, pick items, answer
+  the gypsy and flee from combat with taps alone; a menu icon in the
+  corner opens the xu4 menu, and Settings can be changed during play.
+- **Gamepad**: Talk comes first in the action menu when someone is in
+  reach, and the menu has a Quit entry.
+- A Tile Backgrounds option (Transparent or DOS Black), and a wider
+  module browser using one font for all module names.
+- SDL3 is now the only platform library (audio, PNG loading, video and
+  input), replacing Faun, libpng and the old backends.  The 48 kHz
+  sounds now play at the right speed.
+
 ## Getting started (Windows)
 
 1. Install Ultima IV from GOG (free), or have the DOS game files ready.
@@ -60,6 +83,10 @@ The source code is in `xu4-legacy-*.tar.gz`.
   title screen, map tiles, font, story pictures, the gypsy's cards, the
   shrine visions and the endgame pictures, and the SMS-Music soundtrack
   plays its tunes through the game's own sound driver.  See "SMS ROM" in the README.
+- **Mouse-only and touch play** with the console menus, using only
+  taps, holds and drags.
+- **World map** drawn with the chosen module's tiles, with the cloth
+  map's names in runes or English, and a Runes tab in the Docs reader.
 - The module browser has separate Graphics and Music sections, so any
   soundtrack can go with any graphics, and lists only modules whose game
   data is present.

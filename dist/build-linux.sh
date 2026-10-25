@@ -93,7 +93,8 @@ install -m 644 ${TOP}/icons/shield.png \
         ${DEB}/usr/share/icons/hicolor/48x48/apps/xu4.png
 install -m 644 ${TOP}/dist/xu4.desktop ${DEB}/usr/share/applications
 install -m 644 ${TOP}/README.md ${TOP}/COPYING ${DEB}/usr/share/doc/xu4-legacy
-DEBVER=$(echo ${VERSION} | sed 's/^[^0-9]*//; s/-/./g')
+# A pre-release (1.1-pre1) sorts before the release (1.1~pre1 < 1.1).
+DEBVER=$(echo ${VERSION} | sed 's/^[^0-9]*//; s/-\(pre\|rc\|beta\)/~\1/; s/-/./g')
 cat > ${DEB}/DEBIAN/control <<EOF
 Package: xu4-legacy
 Version: ${DEBVER:-0}
