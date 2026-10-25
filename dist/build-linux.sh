@@ -64,7 +64,8 @@ strip ${SRC}/src/xu4
 
 MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod"
 for f in ${MODULES}; do
-    [ -f ${TOP}/$f ] || make -s -C ${TOP} $f
+    # Rebuilt when out of date; kept as is if boron is not installed.
+    make -s -C ${TOP} $f || [ -f ${TOP}/$f ]
 done
 
 # Binary archive, laid out like the official one.

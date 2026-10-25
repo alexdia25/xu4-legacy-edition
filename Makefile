@@ -16,7 +16,8 @@ all: src/xu4 $(MODULES)
 src/xu4:
 	make -C src -f $(MFILE_OS) xu4
 
-render.pak: $(REND)/shader/*.glsl $(REND)/shader/*.png $(REND)/font/cfont.png
+render.pak: $(REND)/shader/*.glsl $(REND)/shader/*.png $(REND)/font/cfont.png \
+	$(REND)/font/*.txf
 	$(BORON) -s tools/pack-xu4.b -f $(REND) -o $@
 
 Ultima-IV.mod: module/Ultima-IV/*.b
