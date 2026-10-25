@@ -36,15 +36,19 @@
 #define MAP_DIM     256         // World map size in tiles.
 #define FONT_RUNES  3           // Index in ScreenState::fontTable.
 #define FONT_LATIN  1
-#define LABEL_EM    7.0f        // Label font size in tiles.
-#define MOON_TILES  4           // Size of the moongate signs in tiles.
+#define LABEL_EM    7.0f        // Label font size in tiles of the whole map.
+#define MOON_TILES  4.0f        // Size of the moongate signs in tiles of the
+                                // whole map.
+#define PARTY_TILES 6.0f        // Size of the party sign likewise.
 
 enum MapRegions {
     REGION_FRAME,
-    REGION_LABELS
+    REGION_LABELS,
+    REGION_MARKER,
+    REGION_COUNT
 };
 
-static const int regionQuads[2] = { 300, 1200 };
+static const int regionQuads[REGION_COUNT] = { 300, 1200, 8 };
 
 // Rune font codes for the combined runes (see tools/rune-glyphs.py).
 #define TH  "\x7f"
@@ -132,62 +136,110 @@ static const Location* worldLocation()
 }
 
 /*
- * Copy a character of the font onto the map, enlarged by an integer factor
- * and centered on cx, cy.
+ * Make a texture of a character of the font.
  */
-static void drawGlyph(Image32* dest, const Image* charset, int chr,
-                      int cx, int cy, int mag)
+static uint32_t glyphTexture(const Image* charset, int chr)
 {
+    Image32 img;
     int cw = charset->width();
-    int ch = CHAR_HEIGHT;
-    const uint32_t* src = charset->pixelData() + chr * ch * cw;
-    int x0 = cx - (cw * mag) / 2;
-    int y0 = cy - (ch * mag) / 2;
-
-    for (int y = 0; y < ch * mag; ++y) {
-        int dy = y0 + y;
-        if (dy < 0 || dy >= dest->h)
-            continue;
-        const uint32_t* row = src + (y / mag) * cw;
-        uint32_t* drow = dest->pixels + dy * dest->w;
-        for (int x = 0; x < cw * mag; ++x) {
-            int dx = x0 + x;
-            if (dx >= 0 && dx < dest->w)
-                drow[dx] = row[x / mag];
-        }
+    uint32_t tex = 0;
+    if (image32_allocPixels(&img, cw, CHAR_HEIGHT)) {
+        memcpy(img.pixels, charset->pixelData() + chr * CHAR_HEIGHT * cw,
+               cw * CHAR_HEIGHT * sizeof(uint32_t));
+        tex = gpu_makeTexture(&img);
+        image32_freePixels(&img);
     }
+    return tex;
+}
+
+/*
+ * Emit a rectangle outline (x, y, w, h) with lines of width t.
+ */
+static float* emitOutline(float* attr, const float* box, float t,
+                          float colorIndex)
+{
+    float r[4];
+    r[0] = box[0];          r[1] = box[1];
+    r[2] = box[2];          r[3] = t;
+    attr = gui_emitQuadCi(attr, r, colorIndex);
+    r[1] = box[1] + box[3] - t;
+    attr = gui_emitQuadCi(attr, r, colorIndex);
+    r[1] = box[1] + t;      r[2] = t;
+    r[3] = box[3] - 2.0f * t;
+    attr = gui_emitQuadCi(attr, r, colorIndex);
+    r[0] = box[0] + box[2] - t;
+    return gui_emitQuadCi(attr, r, colorIndex);
 }
 
 /*
  * Halve the size of an image by averaging each 2x2 block of pixels.
+ * Black pixels are left out of the average so that dithered tiles keep
+ * their brightness when the map is zoomed out; a block is only black if
+ * all its pixels are.
  */
 static void halveImage(Image32* img)
 {
-    int w = img->w / 2;
-    int h = img->h / 2;
+    int w = (img->w > 1) ? img->w / 2 : 1;
+    int h = (img->h > 1) ? img->h / 2 : 1;
+    int sx = (img->w > 1) ? 4 : 0;
+    int sy = (img->h > 1) ? img->w * 4 : 0;
     const uint8_t* src = (const uint8_t*) img->pixels;
     uint8_t* dst = (uint8_t*) img->pixels;
     int pitch = img->w * 4;
 
     for (int y = 0; y < h; ++y) {
         const uint8_t* s0 = src + (y * 2) * pitch;
-        const uint8_t* s1 = s0 + pitch;
-        for (int x = 0; x < w * 4; ++x) {
-            int i = (x / 4) * 8 + (x & 3);
-            *dst++ = (s0[i] + s0[i + 4] + s1[i] + s1[i + 4] + 2) / 4;
+        for (int x = 0; x < w; ++x, s0 += sx * 2) {
+            const uint8_t* block[4] = { s0, s0 + sx, s0 + sy, s0 + sy + sx };
+            int r = 0, g = 0, b = 0, n = 0;
+            for (int i = 0; i < 4; ++i) {
+                const uint8_t* c = block[i];
+                if (c[3] < 128 || c[0] + c[1] + c[2] < 24)
+                    continue;
+                r += c[0];
+                g += c[1];
+                b += c[2];
+                ++n;
+            }
+            if (n) {
+                dst[0] = (r + n / 2) / n;
+                dst[1] = (g + n / 2) / n;
+                dst[2] = (b + n / 2) / n;
+            } else
+                dst[0] = dst[1] = dst[2] = 0;
+            dst[3] = 255;
+            dst += 4;
         }
     }
     img->w = w;
     img->h = h;
 }
 
+/*
+ * Make a texture with mipmaps from an image.  The mipmaps are made here
+ * rather than by the GPU to use halveImage.  The image is shrunk to 1x1.
+ */
+static uint32_t makeMipTexture(Image32* img)
+{
+    int levels = 1;
+    for (int dim = (img->w > img->h) ? img->w : img->h; dim > 1; dim /= 2)
+        ++levels;
+    uint32_t tex = gpu_makeTextureMip(img, levels);
+    for (int i = 1; i < levels; ++i) {
+        halveImage(img);
+        gpu_textureLevel(tex, i, img);
+    }
+    return tex;
+}
+
 WorldMapView::WorldMapView()
 {
-    int rsize[2];
-    for (int i = 0; i < 2; ++i)
+    int rsize[REGION_COUNT];
+    for (int i = 0; i < REGION_COUNT; ++i)
         rsize[i] = regionQuads[i] * QUAD_ATTR;
-    work = gpu_allocWorkBuffer(rsize, 2);
+    work = gpu_allocWorkBuffer(rsize, REGION_COUNT);
     mapTex = partyTex = 0;
+    memset(moonTex, 0, sizeof(moonTex));
     buttonDown = WID_NONE;
     mouseX = mouseY = 0;
     english = false;
@@ -234,30 +286,22 @@ bool WorldMapView::buildTextures()
         }
     }
 
-    // The moongates are marked by the moon phase which opens each one, as
-    // shown in the status bar.
-    ImageInfo* cinfo = xu4.imageMgr->get(BKGD_CHARSET);
-    if (cinfo && cinfo->image) {
-        const Image* charset = cinfo->image;
-        int mag = (MOON_TILES * tw) / charset->width();
-        if (mag < 1)
-            mag = 1;
-        for (int phase = 0; phase < 8; ++phase) {
-            const Coords* gate = xu4.config->moongateCoords(phase);
-            if (! gate)
-                continue;
-            int chr = phase ? MOON_CHAR + phase - 1 : MOON_CHAR + 7;
-            drawGlyph(&img, charset, chr, gate->x * tw + tw / 2,
-                      gate->y * th + th / 2, mag);
-        }
-    }
-
     int maxDim = gpu_maxTextureSize();
     while (maxDim > 0 && (img.w > maxDim || img.h > maxDim))
         halveImage(&img);
 
-    mapTex = gpu_makeTextureMip(&img);
+    mapTex = makeMipTexture(&img);
     image32_freePixels(&img);
+
+    // The moongates are marked by the moon phase which opens each one, as
+    // shown in the status bar.
+    ImageInfo* cinfo = xu4.imageMgr->get(BKGD_CHARSET);
+    if (cinfo && cinfo->image) {
+        for (int phase = 0; phase < 8; ++phase) {
+            int chr = phase ? MOON_CHAR + phase - 1 : MOON_CHAR + 7;
+            moonTex[phase] = glyphTexture(cinfo->image, chr);
+        }
+    }
 
     // The party (on foot, horse, ship or balloon) or the avatar if the
     // party is in a town or dungeon.
@@ -275,7 +319,7 @@ bool WorldMapView::buildTextures()
         const Image* timg = tile ? tile->getImage() : NULL;
         if (timg && image32_allocPixels(&img, tw, th)) {
             image32_blitRect(&img, 0, 0, timg, 0, 0, tw, th, 0);
-            partyTex = gpu_makeTexture(&img);
+            partyTex = makeMipTexture(&img);
             image32_freePixels(&img);
         }
     }
@@ -291,6 +335,12 @@ void WorldMapView::freeTextures()
     if (partyTex) {
         gpu_freeTexture(partyTex);
         partyTex = 0;
+    }
+    for (int i = 0; i < 8; ++i) {
+        if (moonTex[i]) {
+            gpu_freeTexture(moonTex[i]);
+            moonTex[i] = 0;
+        }
     }
 }
 
@@ -411,13 +461,39 @@ void WorldMapView::mapRect(float* rect) const
 }
 
 /*
- * Generate the place names for the current zoom & position.
+ * Return the screen size of the party or moongate signs.  They cover a few
+ * tiles when the whole map is shown and shrink to fit a tile as the map is
+ * zoomed in, so they stay on their spot.
+ */
+float WorldMapView::markSize(float tiles) const
+{
+    float size = tiles * fitScale;
+    return (size < scale) ? scale : size;
+}
+
+/*
+ * Return the screen rectangle (x, y, w, h) of a sign of the given size
+ * centered on a map tile.
+ */
+void WorldMapView::markRect(int tx, int ty, float size, float* mrect) const
+{
+    float rect[4];
+    mapRect(rect);
+    mrect[0] = rect[0] + (tx + 0.5f) * scale - size * 0.5f;
+    mrect[1] = rect[1] + (MAP_DIM - ty - 0.5f) * scale - size * 0.5f;
+    mrect[2] = mrect[3] = size;
+}
+
+/*
+ * Generate the place names & party marker for the current zoom & position.
+ * The names keep the same size on screen at any zoom, so they cover less of
+ * the map as it is zoomed in.
  */
 void WorldMapView::generateLabels()
 {
     TxfDrawState ds;
     float rect[4];
-    float psize = LABEL_EM * scale;
+    float psize = LABEL_EM * fitScale;
     float maxSize = screenState()->aspectH * 0.08f;
     if (psize > maxSize)
         psize = maxSize;
@@ -462,6 +538,20 @@ void WorldMapView::generateLabels()
         }
     }
     gpu_endRegion(work, REGION_LABELS, attr);
+
+    // A blinking frame around the party.
+    attr = gpu_beginRegion(work, REGION_MARKER);
+    if (partyX >= 0) {
+        float t = fitScale * 0.6f + 1.0f;
+        markRect(partyX, partyY, markSize(PARTY_TILES) + 4.0f * t, rect);
+        attr = emitOutline(attr, rect, t, COL_BLACK);
+        rect[0] += t * 0.5f;
+        rect[1] += t * 0.5f;
+        rect[2] -= t;
+        rect[3] -= t;
+        attr = emitOutline(attr, rect, t * 0.5f, COL_YELLOW);
+    }
+    gpu_endRegion(work, REGION_MARKER, attr);
 
     labelScale = scale;
     labelX = centerX;
@@ -510,18 +600,26 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
     wm->mapRect(rect);
     gpu_drawImage(xu4.gpu, wm->mapTex, rect, ss->aspectW, ss->aspectH);
 
-    // Blink the party position.
-    if (wm->partyTex && ((wm->frame++ / 12) & 1) == 0) {
-        float s = wm->scale;
-        float size = (s < wm->fitScale * 4.0f) ? wm->fitScale * 4.0f : s;
-        float prect[4];
-        prect[0] = rect[0] + (wm->partyX + 0.5f) * s - size * 0.5f;
-        prect[1] = rect[1] + (MAP_DIM - wm->partyY - 0.5f) * s - size * 0.5f;
-        prect[2] = prect[3] = size;
-        gpu_drawImage(xu4.gpu, wm->partyTex, prect, ss->aspectW, ss->aspectH);
+    float size = wm->markSize(MOON_TILES);
+    float mrect[4];
+    for (int phase = 0; phase < 8; ++phase) {
+        const Coords* gate = xu4.config->moongateCoords(phase);
+        if (gate && wm->moonTex[phase]) {
+            wm->markRect(gate->x, gate->y, size, mrect);
+            gpu_drawImage(xu4.gpu, wm->moonTex[phase], mrect,
+                          ss->aspectW, ss->aspectH);
+        }
+    }
+
+    if (wm->partyTex) {
+        wm->markRect(wm->partyX, wm->partyY, wm->markSize(PARTY_TILES), mrect);
+        gpu_drawImage(xu4.gpu, wm->partyTex, mrect, ss->aspectW, ss->aspectH);
     }
 
     gpu_enableGui(xu4.gpu, WID_NONE, 0);
+    if (((wm->frame++ / 10) & 3) != 3)
+        gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI,
+                           work->region + REGION_MARKER);
     gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_LABELS);
     gpu_setScissor(NULL);
 }

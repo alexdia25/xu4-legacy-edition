@@ -40,7 +40,8 @@ private:
     GuiArea gbox[ WI_COUNT ];
     WorkBuffer* work;
     uint32_t mapTex;            // The whole world (256 x 256 tiles).
-    uint32_t partyTex;          // The party tile, drawn blinking.
+    uint32_t partyTex;          // The party tile.
+    uint32_t moonTex[8];        // Moon phase characters.
     int partyX, partyY;         // Party map position, or -1 if unknown.
     int buttonDown;
     uint32_t frame;             // Frames drawn, for blinking.
@@ -68,6 +69,8 @@ private:
     void pan(float dx, float dy);
     bool partyInView() const;
     void mapRect(float* rect) const;
+    float markSize(float tiles) const;
+    void markRect(int tx, int ty, float size, float* mrect) const;
 
     static void renderMap(ScreenState* ss, void* data);
 };

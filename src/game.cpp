@@ -34,6 +34,7 @@
 #include "u4.h"
 #include "utils.h"
 #include "weapon.h"
+#include "worldmap.h"
 #include "xu4.h"
 
 /*-----------------*/
@@ -974,10 +975,11 @@ static void smsQuitMenu() {
  * The SMS style action menu.  The guessed action comes first, followed by
  * the other commands which make sense here.  Talk is moved to the top when
  * someone is in reach, unless the guess is a real one for this spot (Klimb,
- * Enter, a chest...).  Quit Game is always last.  Returns the command key,
+ * Enter, a chest...).  View Map, Save Game & Quit Game come last.  Returns the command key,
  * or -1 if the menu was cancelled.
  */
 #define QUIT_KEY    -2
+#define MAP_KEY     -3
 
 static int smsActionMenu() {
     struct Action {
@@ -993,6 +995,7 @@ static int smsActionMenu() {
         {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
         {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
         {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
+        {MAP_KEY, "View Map"},
         {'q', "Save Game"}, {QUIT_KEY, "Quit Game"}
     };
     const int count = sizeof(actions) / sizeof(Action);
@@ -1102,6 +1105,10 @@ static int smsActionMenu() {
         return -1;
     if (keys[pick] == QUIT_KEY) {
         smsQuitMenu();
+        return -1;
+    }
+    if (keys[pick] == MAP_KEY) {
+        worldMapShow();
         return -1;
     }
     return keys[pick];

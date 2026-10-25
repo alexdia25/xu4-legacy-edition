@@ -813,7 +813,11 @@ uint32_t gpu_makeTexture(const Image32* img)
  * Create a texture which is drawn reduced with mipmaps (smooth) and enlarged
  * with nearest filtering (crisp pixels).
  */
-uint32_t gpu_makeTextureMip(const Image32* img)
+/*
+ * Make a mipmapped texture from the base image.  The other levels (1 to
+ * levels-1) must be set with gpu_textureLevel() before it is drawn.
+ */
+uint32_t gpu_makeTextureMip(const Image32* img, int levels)
 {
     GLuint tex;
     glGenTextures(1, &tex);
@@ -823,10 +827,17 @@ uint32_t gpu_makeTextureMip(const Image32* img)
                     GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels - 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->w, img->h,
                  0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
     return tex;
+}
+
+void gpu_textureLevel(uint32_t tex, int level, const Image32* img)
+{
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, img->w, img->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels);
 }
 
 int gpu_maxTextureSize()
