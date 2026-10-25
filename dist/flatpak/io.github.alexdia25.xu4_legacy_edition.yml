@@ -46,6 +46,8 @@ modules:
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      # Install to /app/lib (not lib64) so that -lSDL3 finds this build.
+      - -DCMAKE_INSTALL_LIBDIR=lib
       - -DSDL_SHARED=OFF
       - -DSDL_STATIC=ON
       - -DSDL_TEST_LIBRARY=OFF
