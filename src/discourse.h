@@ -40,5 +40,6 @@ const char* discourse_name(const Discourse*, uint16_t entry);
 void talkWordsClear();
 bool talkWordsSave(FILE*);
 void talkWordsLoad(FILE*);
+void talkFlagSet(int flag);
 
 #endif

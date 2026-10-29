@@ -1,6 +1,7 @@
 //#include <stdio.h>
 //#include <boron/boron.h>
 #include "camp.h"
+#include "discourse.h"
 #include "spell.h"
 #include "stats.h"
 #include "utils.h"
@@ -773,6 +774,22 @@ CFUNC(cf_pay)
 }
 
 /*-cf-
+    talk-flag
+        n       int!    SMS story flag number.
+    return: unset!
+
+    Set a story flag of the SMS style talk menu, which offers a keyword to
+    the person the player was sent to.
+*/
+CFUNC(cf_talkFlag)
+{
+    (void) ut;
+    talkFlagSet(ur_int(a1));
+    ur_setId(res, UT_UNSET);
+    return UR_OK;
+}
+
+/*-cf-
     add-item
         item    word!   (horse)
     return: unset!
@@ -902,6 +919,7 @@ static const BoronCFunc pfFuncs[] = {
     cf_pcNeedsQ,
     cf_pcHeal,
     cf_pay,
+    cf_talkFlag,
     cf_addItem,
     cf_addItems,
     cf_removeItems
@@ -927,6 +945,7 @@ static const char pfFuncSpecs[] =
     "pc-needs? n int! a word!\n"
     "pc-heal n int! a word! /magic\n"
     "pay price int! quant int! a block! b block!\n"
+    "talk-flag n int!\n"
     "add-item item word!\n"
     "add-items item word! n int!\n"
     "remove-items item word! n int!\n";

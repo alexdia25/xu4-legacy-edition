@@ -781,9 +781,12 @@ tavern: context [
         ]
     ]
 
+    ; Each rumor sets the SMS story flag which lets the talk menu offer
+    ; the keyword to the person it names.
     rumors: [
         "black stone" [
             vo 17
+            talk-flag 68
             => {{
             % says: Ah, the Black Stone.
             Yes I've heard of it. But, the
@@ -794,6 +797,7 @@ tavern: context [
         ]
         "sextant" [
             vo 16
+            talk-flag 69
             => {{
             % says: For navigation a Sextant is vital... Ask for item "D" in the Guild shops!
             }}
@@ -801,6 +805,7 @@ tavern: context [
         ]
         "white stone" [
             vo 15
+            talk-flag 67
             >> {{
             Now let me see... Yes it was the old Hermit...
             Sloven! He is tough to find,
@@ -809,6 +814,7 @@ tavern: context [
         ]
         "mandrake" [
             vo 14
+            talk-flag 63
             => {{
             % says: The last person I knew that had
             any Mandrake was an old alchemist
@@ -818,6 +824,7 @@ tavern: context [
         ]
         "skull" [
             vo 13
+            talk-flag 64
             => {{
             % says: If thou must know of that evilest of all things...
             find the beggar Jude. He is very very poor!
@@ -826,6 +833,7 @@ tavern: context [
         ]
         "nightshade" [
             vo 12
+            talk-flag 65
             => {{
             % says: Of Nightshade I know but this...
             Seek out Virgil or thou shalt miss! Try in Trinsic!
