@@ -5,6 +5,9 @@
 #ifndef LEGACY_H
 #define LEGACY_H
 
+#include <string>
+#include <vector>
+
 enum LegacyCheat {
     CHEAT_HEAL,
     CHEAT_GOLD,
@@ -21,8 +24,6 @@ const char* legacyCheat(int cheat);
 const char* legacySpellEffect(int spell);
 bool legacyHealShortcut(int* spell, int* caster, int* subject, int onlyCaster);
 
-#include <string>
-#include <vector>
 
 // Saves & characters.
 struct LegacySaveInfo {
@@ -45,5 +46,11 @@ void legacyNameNewCharacter(const char* avatarName);
 bool legacySelectCharacter(const LegacySaveInfo& ch);
 bool legacyRestoreSave(const LegacySaveInfo& save);
 bool legacyDeleteCharacter(const LegacySaveInfo& ch);
+
+// Journal.
+void legacyNoteClue(const char* place, const char* who, const char* text);
+void legacyJournalReset();
+std::string legacyJournalText();
+const char* legacyVirtueWord(int karma);
 
 #endif

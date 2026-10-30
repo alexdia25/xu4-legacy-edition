@@ -124,6 +124,7 @@ void castSpell(int player = -1);
 void gameSpellEffect(int spell, int player, Sound sound);
 void gameCastSpell(unsigned int spell, int caster, int param);
 int gameSave(const char* userPath);
+void gameShowJournal();
 
 /* action functions */
 void destroy();

@@ -29,10 +29,12 @@ public:
     virtual bool keyPressed(int key);
     virtual bool inputEvent(const InputEvent*);
 
+    void showJournal();
+
     enum Widgets {
         WI_TEXT,
         WI_TAB,
-        WI_BACK = WI_TAB + DOC_COUNT + 1,     // Last tab is the runes.
+        WI_BACK = WI_TAB + DOC_COUNT + 2,     // Then the runes & journal.
         WI_COUNT
     };
 

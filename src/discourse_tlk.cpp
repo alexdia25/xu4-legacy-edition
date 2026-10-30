@@ -3,6 +3,7 @@
 #include <set>
 #include <vector>
 #include "game.h"
+#include "legacy.h"
 #include "party.h"
 #include "screen.h"
 #include "settings.h"
@@ -736,6 +737,8 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
             talkHeard(st, reply);
             message(reply);
             screenCrLf();
+            legacyNoteClue(c->location->map->getName(), DSTRING(DS_NAME),
+                           reply);
 
             if (ts->nextOp == OP_PAUSE_ASK) {
                 ts->nextOp = OP_NOP;

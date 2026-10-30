@@ -4,6 +4,7 @@
 
 #include "game.h"
 #include "discourse.h"
+#include "docreader.h"
 
 #include "camp.h"
 #include "cheat.h"
@@ -1002,7 +1003,19 @@ static void smsQuitMenu() {
 #define QUIT_KEY    -2
 #define MAP_KEY     -3
 #define HEAL_KEY    -4
+#define JOURNAL_KEY -5
 #define CAST_DONE_KEY 0x1f   // A command already done; just end the turn.
+
+/*
+ * Show the quest journal in the document reader.
+ */
+void gameShowJournal() {
+    static DocReader* reader = NULL;
+    if (! reader)
+        reader = new DocReader;
+    reader->showJournal();
+    xu4.eventHandler->runController(reader);
+}
 
 /*
  * Cast the spell picked by the heal shortcut.  Returns ' ' so that the
@@ -1030,7 +1043,7 @@ static int smsActionMenu() {
         {'e', "Enter"},     {'i', "Ignite"},    {'p', "Peer at Gem"},
         {'l', "Locate"},    {'h', "Hole Up"},   {'m', "Mix Reagents"},
         {'n', "New Order"}, {'y', "Yell"},      {'z', "Ztats"},
-        {MAP_KEY, "View Map"},
+        {MAP_KEY, "View Map"},      {JOURNAL_KEY, "Journal"},
         {'q', "Save Game"}, {QUIT_KEY, "Quit Game"}
     };
     const int count = sizeof(actions) / sizeof(Action);
@@ -1155,6 +1168,10 @@ static int smsActionMenu() {
     }
     if (keys[pick] == MAP_KEY) {
         worldMapShow();
+        return -1;
+    }
+    if (keys[pick] == JOURNAL_KEY) {
+        gameShowJournal();
         return -1;
     }
     if (keys[pick] == HEAL_KEY)
@@ -1639,9 +1656,9 @@ bool GameController::keyPressed(int key) {
 
             screenMessage("\n"
                           "Alt-Q: Main Menu\n"
+                          "Alt-J: Journal\n"
                           "Alt-V: Version\n"
                           "Alt-X: Quit\n"
-                          "\n"
                           "\n"
                           "\n"
                           "\n"
@@ -1681,6 +1698,11 @@ bool GameController::keyPressed(int key) {
 
         case 'v' + U4_ALT:
             screenMessage("XU4 %s\n", VERSION);
+            endTurn = false;
+            break;
+
+        case 'j' + U4_ALT:
+            gameShowJournal();
             endTurn = false;
             break;
 

@@ -19,6 +19,7 @@
 #include "gamepad.h"
 #include "image32.h"
 #include "gpu.h"
+#include "legacy.h"
 #include "screen.h"
 #include "settings.h"
 #include "sound.h"
@@ -30,8 +31,9 @@ using std::string;
 #define QUAD_ATTR   (6 * ATTR_COUNT)
 #define MIN_COLUMNS 60      // Narrowest text area in columns.
 #define MAX_FONT_SIZE 0.045f    // Largest text, as a fraction of the height.
-#define TAB_COUNT   (DOC_COUNT + 1)
+#define TAB_COUNT   (DOC_COUNT + 2)
 #define DOC_RUNES   DOC_COUNT   // The rune table tab.
+#define DOC_JOURNAL (DOC_COUNT + 1) // The quest journal tab.
 #define FONT_RUNES  3           // Index in ScreenState::fontTable.
 #define RUNE_MARK   '\x01'      // Starts a segment drawn in runes.
 #define RUNE_SCALE  1.7f        // Size of runes relative to the text.
@@ -296,6 +298,8 @@ void DocReader::openDocument(int n)
     doc = n;
     if (n == DOC_RUNES) {
         text = runesText();
+    } else if (n == DOC_JOURNAL) {
+        text = legacyJournalText();
     } else if (! docsLoad(GameDocument(n), text)) {
         text = "\n\n"
             "    This document was not found.\n\n"
@@ -314,6 +318,14 @@ void DocReader::openDocument(int n)
     splitLines(text, lines);
     scroll = scrollTarget = 0.0f;
     layout();
+}
+
+/*
+ * Show the quest journal the next time the reader is presented.
+ */
+void DocReader::showJournal()
+{
+    doc = DOC_JOURNAL;
 }
 
 bool DocReader::present()
@@ -352,7 +364,7 @@ void DocReader::layout()
 
     // Tabs across the top, Back button at the bottom right.
     float tabY = panelY2 - pad - tabH;
-    float tabW = W * 0.15f;
+    float tabW = W * 0.13f;
     float x = mx + pad;
     for (i = 0; i < TAB_COUNT; ++i) {
         setArea(gbox + WI_TAB + i, x, tabY, x + tabW, tabY + tabH, WI_TAB + i);
@@ -404,6 +416,7 @@ void DocReader::layout()
         const GuiArea* tab = gbox + WI_TAB + i;
         bool cur = (i == doc);
         const char* title = (i == DOC_RUNES) ? "Runes" :
+                            (i == DOC_JOURNAL) ? "Journal" :
                             docsTitle(GameDocument(i));
         attr = emitArea(attr, tab, cur ? COL_LT_BLUE : COL_DK_BROWN);
         attr = emitCentered(attr, &ds, tab, title,

@@ -1105,8 +1105,9 @@ void IntroController::finishInitiateGame(const string &nameBuffer, SexType sex)
     if (xu4.settings->legacy.keepCharacters)
         legacyNameNewCharacter(nameBuffer.c_str());
 
-    // Start with no conversation words heard.
+    // Start with no conversation words heard & an empty journal.
     talkWordsClear();
+    legacyJournalReset();
     remove((xu4.settings->getUserPath() + TALKWORDS_SAV).c_str());
 
     saveGameFile = fopen((xu4.settings->getUserPath() + MONSTERS_SAV).c_str(), "wb");

@@ -14,6 +14,7 @@
 #include "event.h"
 #include "game.h"
 #include "location.h"
+#include "names.h"
 #include "map.h"
 #include "screen.h"
 #include "settings.h"
@@ -577,4 +578,250 @@ bool legacyDeleteCharacter(const LegacySaveInfo& ch) {
     }
     fs::remove_all(base / "history" / fs::u8path(ch.folder), ec);
     return true;
+}
+
+//--------------------------------------------------------------------------
+// Journal
+//
+// Clues are lines of conversation which mention the things of the quest.
+// They are kept in journal.sav as "place<TAB>person<TAB>text" lines as they
+// are heard.
+
+#define JOURNAL_SAV "journal.sav"
+
+/*
+ * Return the word for how far along the path of a virtue the Avatar is,
+ * after what Hawkwind says of it.
+ */
+const char* legacyVirtueWord(int karma) {
+    if (karma == 0)
+        return "Avatar";        // Elevated to partial Avatarhood.
+    if (karma < 20)
+        return "Strayed";
+    if (karma < 40)
+        return "Seeker";
+    if (karma < 60)
+        return "Learned";
+    if (karma < 99)
+        return "Wise";
+    return "Ready";             // Ready to be elevated at the shrine.
+}
+
+static bool isClue(const char* text) {
+    static const char* terms[] = {
+        "rune", "stone", "bell", "book", "candle", "skull", "horn",
+        "wheel", "mantra", "key", "codex", "abyss", "syllable",
+        "word of passage", "altar", "sextant", "mondain", NULL
+    };
+    std::string low(text);
+    for (char& ch : low)
+        ch = tolower((unsigned char) ch);
+    for (const char** t = terms; *t; ++t)
+        if (low.find(*t) != std::string::npos)
+            return true;
+    return false;
+}
+
+static std::string oneLine(const char* text) {
+    std::string out;
+    bool space = false;
+    for (const char* cp = text; *cp; ++cp) {
+        unsigned char ch = *cp;
+        if (ch == '\n' || ch == '\r' || ch == '\t' || ch == ' ') {
+            space = ! out.empty();
+            continue;
+        }
+        if (ch < ' ')
+            continue;       // Color codes & such.
+        if (space)
+            out += ' ';
+        space = false;
+        out += ch;
+    }
+    return out;
+}
+
+static std::vector<std::string> journalLines() {
+    std::vector<std::string> lines;
+    FILE* fp = fopen((userDir() / JOURNAL_SAV).string().c_str(), "r");
+    if (fp) {
+        char buf[1024];
+        while (fgets(buf, sizeof(buf), fp)) {
+            std::string line(buf);
+            while (! line.empty() && (line.back() == '\n' || line.back() == '\r'))
+                line.pop_back();
+            if (! line.empty())
+                lines.push_back(line);
+        }
+        fclose(fp);
+    }
+    return lines;
+}
+
+/*
+ * Note a line of conversation in the journal if it is a clue to the quest.
+ */
+void legacyNoteClue(const char* place, const char* who, const char* text) {
+    if (! text || ! isClue(text))
+        return;
+    std::string line = std::string(place ? place : "") + "\t" +
+                       (who ? who : "") + "\t" + oneLine(text);
+    for (const std::string& old : journalLines())
+        if (old == line)
+            return;
+    FILE* fp = fopen((userDir() / JOURNAL_SAV).string().c_str(), "a");
+    if (fp) {
+        fprintf(fp, "%s\n", line.c_str());
+        fclose(fp);
+    }
+}
+
+/*
+ * Forget the journal (for a new game).
+ */
+void legacyJournalReset() {
+    std::error_code ec;
+    fs::remove(userDir() / JOURNAL_SAV, ec);
+    fs::remove(userDir() / "dngseen.sav", ec);
+}
+
+static void wrapText(std::string& out, const std::string& text,
+                     const char* indent, size_t width) {
+    size_t pos = 0;
+    while (pos < text.size()) {
+        size_t len = text.size() - pos;
+        if (len > width) {
+            len = text.rfind(' ', pos + width);
+            if (len == std::string::npos || len <= pos)
+                len = width;
+            else
+                len -= pos;
+        }
+        out += indent;
+        out += text.substr(pos, len);
+        out += "\n";
+        pos += len;
+        while (pos < text.size() && text[pos] == ' ')
+            ++pos;
+    }
+}
+
+/*
+ * Write the journal as text for the document reader.
+ */
+std::string legacyJournalText() {
+    std::string out;
+    char buf[128];
+
+    if (! c || ! c->saveGame || xu4.stage != StagePlay) {
+        out = "\n\n    The journal is kept while a game is being played.\n";
+        return out;
+    }
+    const SaveGame* sg = c->saveGame;
+    int i, n;
+
+    out += "\n    THE PATH OF THE AVATAR\n\n";
+    for (i = 0; i < VIRT_MAX; ++i) {
+        snprintf(buf, sizeof(buf), "      %-14s %s\n",
+                 getVirtueName((Virtue) i), legacyVirtueWord(sg->karma[i]));
+        out += buf;
+    }
+    out += "\n";
+    wrapText(out, "Strayed, Seeker, Learned and Wise are steps along the "
+                  "path of a virtue.  Ready means the Avatar may be "
+                  "elevated in it, and Avatar that this is done.", "    ", 60);
+
+    out += "\n\n    THE QUEST\n\n";
+    std::string list;
+    for (i = 0, n = 0; i < VIRT_MAX; ++i) {
+        if (sg->runes & (1 << i)) {
+            if (n++)
+                list += ", ";
+            list += getVirtueName((Virtue) i);
+        }
+    }
+    snprintf(buf, sizeof(buf), "Runes (%d of 8): ", n);
+    wrapText(out, std::string(buf) + (n ? list : "none yet"), "      ", 56);
+
+    static const char* stones[8] = {
+        "Blue", "Yellow", "Red", "Green", "Orange", "Purple", "White", "Black"
+    };
+    list.clear();
+    for (i = 0, n = 0; i < 8; ++i) {
+        if (sg->stones & (1 << i)) {
+            if (n++)
+                list += ", ";
+            list += stones[i];
+        }
+    }
+    snprintf(buf, sizeof(buf), "Stones (%d of 8): ", n);
+    wrapText(out, std::string(buf) + (n ? list : "none yet"), "      ", 56);
+
+    struct Thing { int bit; int usedBit; const char* name; };
+    static const Thing principles[3] = {
+        { ITEM_BELL,   ITEM_BELL_USED,   "The Bell of Courage" },
+        { ITEM_BOOK,   ITEM_BOOK_USED,   "The Book of Truth" },
+        { ITEM_CANDLE, ITEM_CANDLE_USED, "The Candle of Love" }
+    };
+    for (i = 0; i < 3; ++i) {
+        const Thing& t = principles[i];
+        snprintf(buf, sizeof(buf), "      %-22s %s\n", t.name,
+                 (sg->items & t.usedBit) ? "used" :
+                 (sg->items & t.bit) ? "held" : "-");
+        out += buf;
+    }
+
+    list.clear();
+    static const Thing keyParts[3] = {
+        { ITEM_KEY_T, 0, "Truth" }, { ITEM_KEY_L, 0, "Love" },
+        { ITEM_KEY_C, 0, "Courage" }
+    };
+    for (i = 0, n = 0; i < 3; ++i) {
+        if (sg->items & keyParts[i].bit) {
+            if (n++)
+                list += ", ";
+            list += keyParts[i].name;
+        }
+    }
+    snprintf(buf, sizeof(buf), "Parts of the Key (%d of 3): ", n);
+    wrapText(out, std::string(buf) + (n ? list : "none yet"), "      ", 56);
+
+    list.clear();
+    n = 0;
+    if (sg->items & ITEM_SKULL_DESTROYED) {
+        list += "the Skull, destroyed";
+        ++n;
+    } else if (sg->items & ITEM_SKULL) {
+        list += "a Skull";
+        ++n;
+    }
+    if (sg->items & ITEM_HORN)   { list += n++ ? ", a Horn" : "a Horn"; }
+    if (sg->items & ITEM_WHEEL)  { list += n++ ? ", a Wheel" : "a Wheel"; }
+    if (sg->sextants)            { list += n++ ? ", a Sextant" : "a Sextant"; }
+    if (n)
+        wrapText(out, "Also found: " + list, "      ", 56);
+
+    out += "\n\n    CLUES HEARD\n\n";
+    std::vector<std::string> lines = journalLines();
+    if (lines.empty()) {
+        wrapText(out, "Nothing yet.  Words of the runes, stones and other "
+                      "things of the quest are noted here as they are heard.",
+                 "      ", 56);
+    }
+    std::string lastPlace;
+    for (const std::string& line : lines) {
+        size_t t1 = line.find('\t');
+        size_t t2 = (t1 == std::string::npos) ? t1 : line.find('\t', t1 + 1);
+        if (t2 == std::string::npos)
+            continue;
+        std::string place = line.substr(0, t1);
+        std::string who = line.substr(t1 + 1, t2 - t1 - 1);
+        std::string text = line.substr(t2 + 1);
+        if (place != lastPlace) {
+            out += "\n      " + place + "\n";
+            lastPlace = place;
+        }
+        wrapText(out, who + ": " + text, "        ", 54);
+    }
+    return out;
 }
