@@ -53,8 +53,12 @@ if [ ! -f ${SYS}/lib/libboron.a ]; then
 fi
 export PATH=${SYS}/bin:${PATH}
 
-# SDL's static library needs the system frameworks listed in sdl3.pc.
-SDL_LIBS=$(sed -n 's/^Libs.private: *//p' ${SYS}/lib/pkgconfig/sdl3.pc)
+# SDL's static library needs the Objective-C runtime & these frameworks.
+SDL_LIBS="-lobjc -framework Foundation -framework Cocoa -framework IOKit \
+ -framework CoreVideo -framework CoreAudio -framework AudioToolbox \
+ -framework Carbon -framework ForceFeedback -framework GameController \
+ -framework CoreHaptics -framework Metal -framework QuartzCore \
+ -framework AVFoundation -framework CoreMedia -framework UniformTypeIdentifiers"
 
 # Build xu4 in a separate tree so that a development build is not disturbed.
 SRC=${WORK}/xu4
