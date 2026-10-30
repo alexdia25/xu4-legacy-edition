@@ -26,8 +26,9 @@ What it adds to XU4:
  - [Graphics & music modules](#graphics--music-modules) for the Apple II,
    Commodore 64 and Sega Master System versions, read from your own disk
    images or ROM.
- - [Builds](#installing) for Windows, macOS and Linux, and a Flatpak for
-   the Steam Deck.
+ - [Builds](#installing) for Windows, macOS, Linux and Android, a web
+   version that also installs on iPhones and iPads, and a Flatpak for the
+   Steam Deck.
 
 Features
 --------
@@ -235,6 +236,24 @@ Every download is on the [releases page].  The game data
    updates by itself.  Put the game data in `~/.local/share/xu4`.
  - **Other Linux**: the `.deb` package, or the `-linux.tar.gz` archive
    with its `setup` installer.
+ - **Android** (phones, tablets and handhelds such as the Retroid Pocket
+   or AYN Odin; Android 7 or later): download the `.apk` on the device
+   and open it (Android asks once to allow installs from the browser or
+   file manager), or let [Obtainium] install it and keep it updated from
+   the releases.  On the first run the game asks for `ultima4.zip`, and
+   u4upgrad.zip, Apple II or C64 disk images and the SMS ROM can be
+   picked at the same time.  Files can also be copied over USB to
+   `Android/data/io.github.alexdia25.xu4_legacy_edition/files`.  The game
+   is played with touch or a gamepad; Back opens the game menu.
+ - **Web browser, iPhone and iPad**: [play in the browser], on a
+   computer, phone or tablet.  It asks for `ultima4.zip` (or the GOG
+   files) the first time and keeps them, with the settings and saved
+   games, in the browser; the Files button adds more files (disk images,
+   the SMS ROM) and exports the saves as a zip.  On an iPhone or iPad open
+   it in Safari and choose Share > Add to Home Screen: it then runs full
+   screen, works offline and keeps its saves (Safari clears the storage of
+   a site not visited for seven days, but not of a Home Screen app).
+   Chrome and Android offer to install it as an app as well.
 
 ### Steam Deck
 
@@ -387,6 +406,8 @@ The original XU4 readme follows.
 [GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [releases page]: https://github.com/alexdia25/xu4-legacy-edition/releases/latest
 [Flatpak repository]: https://alexdia25.github.io/xu4-legacy-edition/
+[Obtainium]: https://github.com/ImranR98/Obtainium
+[play in the browser]: https://alexdia25.github.io/xu4-legacy-edition/play/
 
 
 XU4
