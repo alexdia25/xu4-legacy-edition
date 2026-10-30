@@ -278,6 +278,14 @@ bool Settings::read() {
 
     memset(&legacy, 0, sizeof(legacy));
     applyLegacyPreset(*this, LegacyPreset_Classic);
+    // The conveniences of this edition are on by default.
+    legacy.bumpToAct    = true;
+    legacy.foldMoves    = true;
+    legacy.freeCancel   = true;
+    legacy.shopCompare  = true;
+    legacy.spellInfo    = true;
+    legacy.healShortcut = true;
+    legacy.dungeonMap   = 1;    // Mini Map
 
     /* mouse defaults to on */
     mouseOptions.enabled = 1;

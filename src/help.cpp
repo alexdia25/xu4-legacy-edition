@@ -142,7 +142,7 @@ static const char helpText[] =
 "LEGACY EDITION OPTIONS\n"
 "\n"
 "Settings, then Legacy Edition Options, holds the conveniences of this\n"
-"edition.  All are off until you turn them on:\n"
+"edition.  All but Auto Combat and Pause When Unfocused start on:\n"
 "\n"
 "  Walk Into To Act       Walking into someone talks, into a foe\n"
 "                         attacks, into a locked door opens it.\n"
