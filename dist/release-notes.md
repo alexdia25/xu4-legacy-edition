@@ -25,6 +25,17 @@ makes Ultima IV easier to play on modern systems, especially with the free
   History is offered when the story asks you to read it, and with Spell
   Info In Lists on, a spell or reagent opens its Book of Mystic Wisdom
   page (?, the right shoulder button, a right click or a long press).
+- **Gamepad buttons**: in play A does the obvious action (XU4's smart
+  Enter key), X opens the action menu, Y the world map and B passes a
+  turn; in menus A or X picks and B backs out.  On the keyboard, Tab
+  opens the action menu.
+- The Legacy Edition options start on (except Auto Combat), and Walk
+  Into To Act and Automatic Actions switch on with a gamepad.  Console
+  (SMS) Menus is now in Legacy Edition Options, and Pause Unfocused in
+  the Graphics options.
+- Names can be entered in upper and lower case with the letter grid.
+- The text size buttons of the reader change only the text, and the
+  U4-Upgrade font is drawn with its shading on the menu pages.
 - A fatal error (such as missing game files) is shown in a message box
   on macOS and Linux too.
 
