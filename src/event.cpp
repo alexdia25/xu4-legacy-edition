@@ -947,7 +947,7 @@ public:
     ListPickerController(const char* const* items, int count, int start,
                          int rows, int line, void (*info)(int))
         : items(items), info(info), count(count), rows(rows), line(line),
-          top(0) {
+          top(0), held(-1) {
         value = -1;
         sel = (start >= 0 && start < count) ? start : 0;
         scrollToSel();
@@ -977,6 +977,7 @@ private:
     int line;       // First message area line used.
     int top;        // First visible item.
     int sel;
+    int held;       // Item pressed, waiting to see if it is held.
 };
 
 void ListPickerController::draw() const {
@@ -1023,6 +1024,13 @@ bool ListPickerController::keyPressed(int key) {
             return true;
         }
         return EventHandler::globalKeyHandler(key);
+    case U4_HOLD:               // Press & hold shows more about the item.
+        xu4.eventHandler->setPointerRepeat(this, 0);
+        if (held >= 0) {
+            held = -1;
+            showInfo();
+        }
+        return true;
     case U4_PAGE_UP:            // Scroll the list by one line.
         if (top > 0)
             sel = top - 1;
@@ -1051,7 +1059,9 @@ bool ListPickerController::keyPressed(int key) {
 }
 
 /*
- * Tap an item to pick it, or tap anywhere else to cancel.  Tapping the
+ * Tap an item to pick it, or tap anywhere else to cancel.  If the list has
+ * more to show about its items, holding an item down (or a right click)
+ * shows it.  Tapping the
  * first or last line while it shows a ^ or v scrolls the list (holding it
  * keeps scrolling).
  */
@@ -1064,6 +1074,11 @@ bool ListPickerController::inputEvent(const InputEvent* ev) {
         break;
     case IE_MOUSE_RELEASE:
         xu4.eventHandler->setPointerRepeat(this, 0);
+        if (held >= 0) {
+            // Released before the hold time: pick it.
+            held = -1;
+            keyPressed(U4_ENTER);
+        }
         break;
     case IE_MOUSE_PRESS:
         if (info && ev->n == CMOUSE_RIGHT) {
@@ -1092,7 +1107,13 @@ bool ListPickerController::inputEvent(const InputEvent* ev) {
         } else {
             sel = top + y;
             draw();
-            keyPressed(U4_ENTER);
+            if (info) {
+                // Picked on release, unless held to show more.
+                held = sel;
+                xu4.eventHandler->setPointerRepeat(this, U4_HOLD,
+                                                   POINTER_HOLD_TIME);
+            } else
+                keyPressed(U4_ENTER);
         }
         break;
     }

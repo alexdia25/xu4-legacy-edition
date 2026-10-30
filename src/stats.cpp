@@ -543,6 +543,14 @@ bool ReagentsMenuController::keyPressed(int key) {
         gameShowWisdom(getReagentName((Reagent) (*menu->getCurrent())->getId()));
         break;
 
+    case U4_HOLD:
+        xu4.eventHandler->setPointerRepeat(this, 0);
+        if (held) {
+            held = false;
+            keyPressed('?');
+        }
+        break;
+
     case U4_ESC:
         ingredients->revert();
         xu4.eventHandler->setControllerDone();
@@ -555,3 +563,48 @@ bool ReagentsMenuController::keyPressed(int key) {
     return true;
 }
 
+/*
+ * Tap a reagent to add or remove it, or tap anywhere else when done.  With
+ * Spell Info on, holding a reagent down (or a right click) opens the Book of
+ * Mystic Wisdom at it.
+ */
+bool ReagentsMenuController::inputEvent(const InputEvent* ev) {
+    int cx, cy;
+    bool right = (ev->type == IE_MOUSE_PRESS && ev->n == CMOUSE_RIGHT);
+
+    if (ev->type == IE_MOUSE_RELEASE) {
+        xu4.eventHandler->setPointerRepeat(this, 0);
+        if (held) {
+            held = false;
+            keyPressed(U4_SPACE);
+        }
+        return true;
+    }
+    if (right)
+        EventHandler::pointerPos(ev, &cx, &cy);
+    else if (! EventHandler::pointerTap(ev, &cx, &cy))
+        return MenuController::inputEvent(ev);
+
+    view->mouseTextPos(ev->x, ev->y, cx, cy);
+    for (Menu::MenuItemList::iterator it = menu->begin();
+         it != menu->end(); ++it) {
+        const MenuItem* mi = *it;
+        if (mi->isVisible() && cy == mi->getY() &&
+            cx >= mi->getX() - 1 &&
+            cx < mi->getX() + (int) mi->getText().size()) {
+            menu->setCurrent(it);
+            if (right) {
+                keyPressed('?');
+            } else if (xu4.settings->legacy.spellInfo) {
+                held = true;
+                xu4.eventHandler->setPointerRepeat(this, U4_HOLD,
+                                                   POINTER_HOLD_TIME);
+            } else
+                keyPressed(U4_SPACE);
+            return true;
+        }
+    }
+    if (! right)
+        keyPressed(U4_ENTER);
+    return true;
+}

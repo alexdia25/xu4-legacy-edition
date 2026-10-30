@@ -47,6 +47,10 @@
 #define U4_PAD_L        0x1F3   // Left shoulder: open the world map.
 #define U4_PAD_R        0x1F4   // Right shoulder.
 
+// Sent by setPointerRepeat when the pointer is held down (press & hold).
+#define U4_HOLD         0x1F5
+#define POINTER_HOLD_TIME 500
+
 // Only found in test recordings (see tools/test).
 #define U4_TEST_SNAPSHOT 0x1FE  // Save the next frame to XU4_TEST_DIR.
 

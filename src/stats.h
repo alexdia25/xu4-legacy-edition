@@ -89,12 +89,14 @@ private:
  */
 class ReagentsMenuController : public MenuController {
 public:
-    ReagentsMenuController(Menu *menu, Ingredients *i, TextView *view) : MenuController(menu, view), ingredients(i) { }
+    ReagentsMenuController(Menu *menu, Ingredients *i, TextView *view) : MenuController(menu, view), ingredients(i), held(false) { }
 
     bool keyPressed(int key);
+    bool inputEvent(const InputEvent*);
 
 private:
     Ingredients *ingredients;
+    bool held;      // A reagent pressed, waiting to see if it is held.
 };
 
 #endif

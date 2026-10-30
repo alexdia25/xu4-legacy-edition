@@ -46,9 +46,9 @@ especially for someone who has just downloaded the free release from
    the Journal keeps the virtues, quest items and clues heard.  The
    reader has three text sizes (- and +, or the shoulder buttons).  The
    History of Britannia is offered when the story asks you to read it,
-   and with Spell Info In Lists on, ? (the right shoulder button, or a
-   right click) on a spell or reagent in a list opens its page in the
-   Book of Mystic Wisdom.
+   and with Spell Info In Lists on, ? (the right shoulder button, a right
+   click, or holding it down on a touch screen) on a spell or reagent in
+   a list opens its page in the Book of Mystic Wisdom.
  - **World map.**  World Map in the game menu (or the left shoulder
    button on a gamepad) shows all of Britannia drawn with the
    tiles of the chosen module, like the cloth map that came with the game.
