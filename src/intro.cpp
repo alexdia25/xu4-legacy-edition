@@ -233,6 +233,7 @@ IntroController::IntroController() :
     gfxMenu.add(MI_VIDEO_07,                            new BoolMenuItem("Screen Shaking     %s", 2,  8,/*'k'*/ 8, &settingsChanged.screenShakes));
     gfxMenu.add(MI_GFX_SCANLINES,                       new BoolMenuItem("Scanlines          %s", 2,  9,/*'c'*/ 1, &settingsChanged.legacy.scanlines));
     gfxMenu.add(MI_GFX_BATTERY,                         new BoolMenuItem("Battery Saver      %s", 2, 10,/*'b'*/ 0, &settingsChanged.legacy.batterySaver));
+    gfxMenu.add(MI_LEGACY_09,                           new BoolMenuItem("Pause Unfocused    %s", 2, 11,/*'p'*/ 0, &settingsChanged.legacy.pauseUnfocused));
     gfxMenu.add(MI_GFX_RETURN,               "\010 Return to Video Options",              2,  12,/*'r'*/  2);
     gfxMenu.addShortcutKey(MI_GFX_RETURN, U4_ESC);
     gfxMenu.setClosesMenu(MI_GFX_RETURN);
@@ -299,7 +300,6 @@ IntroController::IntroController() :
     interfaceMenu.add(MI_INTERFACE_04, new BoolMenuItem("Text Colorization          %s", 2,  6,/*'t'*/  0, &settingsChanged.enhancementsOptions.textColorization));
     interfaceMenu.add(MI_INTERFACE_05, new BoolMenuItem("Ultima V Shrines           %s", 2,  7,/*'s'*/  9, &settingsChanged.enhancementsOptions.u5shrines));
     interfaceMenu.add(MI_INTERFACE_06, new BoolMenuItem("Ultima V Spell Mixing      %s", 2,  8,/*'m'*/ 15, &settingsChanged.enhancementsOptions.u5spellMixing));
-    interfaceMenu.add(MI_INTERFACE_07, new BoolMenuItem("Console (SMS) Menus        %s", 2,  9,/*'o'*/  1, &settingsChanged.enhancementsOptions.smsInterface));
     interfaceMenu.add(USE_SETTINGS,                     "\010 Use These Settings",       2, 11,/*'u'*/  2);
     interfaceMenu.add(CANCEL,                           "\010 Cancel",                   2, 12,/*'c'*/  2);
     interfaceMenu.addShortcutKey(CANCEL, ' ');
@@ -307,15 +307,15 @@ IntroController::IntroController() :
 
     LegacyOptions& lo = settingsChanged.legacy;
     legacyMenu.setTitle("Legacy Edition Options:", 0, 0);
-    legacyMenu.add(MI_LEGACY_01,  new BoolMenuItem("Walk Into To Act         %s", 2,  1,/*'w'*/  0, &lo.bumpToAct));
-    legacyMenu.add(MI_LEGACY_02,  new BoolMenuItem("Fold Repeated Moves      %s", 2,  2,/*'f'*/  0, &lo.foldMoves));
-    legacyMenu.add(MI_LEGACY_03,  new BoolMenuItem("Cancel Spends No Turn    %s", 2,  3,/*'n'*/ 14, &lo.freeCancel));
-    legacyMenu.add(MI_LEGACY_04,  new BoolMenuItem("Shops Compare Arms       %s", 2,  4,/*'o'*/  2, &lo.shopCompare));
-    legacyMenu.add(MI_LEGACY_05,  new BoolMenuItem("Spell Info In Lists      %s", 2,  5,/*'i'*/  6, &lo.spellInfo));
-    legacyMenu.add(MI_LEGACY_06,  new BoolMenuItem("Heal In Action Menu      %s", 2,  6,/*'h'*/  0, &lo.healShortcut));
-    legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  7,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
-    legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  8,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
-    legacyMenu.add(MI_LEGACY_09,  new BoolMenuItem("Pause When Unfocused     %s", 2,  9,/*'p'*/  0, &lo.pauseUnfocused));
+    legacyMenu.add(MI_INTERFACE_07, new BoolMenuItem("Console (SMS) Menus      %s", 2,  1,/*'m'*/ 14, &settingsChanged.enhancementsOptions.smsInterface));
+    legacyMenu.add(MI_LEGACY_01,  new BoolMenuItem("Walk Into To Act         %s", 2,  2,/*'w'*/  0, &lo.bumpToAct));
+    legacyMenu.add(MI_LEGACY_02,  new BoolMenuItem("Fold Repeated Moves      %s", 2,  3,/*'f'*/  0, &lo.foldMoves));
+    legacyMenu.add(MI_LEGACY_03,  new BoolMenuItem("Cancel Spends No Turn    %s", 2,  4,/*'n'*/ 14, &lo.freeCancel));
+    legacyMenu.add(MI_LEGACY_04,  new BoolMenuItem("Shops Compare Arms       %s", 2,  5,/*'o'*/  2, &lo.shopCompare));
+    legacyMenu.add(MI_LEGACY_05,  new BoolMenuItem("Spell Info In Lists      %s", 2,  6,/*'i'*/  6, &lo.spellInfo));
+    legacyMenu.add(MI_LEGACY_06,  new BoolMenuItem("Heal In Action Menu      %s", 2,  7,/*'h'*/  0, &lo.healShortcut));
+    legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  8,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
+    legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  9,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
     legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules, Saving & Cheats", 2, 10,/*'r'*/  2);
     legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);

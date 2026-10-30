@@ -25,7 +25,7 @@ especially for someone who has just downloaded the free release from
    and pickers for spells, items, numbers and words, so the whole game
    can be played with a D-pad and two buttons.  It switches on by itself
    when a gamepad is used, or can be turned on for keyboard play with
-   Configure > Enhanced Interface Options > Console (SMS) Menus.
+   Settings > Legacy Edition Options > Console (SMS) Menus.
  - **Mouse-only and touch play.**  The console menus can also be played
    with just taps (left clicks), as a step towards touch screens: tap
    the map to move toward the tap (hold to keep walking, drag to steer),

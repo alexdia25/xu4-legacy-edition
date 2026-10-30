@@ -143,9 +143,11 @@ static const char helpText[] =
 "LEGACY EDITION OPTIONS\n"
 "\n"
 "Settings, then Legacy Edition Options, holds the conveniences of this\n"
-"edition.  Most start on; Walk Into To Act starts on when a gamepad\n"
-"is used, and Auto Combat and Pause When Unfocused start off:\n"
+"edition.  Most start on; Console Menus and Walk Into To Act start on\n"
+"when a gamepad is used, and Auto Combat starts off:\n"
 "\n"
+"  Console (SMS) Menus    An action menu and lists to pick from, so\n"
+"                         the game plays with a gamepad or a mouse.\n"
 "  Walk Into To Act       Walking into someone talks, into a foe\n"
 "                         attacks, into a locked door opens it.\n"
 "  Fold Repeated Moves    \"North (x5)\" instead of five lines.\n"
@@ -157,12 +159,12 @@ static const char helpText[] =
 "  Heal In Action Menu    A Heal shortcut when someone is hurt.\n"
 "  Auto Combat            The party fights on its own.\n"
 "  Dungeon Map            A mini map or a top-down view of dungeons.\n"
-"  Pause When Unfocused   The game waits while you are away.\n"
 "\n"
 "Rules, Saving & Cheats sets the difficulty (Classic is the game as it\n"
 "was, Modern and Story are gentler), autosave with a history of saves,\n"
 "several characters with their own saves, and what happens when the\n"
-"party falls.  Scanlines and Battery Saver are in the Graphics options.\n";
+"party falls.  Scanlines, Battery Saver and Pause Unfocused (the game\n"
+"waits while you are away) are in the Graphics options.\n";
 
 std::string legacyHelpText()
 {
