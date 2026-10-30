@@ -43,5 +43,7 @@ typedef void (*PadKeyFunc)(int key);
 void gamepad_reset();
 void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey);
 bool gamepad_inUse();
+bool gamepad_prompts();
+void gamepad_keyboardUsed();
 
 #endif

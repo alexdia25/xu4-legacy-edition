@@ -220,6 +220,7 @@ WorldMapView::WorldMapView()
     buttonDown = WID_NONE;
     mouseX = mouseY = 0;
     english = false;
+    padHelp = false;
     zoomLevel = zoomMax = 0;
     fitScale = scale = 1.0f;
     centerX = centerY = targetX = targetY = MAP_DIM * 0.5f;
@@ -375,7 +376,8 @@ void WorldMapView::layout()
     page.frame(0, 0, W, page.height(), 14);
     page.fill(edge + 4, footY - 6, W - 2 * edge - 8, 2, TextPage::BLUE);
 
-    const char* help = gamepad_inUse() ?
+    padHelp = gamepad_prompts();
+    const char* help = padHelp ?
         "D-pad Pan  A,X Zoom  Y Runes/English  B Back" :
         "Arrows Pan  +,- Zoom  R Runes/English  Esc Back";
     page.text(edge + 8, footY + 3, help, TextPage::GREY);
@@ -530,6 +532,8 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
 {
     WorldMapView* wm = (WorldMapView*) data;
     WorkBuffer* work = wm->work;
+    if (wm->padHelp != gamepad_prompts())
+        wm->layout();
     const GuiArea* area = wm->gbox + WI_MAP;
     float rect[4];
 

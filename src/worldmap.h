@@ -52,6 +52,7 @@ private:
     float dragCX, dragCY;       // View center when the map was pressed.
     bool dragged;
     bool english;               // Show the labels in English, not runes.
+    bool padHelp;               // Footer names gamepad buttons.
     int zoomLevel;
     int zoomMax;
     float fitScale;             // Pixels per tile with the whole map in view.

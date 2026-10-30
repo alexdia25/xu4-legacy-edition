@@ -70,6 +70,7 @@ private:
     int listSel;
     int pressed;                // HitArea id pressed by the pointer.
     bool hasRunes;
+    bool padHelp;               // Footer names gamepad buttons.
 
     void openBook(int n, int chap = 0);
     void openChapter(int n);

@@ -34,6 +34,9 @@ makes Ultima IV easier to play on modern systems, especially with the free
   Enter key), X opens the action menu, Y the world map and B passes a
   turn; in menus A or X picks and B backs out.  On the keyboard, Tab
   opens the action menu.
+- The help lines of the books, the world map and Graphics & Music name
+  the gamepad buttons or the keys, whichever was used last.  The books'
+  footer has a second line, with Tab (or 1-7) to change book.
 - The Legacy Edition options start on (except Auto Combat), and Walk
   Into To Act and Automatic Actions switch on with a gamepad.  Console
   (SMS) Menus is now in Legacy Edition Options, and Pause Unfocused in

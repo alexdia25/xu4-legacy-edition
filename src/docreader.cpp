@@ -44,11 +44,11 @@ using std::string;
 #define RULE1_Y     60
 #define BODY_X      (EDGE + 8)
 #define BODY_Y      68
-#define BODY_END    (page.height() - 36)
+#define BODY_END    (page.height() - 46)
 #define BODY_W      (page.width() - 2 * BODY_X)
 #define BODY_H      (BODY_END - BODY_Y)
-#define RULE2_Y     (page.height() - 32)
-#define FOOT_Y      (page.height() - 27)
+#define RULE2_Y     (page.height() - 42)
+#define FOOT_Y      (page.height() - 37)   // Two lines of help.
 #define SIZE_COUNT  3
 #define LINE_H      10          // Body text line spacing.
 
@@ -385,6 +385,10 @@ void DocReader::renderReader(ScreenState* ss, void* data)
     DocReader* dr = (DocReader*) data;
     WorkBuffer* work = dr->work;
 
+    // Name the keys or buttons of whichever was used last.
+    if (dr->padHelp != gamepad_prompts())
+        dr->redraw();
+
     const TextPage& page = dr->page;
     dr->body.upload();
     dr->body.draw(ss, page, BODY_X, BODY_Y, BODY_W, BODY_H);
@@ -411,6 +415,7 @@ DocReader::DocReader()
     listSel = 0;
     pressed = -1;
     hasRunes = false;
+    padHelp = false;
 }
 
 DocReader::~DocReader()
@@ -877,40 +882,49 @@ void DocReader::drawBody()
 
 void DocReader::drawFooter()
 {
-    static const char* keyHelp[] = {
-        "Up/Down Scroll  Left/Right Chapter  Enter Contents  +/- Size",
+    // Two lines of help, each shortened until it fits.
+    static const char* keyHelp1[] = {
         "Up/Down Scroll  Left/Right Chapter  Enter Contents",
         "Left/Right Chapter  Enter Contents",
         "Enter Contents", ""
     };
-    static const char* padHelp[] = {
-        "Up/Down Scroll  Left/Right Chapter  A Contents  L/R Size",
+    static const char* keyHelp2[] = {
+        "Tab or 1-7 Book  +/- Size", "Tab Book  +/- Size", "Tab Book", ""
+    };
+    static const char* padHelp1[] = {
         "Up/Down Scroll  Left/Right Chapter  A Contents",
         "Left/Right Chapter  A Contents",
         "A Contents", ""
     };
+    static const char* padHelp2[] = {
+        "Y Book  L/R Size", "Y Book", ""
+    };
     int cw = page.cellWidth();
-    bool pad = gamepad_inUse();
-
-    // Buttons from the right: Back, then larger & smaller text.
+    bool pad = padHelp = gamepad_prompts();
+    // Buttons from the right, between the two lines: Back, then larger &
+    // smaller text.
     const char* label[3] = { pad ? "B Back" : "Esc Back", "+", "-" };
     int id[3] = { HIT_BACK, HIT_LARGER, HIT_SMALLER };
     int x = page.width() - EDGE - 6;
+    int by = FOOT_Y + LINE_H / 2;
     for (int i = 0; i < 3; ++i) {
         int w = (strlen(label[i]) + 2) * cw;
         x -= w;
-        page.fill(x, FOOT_Y - 3, w, 14, TextPage::DK_BLUE);
-        page.text(x + cw, FOOT_Y, label[i], TextPage::WHITE);
-        addHit(x, FOOT_Y - 4, w, 16, id[i]);
+        page.fill(x, by - 3, w, 14, TextPage::DK_BLUE);
+        page.text(x + cw, by, label[i], TextPage::WHITE);
+        addHit(x, by - 4, w, 16, id[i]);
         x -= cw;
     }
 
     // As much help as fits before them.
     int room = (x - EDGE - 8) / cw - 1;
-    const char** help = pad ? padHelp : keyHelp;
-    while (int(strlen(*help)) > room)
-        ++help;
-    page.text(EDGE + 8, FOOT_Y, *help, TextPage::GREY);
+    const char** help = pad ? padHelp1 : keyHelp1;
+    for (int line = 0; line < 2; ++line) {
+        while (int(strlen(*help)) > room)
+            ++help;
+        page.text(EDGE + 8, FOOT_Y + line * LINE_H, *help, TextPage::GREY);
+        help = pad ? padHelp2 : keyHelp2;
+    }
 }
 
 /*

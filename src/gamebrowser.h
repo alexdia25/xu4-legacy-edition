@@ -57,6 +57,7 @@ private:
     uint16_t selMusic;          // Chosen music row.
     int listTop;                // First row in view.
     int pressed;                // HitArea id pressed by the pointer.
+    bool padHelp;               // Footer names gamepad buttons.
     DocReader* reader;
 public:
     bool  openSettings;         // Settings was picked.

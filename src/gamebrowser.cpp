@@ -58,6 +58,8 @@ static const char* buttonLabels[6] = {
 void GameBrowser::renderBrowser(ScreenState* ss, void* data)
 {
     GameBrowser* gb = (GameBrowser*) data;
+    if (gb->padHelp != gamepad_prompts())
+        gb->redraw();
     gb->page.upload();
     gb->page.draw(ss);
 }
@@ -68,6 +70,7 @@ GameBrowser::GameBrowser()
     listTop = 0;
     pressed = -1;
     openSettings = false;
+    padHelp = false;
     reader = NULL;
 }
 
@@ -597,7 +600,8 @@ void GameBrowser::redraw()
         x += w + 2 * cw;
     }
 
-    const char* help = gamepad_inUse() ?
+    padHelp = gamepad_prompts();
+    const char* help = padHelp ?
         "Up/Down Choose  X Select  A Use  Y Docs  L Map  B Cancel" :
         "Up/Down Choose  Space Select  Enter Use  Esc Cancel";
     page.centered(FOOT_Y, help, TextPage::GREY);

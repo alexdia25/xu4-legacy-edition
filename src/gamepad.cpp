@@ -17,9 +17,10 @@ struct Gamepad {
 
 static Gamepad pad;
 static bool padInUse = false;   // A gamepad has been used.
+static bool padLast = false;    // The gamepad was used after the keyboard.
 
 static void sendPadKey(PadKeyFunc sendKey, int key) {
-    padInUse = true;
+    padInUse = padLast = true;
     sendKey(key);
 }
 
@@ -29,6 +30,18 @@ static void sendPadKey(PadKeyFunc sendKey, int key) {
  */
 bool gamepad_inUse() {
     return padInUse;
+}
+
+/*
+ * Return true if the gamepad was used more recently than the keyboard, so
+ * button prompts can name the device being played with.
+ */
+bool gamepad_prompts() {
+    return padLast;
+}
+
+void gamepad_keyboardUsed() {
+    padLast = false;
 }
 
 // Key sent when each button is pressed.
