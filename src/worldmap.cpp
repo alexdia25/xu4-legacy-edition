@@ -719,7 +719,8 @@ bool WorldMapView::keyPressed(int key)
             return true;
         case 'r':
         case 'e':
-        case 'z':       // Gamepad Y
+        case 'z':
+        case U4_PAD_Y:
         case U4_TAB:
             soundPlay(SOUND_UI_CLICK);
             english = ! english;

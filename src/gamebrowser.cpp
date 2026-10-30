@@ -723,7 +723,8 @@ bool GameBrowser::keyPressed(int key)
             return true;
 
         case 'd':
-        case 'z':       // Gamepad Y
+        case 'z':
+        case U4_PAD_Y:
             soundPlay(SOUND_UI_CLICK);
             readDocuments();
             return true;

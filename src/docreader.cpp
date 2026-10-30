@@ -1118,6 +1118,7 @@ bool DocReader::keyPressed(int key)
             return true;
         case U4_TAB:
         case 'z':
+        case U4_PAD_Y:
             soundPlay(SOUND_UI_TICK);
             openBook((book + 1) % BOOK_COUNT);
             return true;
