@@ -42,8 +42,11 @@ using std::string;
 #define TAB_Y       22
 #define BAR_Y       38
 #define RULE1_Y     60
+#define BODY_X      (EDGE + 8)
 #define BODY_Y      68
 #define BODY_END    (page.height() - 36)
+#define BODY_W      (page.width() - 2 * BODY_X)
+#define BODY_H      (BODY_END - BODY_Y)
 #define RULE2_Y     (page.height() - 32)
 #define FOOT_Y      (page.height() - 27)
 #define SIZE_COUNT  3
@@ -69,10 +72,10 @@ static const char* shortTabs[DocReader::BOOK_COUNT] = {
     "History", "Wisdom", "Hints", "Keys", "Runes", "Help", "Journal"
 };
 
-// Page size in characters for each text size.  Fewer columns make bigger
-// text, as the page always fills the screen.
-static const uint8_t sizeCols[SIZE_COUNT] = { 80, 64, 54 };
-static const uint8_t sizeRows[SIZE_COUNT] = { 50, 40, 34 };
+// Columns of text for each text size.  The text is drawn on a page of its
+// own which is stretched to fill the body of the reader, so fewer columns
+// make bigger text.
+static const uint8_t sizeCols[SIZE_COUNT] = { 74, 59, 50 };
 
 static const char* bookTitle(int n)
 {
@@ -382,10 +385,13 @@ void DocReader::renderReader(ScreenState* ss, void* data)
     DocReader* dr = (DocReader*) data;
     WorkBuffer* work = dr->work;
 
+    const TextPage& page = dr->page;
+    dr->body.upload();
+    dr->body.draw(ss, page, BODY_X, BODY_Y, BODY_W, BODY_H);
     dr->page.upload();
     dr->page.draw(ss);
 
-    if (dr->hasRunes) {
+    if (dr->hasRunes && ! dr->listOpen) {
         if (work->dirty)
             gpu_updateWorkBuffer(xu4.gpu, GPU_DLIST_GUI, work);
         gpu_enableGui(xu4.gpu, WID_NONE, 0);
@@ -590,7 +596,7 @@ void DocReader::openChapter(int n)
     chapter = n;
     view.clear();
 
-    size_t cols = (page.width() - 2 * (EDGE + 8)) / page.cellWidth();
+    size_t cols = body.width() / body.cellWidth();
     const Chapter& ch = chapters[n];
 
     // Lines too wide for the page are rejoined into paragraphs first so
@@ -640,7 +646,7 @@ void DocReader::openChapter(int n)
 
 int DocReader::bodyRows() const
 {
-    return (BODY_END - BODY_Y) / LINE_H;
+    return body.height() / LINE_H;
 }
 
 void DocReader::scrollTo(int line)
@@ -658,9 +664,9 @@ void DocReader::scrollTo(int line)
 
 bool DocReader::present()
 {
-    int size = xu4.settings->legacy.readerSize % SIZE_COUNT;
-    if (! page.begin(sizeCols[size], sizeRows[size]))
+    if (! page.begin())
         return false;
+    sizeBody();
     // Reopen the chapter last read in the same book (the journal is
     // remade each time, so it starts over).
     int chap = (book == lastBook && book != BOOK_JOURNAL) ? chapter : 0;
@@ -679,6 +685,7 @@ void DocReader::conclude()
 {
     screenSetLayer(LAYER_TOP_MENU, NULL, NULL);
     page.release();
+    body.release();
 }
 
 //----------------------------------------------------------------------------
@@ -716,6 +723,7 @@ void DocReader::redraw()
     drawChapterBar();
     page.fill(EDGE + 4, RULE1_Y, page.width() - 2 * EDGE - 8, 2,
               TextPage::BLUE);
+    page.fill(BODY_X, BODY_Y, BODY_W, BODY_H, TextPage::CLEAR);
     drawBody();
     page.fill(EDGE + 4, RULE2_Y, page.width() - 2 * EDGE - 8, 2,
               TextPage::BLUE);
@@ -790,11 +798,15 @@ void DocReader::drawChapterBar()
 void DocReader::drawBody()
 {
     const ScreenState* ss = screenState();
-    int cw = page.cellWidth();
-    int x0 = EDGE + 8;
+    int cw = body.cellWidth();
+    int x0 = 0;
     int rows = bodyRows();
+    // Runes are placed in GUI units; the body page is scaled by zoom.
+    float zoom = float(BODY_W) / body.width();
     float sx = float(ss->aspectW) / page.width();
     float sy = float(ss->aspectH) / page.height();
+
+    body.clear();
     TxfDrawState ds;
     float* attr = NULL;
 
@@ -803,10 +815,10 @@ void DocReader::drawBody()
         if (n >= view.size())
             break;
         const string& line = view[n];
-        int y = BODY_Y + r * LINE_H;
+        int y = r * LINE_H;
         size_t mark = line.find(RUNE_MARK);
         if (mark == string::npos) {
-            page.text(x0, y, line.c_str(), line.size(), TextPage::TEXT);
+            body.text(x0, y, line.c_str(), line.size(), TextPage::TEXT);
             continue;
         }
 
@@ -814,7 +826,7 @@ void DocReader::drawBody()
         if (! hasRunes) {
             hasRunes = true;
             ds.fontTable = ss->fontTable;
-            txf_begin(&ds, FONT_RUNES, 19.0f * sy, 0.0f, 0.0f);
+            txf_begin(&ds, FONT_RUNES, 19.0f * zoom * sy, 0.0f, 0.0f);
             ds.colorIndex = COL_WHITE;
             attr = gpu_beginRegion(work, 0);
         }
@@ -831,8 +843,8 @@ void DocReader::drawBody()
                         ++col;
                         continue;
                     }
-                    ds.x = ds.marginL = (x0 + col * cw) * sx;
-                    ds.y = ss->aspectH - (y + 13) * sy;
+                    ds.x = ds.marginL = (BODY_X + col * cw * zoom) * sx;
+                    ds.y = ss->aspectH - (BODY_Y + (y + 13) * zoom) * sy;
                     ds.prev = NULL;
                     attr = gui_emitText(&ds, attr, &line[k], 1);
                     col += 2;
@@ -842,7 +854,7 @@ void DocReader::drawBody()
                 // Keep the columns of the table after wide runes.
                 if (col < int(i))
                     col = i;
-                page.text(x0 + col * cw, y, &line[i], 1, TextPage::TEXT);
+                body.text(x0 + col * cw, y, &line[i], 1, TextPage::TEXT);
                 ++col;
                 ++i;
             }
@@ -854,7 +866,7 @@ void DocReader::drawBody()
     // Scroll bar.
     int total = view.size();
     if (total > rows) {
-        int barH = BODY_END - BODY_Y;
+        int barH = BODY_H;
         int thumb = std::max(barH * rows / total, 8);
         int pos = (barH - thumb) * top / (total - rows);
         int bx = page.width() - EDGE - 6;
@@ -947,8 +959,18 @@ void DocReader::drawChapterList()
 }
 
 /*
- * Change the text size (by changing the page size), keeping the place in
- * the chapter.
+ * Make the body page for the text size, with the shape of the body of the
+ * reader.
+ */
+void DocReader::sizeBody()
+{
+    int size = xu4.settings->legacy.readerSize % SIZE_COUNT;
+    int w = sizeCols[size] * page.cellWidth();
+    body.beginPixels(w, w * BODY_H / BODY_W);
+}
+
+/*
+ * Change the size of the text, keeping the place in the chapter.
  */
 void DocReader::resize(int dir)
 {
@@ -961,8 +983,7 @@ void DocReader::resize(int dir)
     xu4.settings->write();
 
     float place = view.empty() ? 0.0f : float(top) / view.size();
-    page.release();
-    page.begin(sizeCols[n], sizeRows[n]);
+    sizeBody();
     openChapter(chapter);
     scrollTo(int(place * view.size() + 0.5f));
     redraw();

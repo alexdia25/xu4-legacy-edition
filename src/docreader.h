@@ -55,6 +55,7 @@ private:
     };
 
     TextPage page;
+    TextPage body;              // The text, drawn at the chosen size.
     std::vector<std::string> lines;     // The whole book.
     std::vector<Chapter> chapters;
     std::vector<std::string> view;      // The chapter, wrapped to the page.
@@ -87,6 +88,7 @@ private:
     void scrollTo(int line);
     void activate(int id);
     void resize(int dir);
+    void sizeBody();
 
     static void renderReader(ScreenState* ss, void* data);
 };

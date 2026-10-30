@@ -31,6 +31,7 @@ const uint32_t TextPage::DK_BLUE = pixel(  0,   0, 170);
 const uint32_t TextPage::CYAN    = pixel( 85, 255, 255);
 const uint32_t TextPage::GREEN   = pixel( 85, 255,  85);
 const uint32_t TextPage::YELLOW  = pixel(255, 255,  85);
+const uint32_t TextPage::CLEAR   = 0;
 
 TextPage::TextPage()
 {
@@ -38,6 +39,7 @@ TextPage::TextPage()
     charset = NULL;
     tex = 0;
     cellW = 8;
+    inkMax = 765;
     dirty = true;
 }
 
@@ -54,11 +56,32 @@ TextPage::~TextPage()
 bool TextPage::begin(int cols, int rows)
 {
     ImageInfo* info = xu4.imageMgr->get(BKGD_CHARSET);
+    int cw = (info && info->image) ? info->image->width() : 8;
+    return beginPixels(cols * cw, rows * CELL_H);
+}
+
+/*
+ * Prepare a page of any size in pixels.
+ */
+bool TextPage::beginPixels(int w, int h)
+{
+    ImageInfo* info = xu4.imageMgr->get(BKGD_CHARSET);
     charset = info ? info->image : NULL;
     cellW = charset ? charset->width() : 8;
 
-    int w = cols * cellW;
-    int h = rows * CELL_H;
+    // Fonts such as the VGA one of the Upgrade are shaded, with a dark drop
+    // shadow, so the glyphs are tinted by how bright each pixel is.
+    inkMax = 1;
+    if (charset) {
+        const uint8_t* p = (const uint8_t*) charset->pixelData();
+        const uint8_t* end = p + charset->width() * charset->height() * 4;
+        for (; p != end; p += 4) {
+            int sum = p[0] + p[1] + p[2];
+            if (p[3] && sum > inkMax)
+                inkMax = sum;
+        }
+    }
+
     if (img.w != w || img.h != h) {
         release();
         image32_freePixels(&img);
@@ -139,6 +162,8 @@ void TextPage::text(int x, int y, const char* str, int len, uint32_t color,
     int cw = charset->width();
     int chars = charset->height() / CELL_H;
 
+    const uint8_t* rgb = (const uint8_t*) &color;
+
     for (int n = 0; n < len; ++n, x += cw * scale) {
         int ch = (uint8_t) str[n];
         if (ch == ' ' || ch >= chars)
@@ -148,8 +173,16 @@ void TextPage::text(int x, int y, const char* str, int len, uint32_t color,
             for (int i = 0; i < cw; ++i) {
                 const uint8_t* p = (const uint8_t*) (glyph + j * cw + i);
                 // Ink is any pixel brighter than the background.
-                if (p[3] && (p[0] + p[1] + p[2]) > 96)
-                    fill(x + i * scale, y + j * scale, scale, scale, color);
+                int sum = p[0] + p[1] + p[2];
+                if (! p[3] || sum <= 96)
+                    continue;
+                uint32_t ink = color;
+                if (sum < inkMax) {
+                    uint8_t* q = (uint8_t*) &ink;
+                    for (int k = 0; k < 3; ++k)
+                        q[k] = rgb[k] * sum / inkMax;
+                }
+                fill(x + i * scale, y + j * scale, scale, scale, ink);
             }
         }
     }
@@ -190,6 +223,25 @@ void TextPage::draw(const ScreenState* ss)
     rect[1] = 0.0f;
     rect[2] = ss->aspectW;
     rect[3] = ss->aspectH;
+    gpu_drawImage(xu4.gpu, tex, rect, ss->aspectW, ss->aspectH);
+}
+
+/*
+ * Draw the page over the rectangle x, y, w, h of another page (in the
+ * pixels of that page), which fills the screen.
+ */
+void TextPage::draw(const ScreenState* ss, const TextPage& on, int x, int y,
+                    int w, int h)
+{
+    if (! tex || ! on.img.w || ! on.img.h)
+        return;
+    float sx = float(ss->aspectW) / on.img.w;
+    float sy = float(ss->aspectH) / on.img.h;
+    float rect[4];
+    rect[0] = x * sx;
+    rect[1] = ss->aspectH - (y + h) * sy;
+    rect[2] = w * sx;
+    rect[3] = h * sy;
     gpu_drawImage(xu4.gpu, tex, rect, ss->aspectW, ss->aspectH);
 }
 

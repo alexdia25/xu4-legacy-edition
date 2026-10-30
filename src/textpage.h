@@ -37,11 +37,13 @@ public:
     static const uint32_t CYAN;
     static const uint32_t GREEN;
     static const uint32_t YELLOW;
+    static const uint32_t CLEAR;        // See-through.
 
     TextPage();
     ~TextPage();
 
     bool begin(int cols = COLS, int rows = ROWS);
+    bool beginPixels(int w, int h);
     void clear(uint32_t color = BLACK);
     void fill(int x, int y, int w, int h, uint32_t color);
     void frame(int x, int y, int w, int h, int thick = 8);
@@ -56,6 +58,8 @@ public:
 
     void upload();
     void draw(const ScreenState* ss);
+    void draw(const ScreenState* ss, const TextPage& on, int x, int y,
+              int w, int h);
     void release();
 
     // Convert a pointer event position (GUI pixels) to page pixels.
@@ -71,6 +75,7 @@ private:
     const Image* charset;
     uint32_t tex;
     int cellW;
+    int inkMax;         // Brightness of the brightest charset pixel.
     bool dirty;
 };
 

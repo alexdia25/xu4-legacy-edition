@@ -76,6 +76,16 @@ GameBrowser::~GameBrowser()
     delete reader;
 }
 
+#define NO_PARENT   255
+
+// List rows that are not module files have modFileI set to NO_PARENT and
+// resPathI set to one of these.
+enum SpecialRow {
+    ROW_GRAPHICS,       // Heading
+    ROW_MUSIC,          // Heading
+    ROW_GAME_MUSIC      // Music of the selected game module.
+};
+
 /*
  * Scroll the list so that the cursor row is in view.
  */
@@ -86,13 +96,18 @@ void GameBrowser::keepVisible()
         listTop = sel;
     else if (sel >= listTop + LIST_ROWS)
         listTop = sel - LIST_ROWS + 1;
+    // Show the Graphics or Music heading above the first item under it.
+    while (listTop > 0 && sel - (listTop - 1) < LIST_ROWS) {
+        const ModuleInfo& mi = infoList[listTop - 1];
+        if (mi.modFileI != NO_PARENT || mi.resPathI == ROW_GAME_MUSIC)
+            break;
+        --listTop;
+    }
     if (listTop > count - LIST_ROWS)
         listTop = count - LIST_ROWS;
     if (listTop < 0)
         listTop = 0;
 }
-
-#define NO_PARENT   255
 
 struct ModuleSortContext {
     const StringTable* st;
@@ -265,14 +280,6 @@ static int test_query(int n, StringTable* modInfo)
     return testCategory[n];
 }
 #endif
-
-// List rows that are not module files have modFileI set to NO_PARENT and
-// resPathI set to one of these.
-enum SpecialRow {
-    ROW_GRAPHICS,       // Heading
-    ROW_MUSIC,          // Heading
-    ROW_GAME_MUSIC      // Music of the selected game module.
-};
 
 // The font carries over from one row to the next, so the headings select
 // font 1 for the module names below them.  (A trailing "\x12\x00" here
