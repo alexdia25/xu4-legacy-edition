@@ -25,7 +25,9 @@
   .box { max-width: 30rem; width: 100%; background: var(--panel); border: 2px solid var(--edge);
          border-radius: 8px; padding: 20px; box-sizing: border-box; }
   .box h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
-  .box p { margin: .5rem 0; color: var(--dim); }
+  .box p, .box li { margin: .5rem 0; color: var(--dim); }
+  .box ul { margin: .5rem 0; padding-left: 1.2rem; }
+  .box { max-height: calc(100% - 32px); overflow-y: auto; }
   .box code { color: var(--text); }
   button, label.button { display: inline-block; margin: .5rem .5rem 0 0; padding: .55rem 1.1rem;
            font: inherit; font-weight: 600; color: #fff; background: #2a4aa0; border: 0;
@@ -49,22 +51,26 @@
   <div class="box">
     <h1>XU4 Legacy Edition</h1>
     <p>Ultima IV recreated, with gamepad, touch and console style menus. It plays your own copy of
-       the DOS game (<code>ultima4.zip</code>, free from GOG); your files and saved games stay in this
+       the DOS game (from GOG, or <code>ultima4.zip</code>); your files and saved games stay in this
        browser.</p>
     <p id="rotate">Turn your device sideways to play.</p>
     <p id="status">Loading...</p>
     <button id="playButton" disabled>Play</button>
+    <button class="quiet" id="startFiles" disabled>Game Files</button>
   </div>
 </div>
 
 <div class="overlay" id="filesBox" hidden>
   <div class="box">
     <h1 id="filesTitle">Game files</h1>
-    <p id="filesText"></p>
+    <div id="filesText"></div>
     <label class="button" for="fileInput">Choose Files</label>
+    <label class="button" for="folderInput" id="folderButton">Choose Folder</label>
+    <button id="restartButton" hidden>Restart</button>
     <button class="quiet" id="exportButton">Export Saves</button>
     <button class="quiet" id="closeFiles">Close</button>
     <input type="file" id="fileInput" multiple>
+    <input type="file" id="folderInput" webkitdirectory>
   </div>
 </div>
 
@@ -85,46 +91,184 @@ function syncSave() {
   });
 }
 
-const INTRO = 'XU4 needs the Ultima IV for DOS game files: choose <code>ultima4.zip</code> ' +
-  '(or the files of the GOG release). You can also add <code>u4upgrad.zip</code>, Apple II or C64 ' +
-  'disk images and the Sega Master System ROM.';
+const INTRO = '<p>XU4 needs the files of Ultima IV for DOS.</p><ul>' +
+  '<li><b>From GOG</b> you get an installer (<code>setup_ultima_iv_...exe</code>), which cannot run ' +
+  'in a browser. Install it on a Windows PC, then use Choose Folder and pick the folder it made ' +
+  '(<code>C:\\GOG Games\\Ultima 4 - Quest of the Avatar</code>), or Choose Files and select all ' +
+  'the files in it. For an iPhone or iPad, zip that folder and put the zip in iCloud Drive or ' +
+  'Files, then choose the zip. On a Mac or Linux, <code>innoextract</code> unpacks the installer.</li>' +
+  '<li>Or choose <code>ultima4.zip</code> if you have it.</li></ul>' +
+  '<p>Also, now or later from Game Files: <code>u4upgrad.zip</code> (the VGA upgrade), Apple II ' +
+  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images and the Sega ' +
+  'Master System ROM (<code>.sms</code>), on their own or in zip files.</p>';
+const LATER = '<p>Add more files at any time: <code>u4upgrad.zip</code> (the VGA upgrade), Apple II ' +
+  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images and the Sega ' +
+  'Master System ROM (<code>.sms</code>), on their own or in zip files. Export Saves downloads ' +
+  'your settings and saved games as a zip.</p>';
 
-function showFiles(text, canClose) {
+// iOS has no folder picker; selecting the files (or a zip) works there.
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (IOS || !('webkitdirectory' in $('folderInput'))) $('folderButton').hidden = true;
+
+let running = false;
+function showFiles(text, canClose, restart) {
   $('filesText').innerHTML = text;
   $('closeFiles').hidden = !canClose;
   $('exportButton').hidden = !canClose;
+  $('restartButton').hidden = !restart;
   $('filesBox').hidden = false;
 }
 
-async function saveChosen(files) {
-  let n = 0;
-  for (const f of files) {
-    const data = new Uint8Array(await f.arrayBuffer());
-    FS.writeFile(DATA + '/' + f.name, data);
-    ++n;
+// The DOS game's files, which go in DATA/u4 (kept apart from the saves).
+const DOS_FILE = /^(avatar\.exe|title\.exe|.*\.(cga|com|con|dng|drv|ega|egz|map|new|old|pal|pic|tlk|ult))$/i;
+// Other platforms' data, which the modules look for in DATA.
+const IMAGE_FILE = /\.(dsk|do|d64|d81|sms)$/i;
+const baseName = (path) => path.slice(path.lastIndexOf('/') + 1);
+
+// List the entries of a zip archive.
+function zipEntries(buf) {
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let end = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); --i) {
+    if (v.getUint32(i, true) === 0x06054b50) { end = i; break; }
   }
-  await new Promise((done) => FS.syncfs(false, () => done()));
-  return n;
+  if (end < 0) return null;
+  const dec = new TextDecoder();
+  const list = [];
+  let p = v.getUint32(end + 16, true);
+  for (let n = v.getUint16(end + 10, true); n > 0 && p + 46 <= buf.length; --n) {
+    if (v.getUint32(p, true) !== 0x02014b50) break;
+    const nlen = v.getUint16(p + 28, true);
+    list.push({
+      name: dec.decode(buf.subarray(p + 46, p + 46 + nlen)).replace(/\\/g, '/'),
+      method: v.getUint16(p + 10, true),
+      csize: v.getUint32(p + 20, true),
+      offset: v.getUint32(p + 42, true),
+    });
+    p += 46 + nlen + v.getUint16(p + 30, true) + v.getUint16(p + 32, true);
+  }
+  return list;
 }
 
-$('fileInput').addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files);
-  e.target.value = '';
+async function zipRead(buf, e) {
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const start = e.offset + 30 + v.getUint16(e.offset + 26, true) + v.getUint16(e.offset + 28, true);
+  const data = buf.subarray(start, start + e.csize);
+  if (e.method === 0) return data;
+  if (e.method !== 8) throw new Error('unsupported zip method ' + e.method);
+  const out = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+
+function mkdirs(path) {
+  let dir = '';
+  for (const part of path.split('/').slice(1, -1)) {
+    dir += '/' + part;
+    try { FS.mkdir(dir); } catch (e) { /* exists */ }
+  }
+}
+function saveFile(path, data) { mkdirs(path); FS.writeFile(path, data); }
+
+// Save what the player chose: the DOS game's files (loose, from a folder or
+// in a zip such as ultima4.zip), the VGA upgrade zip, and disk images & ROMs
+// (loose or zipped).  Returns what was found.
+async function saveChosen(files) {
+  const got = { dos: 0, avatar: false, upgrade: false, images: [], installer: false };
+  const saveDos = (name, data) => {
+    saveFile(DATA + '/u4/' + name.toUpperCase(), data);
+    ++got.dos;
+    if (/^avatar\.exe$/i.test(name)) got.avatar = true;
+  };
+  for (const f of files) {
+    const name = f.name;
+    if (DOS_FILE.test(name)) {
+      saveDos(name, new Uint8Array(await f.arrayBuffer()));
+    } else if (IMAGE_FILE.test(name)) {
+      saveFile(DATA + '/' + name, new Uint8Array(await f.arrayBuffer()));
+      got.images.push(name);
+    } else if (/\.exe$/i.test(name) && f.size > 1000000) {
+      got.installer = true;
+    } else if (/\.zip$/i.test(name)) {
+      const buf = new Uint8Array(await f.arrayBuffer());
+      const list = zipEntries(buf);
+      if (!list) continue;
+      if (list.some((e) => /^u4vga\.pal$/i.test(baseName(e.name)))) {
+        // xu4 reads the upgrade from its zip.
+        saveFile(DATA + '/u4upgrad.zip', buf);
+        got.upgrade = true;
+        continue;
+      }
+      const exe = list.find((e) => /^avatar\.exe$/i.test(baseName(e.name)));
+      const dir = exe ? exe.name.slice(0, exe.name.length - 10) : null;
+      for (const e of list) {
+        const base = baseName(e.name);
+        if (exe && e.name === dir + base && DOS_FILE.test(base))
+          saveDos(base, await zipRead(buf, e));
+        else if (IMAGE_FILE.test(base)) {
+          saveFile(DATA + '/' + base, await zipRead(buf, e));
+          got.images.push(base);
+        }
+      }
+    }
+  }
+  await new Promise((done) => FS.syncfs(false, () => done()));
+  return got;
+}
+
+function describe(got) {
+  const parts = [];
+  if (got.avatar) parts.push('the Ultima IV for DOS files');
+  else if (got.dos) parts.push(got.dos + ' Ultima IV file(s)');
+  if (got.upgrade) parts.push('the VGA upgrade');
+  if (got.images.length) parts.push(got.images.join(', '));
+  let text = parts.length ? '<p>Added ' + parts.join(', ') + '.</p>' : '<p>Nothing XU4 uses was found in the chosen files.</p>';
+  if (got.installer)
+    text += '<p>The GOG installer cannot run in a browser: install it on a PC and choose the ' +
+            'files it installed (see below).</p>';
+  return text;
+}
+
+async function chosen(files) {
   if (!files.length) return;
-  const n = await saveChosen(files);
+  const got = await saveChosen(files);
   if (pendingChoose) {
+    // The game is waiting for the DOS files; it checks again & asks again
+    // if they are still missing.
     const resolve = pendingChoose;
     pendingChoose = null;
+    lastChosen = got;
     $('filesBox').hidden = true;
-    resolve(n);
+    resolve(got.dos + got.images.length + (got.upgrade ? 1 : 0));
+  } else if (running) {
+    showFiles(describe(got) + '<p>The game reads new files when it starts: save your game, then ' +
+              'Restart.</p>' + LATER, true, true);
   } else {
-    showFiles(n + ' file(s) added. Modules that need them are listed in Graphics & Music; ' +
-              'new game data is read the next time the game starts.', true);
+    showFiles(describe(got) + LATER, true);
   }
-});
+}
+let lastChosen = null;
+for (const id of ['fileInput', 'folderInput']) {
+  $(id).addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = '';
+    chosen(files);
+  });
+}
+// SDL's fill-document window moves everything else on the page into a
+// hidden element; bring back the Files button & box.
+new MutationObserver(() => {
+  if (document.getElementById('SDL3_fill_document_background_elements'))
+    for (const id of ['menuButton', 'filesBox'])
+      if ($(id).parentNode !== document.body) document.body.appendChild($(id));
+}).observe(document.body, { childList: true });
+$('restartButton').onclick = () => {
+  FS.syncfs(false, () => location.reload());
+};
 $('closeFiles').onclick = () => { $('filesBox').hidden = true; };
-$('menuButton').onclick = () => showFiles(INTRO.replace('XU4 needs', 'XU4 uses') +
-  ' Export Saves downloads your settings and saved games as a zip.', true);
+$('menuButton').onclick = () => showFiles(LATER, true);
+$('startFiles').onclick = () => showFiles(INTRO + '<p>Export Saves downloads your settings and ' +
+  'saved games as a zip.</p>', true);
 
 // A zip archive (stored, not compressed) of every file under DATA.
 function crc32(buf) {
@@ -166,7 +310,9 @@ function listFiles(path, prefix, out) {
   for (const name of FS.readdir(path)) {
     if (name === '.' || name === '..') continue;
     const full = path + '/' + name, st = FS.stat(full);
-    if (FS.isDir(st.mode)) listFiles(full, prefix + name + '/', out);
+    if (FS.isDir(st.mode)) {
+      if (!(prefix === '' && name === 'u4')) listFiles(full, prefix + name + '/', out);
+    }
     else if (!/\.(zip|dsk|do|d64|d81|sms)$/i.test(name))   // Not the game data.
       out.push([prefix + name, FS.readFile(full)]);
   }
@@ -195,6 +341,7 @@ var Module = {
   onRuntimeInitialized: () => {
     $('status').textContent = '';
     $('playButton').disabled = false;
+    $('startFiles').disabled = false;
   },
   setStatus: (text) => { if (text) $('status').textContent = text; },
   print: (text) => console.log(text),
@@ -202,12 +349,14 @@ var Module = {
   // Called by the game (src/web.cpp) when ultima4.zip is missing.
   xu4ChooseFiles: (retry) => new Promise((resolve) => {
     pendingChoose = resolve;
-    showFiles(retry ? 'ultima4.zip was not found in the chosen files. ' + INTRO : INTRO, false);
+    showFiles(retry ? describe(lastChosen || { dos: 0, images: [] }) +
+              '<p>The Ultima IV for DOS files are still missing.</p>' + INTRO : INTRO, false);
   }),
 };
 
 $('playButton').onclick = () => {
   $('startBox').hidden = true;
+  running = true;
   $('menuButton').hidden = false;
   $('canvas').focus();
   // Keep saves: write back every few seconds and when the page is hidden.

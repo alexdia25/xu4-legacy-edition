@@ -247,10 +247,16 @@ Every download is on the [releases page].  The game data
    `Android/data/io.github.alexdia25.xu4_legacy_edition/files`.  The game
    is played with touch or a gamepad; Back opens the game menu.
  - **Web browser, iPhone and iPad**: [play in the browser], on a
-   computer, phone or tablet.  It asks for `ultima4.zip` (or the GOG
-   files) the first time and keeps them, with the settings and saved
-   games, in the browser; the Files button adds more files (disk images,
-   the SMS ROM) and exports the saves as a zip.  On an iPhone or iPad open
+   computer, phone or tablet.  It asks for the game files the first time
+   and keeps them, with the settings and saved games, in the browser.
+   GOG sells Ultima IV as a Windows installer, which a browser cannot
+   run: install it on a PC and choose the folder it made (`C:\GOG
+   Games\Ultima 4 - Quest of the Avatar`), or all the files in it, or a
+   zip of that folder (the way to get them onto an iPhone or iPad, via
+   iCloud Drive or Files).  `ultima4.zip` works too.  The Files button
+   (and Game Files on the start screen) adds more at any time:
+   `u4upgrad.zip`, Apple II or C64 disk images and the SMS ROM, loose or
+   zipped, read after a restart.  It also exports the saves as a zip.  On an iPhone or iPad open
    it in Safari and choose Share > Add to Home Screen: it then runs full
    screen, works offline and keeps its saves (Safari clears the storage of
    a site not visited for seven days, but not of a Home Screen app).

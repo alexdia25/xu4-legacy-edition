@@ -10,7 +10,9 @@ makes Ultima IV easier to play on modern systems, especially with the free
   later), played with touch or a gamepad.  See Getting started (Android).
 - **Web, iPhone and iPad**: the game runs in the browser at
   <https://alexdia25.github.io/xu4-legacy-edition/play/>; on iOS use
-  Safari's Share > Add to Home Screen to install it.
+  Safari's Share > Add to Home Screen to install it.  It takes the
+  files of the installed GOG game (a folder, the files or a zip of
+  them) or `ultima4.zip`, and more files can be added later.
 - **Steam Deck**: the Flatpak can be installed with one click from the
   [Flatpak repository](https://alexdia25.github.io/xu4-legacy-edition/)
   and then updates with your other Flatpaks; the README has the steps
