@@ -70,7 +70,7 @@ ${WINDRES} -I ${SRC}/src/win32 ${SRC}/src/win32/xu4.rc \
     -o ${SRC}/src/xu4rc.o
 make -s -C ${SRC}/src -j8 xu4.exe UI=sdl3 EXEEXT=.exe \
     CC=${HOST}-gcc CXX=${HOST}-g++ \
-    CFLAGS="${FLAGS}" CXXFLAGS="${FLAGS}" \
+    CFLAGS="${FLAGS}" CXXFLAGS="-std=c++17 ${FLAGS}" \
     LDFLAGS="-L${SYS}/lib -static-libgcc -static-libstdc++ -mwindows" \
     LIBS="xu4rc.o -lSDL3 -lboron -lws2_32 -lz -Wl,-Bstatic -lpthread"
 

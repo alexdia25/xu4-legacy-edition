@@ -67,7 +67,7 @@ FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I${SYS}/include \
  -DVERSION=\\\"${VERSION}\\\" -O3 -DNDEBUG"
 make -s -C ${SRC}/src -j8 xu4 UI=sdl3 \
     CC="clang ${ARCHS}" CXX="clang++ ${ARCHS}" \
-    CFLAGS="${FLAGS}" CXXFLAGS="${FLAGS}" \
+    CFLAGS="${FLAGS}" CXXFLAGS="-std=c++17 ${FLAGS}" \
     LDFLAGS="-L${SYS}/lib" \
     LIBS="-lSDL3 -lboron -lz -lpthread -lm ${SDL_LIBS} -framework OpenGL"
 strip -x ${SRC}/src/xu4

@@ -57,7 +57,7 @@ git archive HEAD src | tar x -C ${SRC}
 FLAGS="-Wall -Wno-unused-parameter -I. -Isupport -I${SYS}/include \
  -DUSE_BORON -DCONF_MODULE -DVERSION=\\\"${VERSION}\\\" -O3 -DNDEBUG"
 make -s -C ${SRC}/src -j8 xu4 UI=sdl3 \
-    CFLAGS="${FLAGS}" CXXFLAGS="${FLAGS}" \
+    CFLAGS="${FLAGS}" CXXFLAGS="-std=c++17 ${FLAGS}" \
     LDFLAGS="-L${SYS}/lib -no-pie" \
     LIBS="-Wl,-Bstatic -lSDL3 -lboron -Wl,-Bdynamic -lz -lpthread -ldl -lm"
 strip ${SRC}/src/xu4
