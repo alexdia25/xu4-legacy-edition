@@ -43,9 +43,10 @@ using std::string;
 #define BAR_Y       38
 #define RULE1_Y     60
 #define BODY_Y      68
-#define BODY_END    364
-#define RULE2_Y     368
-#define FOOT_Y      373
+#define BODY_END    (page.height() - 36)
+#define RULE2_Y     (page.height() - 32)
+#define FOOT_Y      (page.height() - 27)
+#define SIZE_COUNT  3
 #define LINE_H      10          // Body text line spacing.
 
 enum HitIds {
@@ -54,6 +55,8 @@ enum HitIds {
     HIT_NEXT,
     HIT_TITLE,
     HIT_BACK,
+    HIT_SMALLER,
+    HIT_LARGER,
     HIT_LIST  = 100
 };
 
@@ -61,6 +64,15 @@ static const char* bookTabs[DocReader::BOOK_COUNT] = {
     "History", "Wisdom", "Hints", "Keyboard", "Runes", "How to Play",
     "Journal"
 };
+
+static const char* shortTabs[DocReader::BOOK_COUNT] = {
+    "History", "Wisdom", "Hints", "Keys", "Runes", "Help", "Journal"
+};
+
+// Page size in characters for each text size.  Fewer columns make bigger
+// text, as the page always fills the screen.
+static const uint8_t sizeCols[SIZE_COUNT] = { 80, 64, 54 };
+static const uint8_t sizeRows[SIZE_COUNT] = { 50, 40, 34 };
 
 static const char* bookTitle(int n)
 {
@@ -286,10 +298,34 @@ static bool headingLine(const string& line)
 }
 
 /*
+ * Return true if a line of the original fixed width text carries on the
+ * paragraph of the line before it: both are prose (no table columns), the
+ * line is not a heading or list item, and the line before reached the
+ * right margin.
+ */
+static bool joinsParagraph(const string& prev, const string& line)
+{
+    if (isBlank(prev) || isBlank(line) || headingLine(line))
+        return false;
+    size_t indent = line.find_first_not_of(' ');
+    size_t prevIndent = prev.find_first_not_of(' ');
+    if (line.find("   ", indent) != string::npos ||
+        prev.find("   ", prevIndent) != string::npos)
+        return false;
+    if (indent > prevIndent && indent > 0)
+        return false;
+    // A list label such as "A)" or "1)" starts a new item.
+    if (line.size() > indent + 1 && line[indent + 1] == ')')
+        return false;
+    return trimmed(prev).size() + prevIndent >= 50;
+}
+
+/*
  * Wrap a line to the page width.  Continued lines are indented to where
  * the text of the line starts (after a "1)" or "A)" label).
  */
-static void wrapLine(const string& src, size_t cols, std::vector<string>& out)
+static void wrapLine(const string& src, size_t cols, std::vector<string>& out,
+                     size_t hang = string::npos)
 {
     string line(src);
     while (! line.empty() && line.back() == ' ')
@@ -299,8 +335,22 @@ static void wrapLine(const string& src, size_t cols, std::vector<string>& out)
         return;
     }
 
-    size_t indent = line.find_first_not_of(' ');
-    size_t gap = line.find("  ", indent);
+    // A centered or indented line which fits without its indent is
+    // centered (or moved left) instead of wrapped.
+    size_t lead = line.find_first_not_of(' ');
+    size_t len = line.size() - lead;
+    bool joined = (hang != string::npos);
+    if (! joined && len <= cols) {
+        size_t indent = (lead >= 12) ? (cols - len) / 2
+                                     : std::min(lead, cols - len);
+        out.push_back(string(indent, ' ') + line.substr(lead));
+        return;
+    }
+
+    // Prose rejoined into a paragraph continues at the indent of its
+    // second line.
+    size_t indent = joined ? hang : lead;
+    size_t gap = joined ? string::npos : line.find("  ", indent);
     if (gap != string::npos && gap - indent <= 4) {
         size_t text = line.find_first_not_of(' ', gap);
         if (text != string::npos && text < 20)
@@ -452,13 +502,7 @@ void DocReader::findChapters()
     chapters.clear();
     for (i = 0; i < found.size(); ++i) {
         int end = (i + 1 < found.size()) ? found[i+1].start : lines.size();
-        bool empty = true;
-        for (int n = found[i].start + 1; n < end; ++n) {
-            if (! isBlank(lines[n]) && ! headingLine(lines[n])) {
-                empty = false;
-                break;
-            }
-        }
+        bool empty = titleOnly(found[i].start + 1, end);
         if (empty && i + 1 < found.size()) {
             found[i+1].start = found[i].start;
             continue;
@@ -466,14 +510,20 @@ void DocReader::findChapters()
         chapters.push_back(found[i]);
     }
 
-    // Introduction.
+    // Introduction.  If it is only the title of the book, the title goes
+    // at the top of the first chapter.
     int first = chapters.empty() ? lines.size() : chapters[0].start;
-    for (int n = 0; n < first; ++n) {
-        if (! isBlank(lines[n])) {
-            ch.title = chapters.empty() ? bookTitle(book) : "Introduction";
-            ch.start = 0;
-            chapters.insert(chapters.begin(), ch);
-            break;
+    if (! chapters.empty() && titleOnly(0, first)) {
+        chapters[0].start = 0;
+    } else {
+        for (int n = 0; n < first; ++n) {
+            if (! isBlank(lines[n])) {
+                ch.title = chapters.empty() ? bookTitle(book)
+                                            : "Introduction";
+                ch.start = 0;
+                chapters.insert(chapters.begin(), ch);
+                break;
+            }
         }
     }
     if (chapters.empty()) {
@@ -487,6 +537,23 @@ void DocReader::findChapters()
                                                      : lines.size();
 }
 
+/*
+ * Return true if lines start to end hold nothing but headings and a few
+ * centered title lines.
+ */
+bool DocReader::titleOnly(int start, int end) const
+{
+    int count = 0;
+    for (int n = start; n < end; ++n) {
+        const string& line = lines[n];
+        if (isBlank(line) || headingLine(line))
+            continue;
+        if (line.find_first_not_of(' ') < 12 || ++count > 3)
+            return false;
+    }
+    return true;
+}
+
 void DocReader::openChapter(int n)
 {
     if (n < 0)
@@ -496,8 +563,40 @@ void DocReader::openChapter(int n)
 
     size_t cols = (page.width() - 2 * (EDGE + 8)) / page.cellWidth();
     const Chapter& ch = chapters[n];
-    for (int i = ch.start; i < ch.end; ++i)
-        wrapLine(lines[i], cols, view);
+
+    // Lines too wide for the page are rejoined into paragraphs first so
+    // that the prose wraps evenly at the bigger text sizes.
+    bool reflow = false;
+    for (int i = ch.start; i < ch.end; ++i) {
+        if (! isBlank(lines[i]) &&
+            trimmed(lines[i]).size() + lines[i].find_first_not_of(' ') >
+                cols && lines[i].find(RUNE_MARK) == string::npos)
+            reflow = true;
+    }
+
+    string para;
+    size_t hang = string::npos;     // Indent of joined lines.
+    for (int i = ch.start; i < ch.end; ++i) {
+        const string& line = lines[i];
+        if (reflow && i > ch.start && ! para.empty() &&
+            joinsParagraph(lines[i-1], line)) {
+            if (hang == string::npos)
+                hang = line.find_first_not_of(' ');
+            para += ' ';
+            para += trimmed(line);
+            continue;
+        }
+        if (! para.empty())
+            wrapLine(para, cols, view, hang);
+        hang = string::npos;
+        para = line;
+        while (! para.empty() && para.back() == ' ')
+            para.pop_back();
+        if (para.empty())
+            view.push_back(para);
+    }
+    if (! para.empty())
+        wrapLine(para, cols, view, hang);
 
     while (! view.empty() && isBlank(view.back()))
         view.pop_back();
@@ -530,7 +629,8 @@ void DocReader::scrollTo(int line)
 
 bool DocReader::present()
 {
-    if (! page.begin())
+    int size = xu4.settings->legacy.readerSize % SIZE_COUNT;
+    if (! page.begin(sizeCols[size], sizeRows[size]))
         return false;
     // Reopen the chapter last read in the same book (the journal is
     // remade each time, so it starts over).
@@ -592,21 +692,33 @@ void DocReader::redraw()
 void DocReader::drawTabs()
 {
     int cw = page.cellWidth();
-    int total = 0;
+    int cols = (page.width() - 2 * EDGE) / cw;
+    const char** names = bookTabs;
+    int gap = 1;
+    int total;
     int i;
-    for (i = 0; i < BOOK_COUNT; ++i)
-        total += strlen(bookTabs[i]) + 3;
-    int x = (page.width() - (total - 1) * cw) / 2;
+
+    // Use the short names, then less space, if the tabs do not fit.
+    for (int pass = 0; pass < 3; ++pass) {
+        names = pass ? shortTabs : bookTabs;
+        gap = (pass == 2) ? 0 : 1;
+        total = 0;
+        for (i = 0; i < BOOK_COUNT; ++i)
+            total += strlen(names[i]) + 2 + gap;
+        if (total - gap <= cols)
+            break;
+    }
+    int x = (page.width() - (total - gap) * cw) / 2;
 
     for (i = 0; i < BOOK_COUNT; ++i) {
-        int w = (strlen(bookTabs[i]) + 2) * cw;
+        int w = (strlen(names[i]) + 2) * cw;
         bool cur = (i == book);
         if (cur)
             page.fill(x, TAB_Y - 3, w, 14, TextPage::DK_BLUE);
-        page.text(x + cw, TAB_Y, bookTabs[i],
+        page.text(x + cw, TAB_Y, names[i],
                   cur ? TextPage::WHITE : TextPage::GREY);
         addHit(x, TAB_Y - 4, w, 16, HIT_TAB + i);
-        x += w + cw;
+        x += w + gap * cw;
     }
 }
 
@@ -618,7 +730,8 @@ void DocReader::drawChapterBar()
     int scale = (title.size() * 2 * cw <= size_t(W - 2 * (EDGE + 6 * cw)))
                 ? 2 : 1;
     int y = (scale == 2) ? BAR_Y : BAR_Y + 4;
-    page.centered(y, title.c_str(), TextPage::WHITE, scale);
+    size_t fit = (W - 2 * (EDGE + 6 * cw)) / cw;
+    page.centered(y, title.substr(0, fit).c_str(), TextPage::WHITE, scale);
     addHit(EDGE + 6 * cw, BAR_Y - 2, W - 2 * (EDGE + 6 * cw), 20, HIT_TITLE);
 
     int n = chapters.size();
@@ -717,18 +830,40 @@ void DocReader::drawBody()
 
 void DocReader::drawFooter()
 {
+    static const char* keyHelp[] = {
+        "Up/Down Scroll  Left/Right Chapter  Enter Contents  +/- Size",
+        "Up/Down Scroll  Left/Right Chapter  Enter Contents",
+        "Left/Right Chapter  Enter Contents",
+        "Enter Contents", ""
+    };
+    static const char* padHelp[] = {
+        "Up/Down Scroll  Left/Right Chapter  A Contents  L/R Size",
+        "Up/Down Scroll  Left/Right Chapter  A Contents",
+        "Left/Right Chapter  A Contents",
+        "A Contents", ""
+    };
     int cw = page.cellWidth();
-    const char* help = gamepad_inUse() ?
-        "Up/Down Scroll  Left/Right Chapter  A Contents  Y Book" :
-        "Up/Down Scroll  Left/Right Chapter  Enter Contents  Tab Book";
-    page.text(EDGE + 8, FOOT_Y, help, TextPage::GREY);
+    bool pad = gamepad_inUse();
 
-    const char* back = gamepad_inUse() ? "B Back" : "Esc Back";
-    int w = (strlen(back) + 2) * cw;
-    int x = page.width() - EDGE - 6 - w;
-    page.fill(x, FOOT_Y - 3, w, 14, TextPage::DK_BLUE);
-    page.text(x + cw, FOOT_Y, back, TextPage::WHITE);
-    addHit(x, FOOT_Y - 4, w, 16, HIT_BACK);
+    // Buttons from the right: Back, then larger & smaller text.
+    const char* label[3] = { pad ? "B Back" : "Esc Back", "+", "-" };
+    int id[3] = { HIT_BACK, HIT_LARGER, HIT_SMALLER };
+    int x = page.width() - EDGE - 6;
+    for (int i = 0; i < 3; ++i) {
+        int w = (strlen(label[i]) + 2) * cw;
+        x -= w;
+        page.fill(x, FOOT_Y - 3, w, 14, TextPage::DK_BLUE);
+        page.text(x + cw, FOOT_Y, label[i], TextPage::WHITE);
+        addHit(x, FOOT_Y - 4, w, 16, id[i]);
+        x -= cw;
+    }
+
+    // As much help as fits before them.
+    int room = (x - EDGE - 8) / cw - 1;
+    const char** help = pad ? padHelp : keyHelp;
+    while (int(strlen(*help)) > room)
+        ++help;
+    page.text(EDGE + 8, FOOT_Y, *help, TextPage::GREY);
 }
 
 /*
@@ -743,6 +878,9 @@ void DocReader::drawChapterList()
         widest = std::max(widest, ch.title.size());
     int maxRows = (page.height() - 2 * EDGE - 48) / 9;
     int rows = std::min(n, maxRows);
+    size_t maxTitle = (page.width() - 2 * EDGE - 16) / cw - 6;
+    if (widest > maxTitle)
+        widest = maxTitle;
     int w = (widest + 6) * cw + 2 * EDGE;
     int h = rows * 9 + 2 * EDGE + 28;
     int x = (page.width() - w) / 2;
@@ -764,12 +902,35 @@ void DocReader::drawChapterList()
         char mark = sel ? CHARSET_PROMPT : CHARSET_BULLET;
         page.text(x + EDGE + cw, ty, &mark, 1,
                   sel ? TextPage::BLUE : TextPage::GREY);
-        page.text(x + EDGE + 3 * cw, ty, title.c_str(), title.size(),
+        page.text(x + EDGE + 3 * cw, ty, title.c_str(),
+                  std::min(title.size(), widest),
                   sel ? TextPage::WHITE :
                   (i == chapter) ? TextPage::CYAN : TextPage::TEXT);
         addHit(x + EDGE, ty - 1, w - 2 * EDGE, 9, HIT_LIST + i);
         ty += 9;
     }
+}
+
+/*
+ * Change the text size (by changing the page size), keeping the place in
+ * the chapter.
+ */
+void DocReader::resize(int dir)
+{
+    uint8_t& size = xu4.settings->legacy.readerSize;
+    int n = int(size) + dir;
+    if (n < 0 || n >= SIZE_COUNT)
+        return;
+    soundPlay(SOUND_UI_TICK);
+    size = n;
+    xu4.settings->write();
+
+    float place = view.empty() ? 0.0f : float(top) / view.size();
+    page.release();
+    page.begin(sizeCols[n], sizeRows[n]);
+    openChapter(chapter);
+    scrollTo(int(place * view.size() + 0.5f));
+    redraw();
 }
 
 //----------------------------------------------------------------------------
@@ -792,6 +953,8 @@ void DocReader::activate(int id)
         listOpen = 1;
         listSel = chapter;
         redraw();
+    } else if (id == HIT_SMALLER || id == HIT_LARGER) {
+        resize(id == HIT_LARGER ? 1 : -1);
     } else if (id == HIT_BACK) {
         xu4.eventHandler->setControllerDone(true);
     }
@@ -887,6 +1050,15 @@ bool DocReader::keyPressed(int key)
                 soundPlay(SOUND_UI_CLICK);
                 activate(HIT_TITLE);
             }
+            return true;
+        case '+':
+        case '=':
+        case U4_PAD_R:
+            resize(1);
+            return true;
+        case '-':
+        case U4_PAD_L:
+            resize(-1);
             return true;
         case U4_TAB:
         case 'z':

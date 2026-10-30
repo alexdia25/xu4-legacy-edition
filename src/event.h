@@ -153,6 +153,7 @@ public:
     static int       readAlphaAction(char letter, const char* prompt);
     static char      readChoice(const char* choices,
                                 const char* const* labels = NULL);
+    static char      readKey(const char* choices);
     static Direction readDir();
     static int       readInt(int maxlen);
     static const char* readString(int maxlen, const char *extraChars = NULL);

@@ -147,6 +147,7 @@ private:
     void finishInitiateGame(const string &nameBuffer, SexType sex);
     void startQuestions();
     void showStory();
+    void offerHistory();
     void journeyOnward();
     void startGame(bool reload);
     int  chooseJourney();

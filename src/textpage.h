@@ -41,7 +41,7 @@ public:
     TextPage();
     ~TextPage();
 
-    bool begin();
+    bool begin(int cols = COLS, int rows = ROWS);
     void clear(uint32_t color = BLACK);
     void fill(int x, int y, int w, int h, uint32_t color);
     void frame(int x, int y, int w, int h, int thick = 8);

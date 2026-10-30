@@ -399,6 +399,11 @@ bool Settings::read() {
             legacy.autosave = toInt(val);
         else if (VALUE("keepCharacters="))
             legacy.keepCharacters = toInt(val);
+        else if (VALUE("readerSize=")) {
+            legacy.readerSize = toInt(val);
+            if (legacy.readerSize > 2)
+                legacy.readerSize = 0;
+        }
         else if (VALUE("batterySaver="))
             legacy.batterySaver = toInt(val);
         else if (VALUE("scanlines="))
@@ -567,6 +572,7 @@ bool Settings::write() {
             "pauseUnfocused=%d\n"
             "autosave=%d\n"
             "keepCharacters=%d\n"
+            "readerSize=%d\n"
             "batterySaver=%d\n"
             "scanlines=%d\n"
             "cheatsMenu=%d\n"
@@ -587,6 +593,7 @@ bool Settings::write() {
             legacy.pauseUnfocused,
             legacy.autosave,
             legacy.keepCharacters,
+            legacy.readerSize,
             legacy.batterySaver,
             legacy.scanlines,
             legacy.cheatsMenu,

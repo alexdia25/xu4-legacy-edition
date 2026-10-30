@@ -71,6 +71,7 @@ private:
     void openBook(int n, int chap = 0);
     void openChapter(int n);
     void findChapters();
+    bool titleOnly(int start, int end) const;
     void redraw();
     void drawTabs();
     void drawChapterBar();
@@ -82,6 +83,7 @@ private:
     int  bodyRows() const;
     void scrollTo(int line);
     void activate(int id);
+    void resize(int dir);
 
     static void renderReader(ScreenState* ss, void* data);
 };

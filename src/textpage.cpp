@@ -51,14 +51,14 @@ TextPage::~TextPage()
  * Prepare the page for drawing.  The cell width follows the character set
  * of the graphics module (the Apple II font is 7 pixels wide).
  */
-bool TextPage::begin()
+bool TextPage::begin(int cols, int rows)
 {
     ImageInfo* info = xu4.imageMgr->get(BKGD_CHARSET);
     charset = info ? info->image : NULL;
     cellW = charset ? charset->width() : 8;
 
-    int w = COLS * cellW;
-    int h = ROWS * CELL_H;
+    int w = cols * cellW;
+    int h = rows * CELL_H;
     if (img.w != w || img.h != h) {
         release();
         image32_freePixels(&img);

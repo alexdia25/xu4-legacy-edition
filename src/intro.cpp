@@ -11,6 +11,7 @@
 #include "context.h"
 #include "location.h"
 #include "discourse.h"
+#include "docs.h"
 #include "docreader.h"
 #include "gamebrowser.h"
 #include "worldmap.h"
@@ -1236,7 +1237,35 @@ void IntroController::showStory() {
         EventHandler::waitAnyKey();
         if (xu4.stage != StageIntro)
             break;
+
+        // The story tells the player to read the History, so offer to
+        // open it (when the documents were found).
+        if (binData->introText[storyInd].find("Read the Book of History") !=
+                string::npos)
+            offerHistory();
     }
+}
+
+/*
+ * Ask to read the History of Britannia now, and show it in the document
+ * reader if wanted.
+ */
+void IntroController::offerHistory() {
+    string text;
+    if (! docsLoad(DOC_HISTORY, text))
+        return;
+
+    questionArea.clear();
+    questionArea.textAt(0, 1, "Wilt thou read the History of");
+    questionArea.textAt(0, 2, "Britannia now? (Y/N)");
+    questionArea.setCursorPos(21, 2);
+    questionArea.showCursor();
+
+    // Enter (A on a gamepad) also says yes.
+    char choice = EventHandler::readKey("yn\r \033");
+    questionArea.hideCursor();
+    if (choice == 'y' || choice == U4_ENTER)
+        gameShowBook(DOC_HISTORY);
 }
 
 /**

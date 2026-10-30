@@ -1675,12 +1675,20 @@ char EventHandler::readChoice(const char* choices, const char* const* labels)
         }
     }
 
-    ReadChoiceController ctrl(choices);
-    xu4.eventHandler->pushController(&ctrl);
-    char ch = ctrl.waitFor();
+    char ch = readKey(choices);
     if (ch == U4_ESC)
         noteCancel();
     return ch;
+}
+
+/*
+ * Wait for one of the keys in choices, without the console menu picker.
+ */
+char EventHandler::readKey(const char* choices)
+{
+    ReadChoiceController ctrl(choices);
+    xu4.eventHandler->pushController(&ctrl);
+    return ctrl.waitFor();
 }
 
 /*
