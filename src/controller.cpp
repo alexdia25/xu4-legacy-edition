@@ -29,7 +29,7 @@ bool Controller::notifyKeyPressed(int key) {
         if (key == U4_PAD_B)
             key = U4_ESC;
         else if (key == U4_ACTIONS)
-            key = U4_SPACE;     // Gamepad X outside of play.
+            key = U4_ENTER;     // Gamepad X confirms, like A.
     }
     bool processed = EventHandler::globalKeyHandler(key);
     if (!processed)

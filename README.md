@@ -55,7 +55,7 @@ especially for someone who has just downloaded the free release from
    It can also be opened with View Map in the console action menu, and
    the party's position is framed in yellow.  The moongates are marked with the moon phase which opens them, and the
    names written on the cloth map are shown in runes, or in English with
-   R (Y on a gamepad).  Zoom with +/- (A/X, the shoulder buttons, the
+   R (Y on a gamepad).  Zoom with +/- (A, the shoulder buttons, the
    mouse wheel or a tap) and pan with the arrows or by dragging.
  - **Pixel-sharp graphics by default.**  The video filter defaults to
    point scaling instead of HQX.

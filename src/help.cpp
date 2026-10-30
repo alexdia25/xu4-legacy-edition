@@ -63,7 +63,7 @@ static const char helpText[] =
 "\n"
 "  Stick or D-pad    Walk\n"
 "  A                 The obvious action, like Enter\n"
-"  B                 Back out of a question or menu\n"
+"  B                 Back out of a question or menu, or pass a turn\n"
 "  X                 The action menu\n"
 "  Y                 The world map\n"
 "  L                 The world map\n"

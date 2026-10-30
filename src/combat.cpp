@@ -936,9 +936,10 @@ bool CombatController::keyPressed(int key) {
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
 
+    if (key == U4_PAD_B)
+        key = ' ';              // Gamepad B passes a turn.
+
     switch (key) {
-    case U4_PAD_B:
-        return true;
 
     case U4_UP:
     case U4_DOWN:

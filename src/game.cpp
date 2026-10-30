@@ -1217,7 +1217,7 @@ bool GameController::keyPressed(int key) {
     int endTurn = 1;
 
     if (key == U4_PAD_B)
-        return true;
+        key = ' ';              // Gamepad B passes a turn.
     EventHandler::smsMenus();   // Notice a gamepad being used.
 
     // Note prompts backed out of, for the Cancel Spends No Turn option.
