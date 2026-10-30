@@ -25,8 +25,12 @@ Controller::~Controller() {
  * to the virtual keyPressed method.
  */
 bool Controller::notifyKeyPressed(int key) {
-    if (key == U4_PAD_B && ! handlesPadB())
-        key = U4_ESC;
+    if (! handlesPadB()) {
+        if (key == U4_PAD_B)
+            key = U4_ESC;
+        else if (key == U4_ACTIONS)
+            key = U4_SPACE;     // Gamepad X outside of play.
+    }
     bool processed = EventHandler::globalKeyHandler(key);
     if (!processed)
         processed = keyPressed(key);

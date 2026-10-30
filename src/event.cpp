@@ -1562,6 +1562,7 @@ bool EventHandler::globalKeyHandler(int key) {
         return true;
 
     case U4_PAD_L:
+    case U4_PAD_Y:
         // Open the world map, unless a menu (or the map) is showing.
         if (screenLayerUsed(LAYER_TOP_MENU))
             return false;
@@ -1907,9 +1908,17 @@ static bool pointerInUse = false;   // The screen has been clicked/tapped.
 bool EventHandler::smsMenus()
 {
     static bool padSwitched = false;
+    static bool padActions = false;
     if (! padSwitched && (gamepad_inUse() || pointerInUse)) {
         padSwitched = true;
         xu4.settings->enhancementsOptions.smsInterface = true;
+    }
+    if (! padActions && gamepad_inUse()) {
+        // With a gamepad, doors open and people are talked to by walking
+        // into them, and Automatic Actions picks what to open or jimmy.
+        padActions = true;
+        xu4.settings->shortcutCommands = true;
+        xu4.settings->legacy.bumpToAct = true;
     }
     return xu4.settings->enhancementsOptions.smsInterface;
 }

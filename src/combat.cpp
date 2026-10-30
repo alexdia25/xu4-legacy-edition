@@ -930,6 +930,8 @@ bool CombatController::keyPressed(int key) {
     bool valid = true;
     bool endTurn = true;
 
+    EventHandler::smsMenus();   // Notice a gamepad being used.
+
     // Note prompts backed out of, for the Cancel Spends No Turn option.
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
@@ -964,8 +966,10 @@ bool CombatController::keyPressed(int key) {
         screenMessage("Pass\n");
         break;
 
+    case U4_ACTIONS:            // Gamepad X, Tab, or a tap on the fighter.
+    case U4_TAB:
     case U4_ENTER:
-        if (EventHandler::smsMenus()) {
+        if (key != U4_ENTER || EventHandler::smsMenus()) {
             // Console style action menu for the current party member.
             const char* items[8];
             char keys[9];

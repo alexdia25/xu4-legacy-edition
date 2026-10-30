@@ -278,8 +278,8 @@ bool Settings::read() {
 
     memset(&legacy, 0, sizeof(legacy));
     applyLegacyPreset(*this, LegacyPreset_Classic);
-    // The conveniences of this edition are on by default.
-    legacy.bumpToAct    = true;
+    // The conveniences of this edition are on by default.  Walk Into To
+    // Act starts off (it is switched on by the gamepad, see smsMenus).
     legacy.foldMoves    = true;
     legacy.freeCancel   = true;
     legacy.shopCompare  = true;

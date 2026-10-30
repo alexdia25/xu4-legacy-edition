@@ -47,6 +47,9 @@
 #define U4_PAD_L        0x1F3   // Left shoulder: open the world map.
 #define U4_PAD_R        0x1F4   // Right shoulder.
 
+#define U4_ACTIONS      0x1F6   // X, Tab or a tap on the party: action menu.
+#define U4_PAD_Y        0x1F7   // Y: open the world map.
+
 // Sent by setPointerRepeat when the pointer is held down (press & hold).
 #define U4_HOLD         0x1F5
 #define POINTER_HOLD_TIME 500

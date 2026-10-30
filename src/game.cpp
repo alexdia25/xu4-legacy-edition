@@ -1218,19 +1218,22 @@ bool GameController::keyPressed(int key) {
 
     if (key == U4_PAD_B)
         return true;
+    EventHandler::smsMenus();   // Notice a gamepad being used.
 
     // Note prompts backed out of, for the Cancel Spends No Turn option.
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
 
+    // The action menu (gamepad X, Tab, or a tap on the party).
+    if (key == U4_ACTIONS || key == U4_TAB) {
+        key = smsActionMenu();
+        if (key < 0)
+            return true;
+    }
     /* Translate context-sensitive action key into a useful command */
-    if (key == U4_ENTER) {
-        if (EventHandler::smsMenus()) {
-            key = smsActionMenu();
-            if (key < 0)
-                return true;
-        } else if (settings.enhancements &&
-                   settings.enhancementsOptions.smartEnterKey)
+    else if (key == U4_ENTER) {
+        if (settings.enhancements &&
+            settings.enhancementsOptions.smartEnterKey)
             key = smartEnterKey();
     }
 
@@ -1786,8 +1789,8 @@ bool GameController::keyPressed(int key) {
 
 /*
  * Turn a tap on the map at screen pixel x,y into a key: the direction from
- * the party (or the current fighter in combat) toward the tap, or U4_ENTER
- * when the party itself is tapped.  In the dungeon the directions are
+ * the party (or the current fighter in combat) toward the tap, or
+ * U4_ACTIONS when the party itself is tapped.  In the dungeon the directions are
  * forward, back and turn.  Returns 0 if x,y is not on the map or its
  * border.
  */
@@ -1820,7 +1823,7 @@ int gameTapKey(int x, int y) {
     int dx = (x + TILE_WIDTH) / TILE_WIDTH - 1 - ox;
     int dy = (y + TILE_HEIGHT) / TILE_HEIGHT - 1 - oy;
     if (dx == 0 && dy == 0)
-        return U4_ENTER;
+        return U4_ACTIONS;
     if (abs(dx) > abs(dy))
         return (dx < 0) ? U4_LEFT : U4_RIGHT;
     return (dy < 0) ? U4_UP : U4_DOWN;
@@ -1879,7 +1882,7 @@ int gameTapCommand(Controller* con, const InputEvent* ev) {
         }
         if (x >= TEXT_AREA_X * CHAR_WIDTH) {
             if (y >= TEXT_AREA_Y * CHAR_HEIGHT)
-                return U4_ENTER;
+                return U4_ACTIONS;
             if (y >= STATS_AREA_Y * CHAR_HEIGHT &&
                 y < (STATS_AREA_Y + STATS_AREA_HEIGHT) * CHAR_HEIGHT)
                 return 'z';

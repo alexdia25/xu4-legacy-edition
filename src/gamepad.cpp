@@ -36,8 +36,8 @@ static int buttonKey(int b) {
     switch (b) {
         case PAD_A:     return U4_ENTER;
         case PAD_B:     return U4_PAD_B;
-        case PAD_X:     return U4_SPACE;
-        case PAD_Y:     return 'z';         // Ztats
+        case PAD_X:     return U4_ACTIONS;
+        case PAD_Y:     return U4_PAD_Y;
         case PAD_BACK:  return U4_PAD_SELECT;
         case PAD_START: return U4_PAD_START;
         case PAD_LSHOULDER: return U4_PAD_L;
