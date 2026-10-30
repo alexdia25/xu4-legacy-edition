@@ -167,38 +167,33 @@ graphics: [
     image (name: tile_guard filename: "vga/tile_guard.png" tiles: 4 fixup: blackTransparencyHack)
     image (name: charset filename: "u4u/charset.vga" width: 8 height: 1024 depth: 8 filetype: u4raw tiles: 128)
     image (name: borders filename: "u4u/start.old" width: 320 height: 200 depth: 8 filetype: u4rle)
-    ; The intro pictures of the DOS game (the Upgrade has none of its own).
-    image (name: tree filename: "u4/tree.ega" width: 320 height: 200 depth: 4 filetype: u4lzw) [
-        moongate  0,152, 24,24
-        items    24,152, 24,24
-        gate_pos  72,68, 1,1
+    tree: "vutne/145-tree.png" [
+        moongate  0,152, 20,24
+        items    24,152, 20,24
+        gate_pos  84,53, 1,1
     ]
-    image (name: portal filename: "u4/portal.ega" width: 320 height: 200 depth: 4 filetype: u4lzw)
-    image (name: outside filename: "u4/outside.ega" width: 320 height: 200 depth: 4 filetype: u4lzw)
-    image (name: inside filename: "u4/inside.ega" width: 320 height: 200 depth: 4 filetype: u4lzw)
-    image (name: wagon filename: "u4/wagon.ega" width: 320 height: 200 depth: 4 filetype: u4lzw)
-    image (name: gypsy filename: "u4/gypsy.ega" width: 320 height: 200 depth: 4 filetype: u4lzw)
-    image (name: abacus filename: "u4/abacus.ega" width: 320 height: 200 depth: 4 filetype: u4lzw fixup: abacus) [
-        whitebead  8,187, 8,12
-        blackbead 24,187, 8,12
-        bead_pos  128,24, 9,15
-        card_pos   12,12, 206,1
+    portal:  "vutne/146-portal.png"
+    outside: "vutne/147-outside.png"
+    inside:  "vutne/148-inside.png"
+    wagon:   "vutne/149-wagon.png"
+    gypsy:   "vutne/14a-gypsy.png"
+    abacus:  "vutne/14b-abacus.png" [
+        whitebead 12,181, 7,11
+        blackbead 23,181, 7,11
+        bead_pos  128,18, 8,16
+        card_pos   22,16, 196,1
     ]
-    image (name: cards1 filename: "u4/honcom.ega" width: 320 height: 200 depth: 4 filetype: u4lzw) [
-        honestycard     12,12, 90,124
-        compassioncard 218,12, 90,124
+    cards1: "vutne/cards1.png" [
+        honestycard         0,0, 80,112
+        compassioncard     80,0, 80,112
+        valorcard         160,0, 80,112
+        justicecard       240,0, 80,112
     ]
-    image (name: cards2 filename: "u4/valjus.ega" width: 320 height: 200 depth: 4 filetype: u4lzw) [
-        valorcard    12,12, 90,124
-        justicecard 218,12, 90,124
-    ]
-    image (name: cards3 filename: "u4/sachonor.ega" width: 320 height: 200 depth: 4 filetype: u4lzw) [
-        sacrificecard   12,12, 90,124
-        honorcard      218,12, 90,124
-    ]
-    image (name: cards4 filename: "u4/spirhum.ega" width: 320 height: 200 depth: 4 filetype: u4lzw) [
-        spiritualitycard   12,12, 90,124
-        humilitycard      218,12, 90,124
+    cards2: "vutne/cards2.png" [
+        sacrificecard       0,0, 80,112
+        honorcard          80,0, 80,112
+        spiritualitycard  160,0, 80,112
+        humilitycard      240,0, 80,112
     ]
     image (name: key filename: "u4u/key7.old" width: 320 height: 200 depth: 8 filetype: u4rle)
     image (name: honesty filename: "u4u/honesty.old" width: 320 height: 200 depth: 8 filetype: u4rle fixup: abyss)
