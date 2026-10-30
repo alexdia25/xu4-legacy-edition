@@ -165,9 +165,11 @@ void androidImportGameData() {
         "XU4 needs the Ultima IV for DOS game files.\n\n"
         "Choose ultima4.zip (from the free GOG release or the XU4 site). "
         "You can also pick u4upgrad.zip, Apple II or C64 disk images and "
-        "the Sega Master System ROM at the same time.\n\n"
-        "Files can also be copied over USB to:\n";
-    msg += androidInternalData();
+        "the Sega Master System ROM at the same time.";
+    if (SDL_GetAndroidExternalStoragePath()) {
+        msg += "\n\nFiles can also be copied over USB to:\n";
+        msg += androidInternalData();
+    }
 
     for (;;) {
         static const SDL_MessageBoxButtonData buttons[] = {
@@ -193,7 +195,6 @@ void androidImportGameData() {
         if (! res.files.empty() && importFiles(res.files) && u4fsetup())
             return;
         msg = "ultima4.zip was not found in the chosen files.\n\n"
-              "Choose ultima4.zip, or copy the game files over USB to:\n";
-        msg += androidInternalData();
+              "Choose ultima4.zip (or the files of the GOG release).";
     }
 }

@@ -395,8 +395,13 @@ static int frameSleep(FrameSleep* fs, uint32_t waitTime) {
     printf("KR fsleep %d ela:%d avg:%d adj:%d\n",
            fs->fsleep, elapsed, fs->ftimeSum / FS_SAMPLES, frameAdjust);
 #endif
+#ifdef __EMSCRIPTEN__
+    // Always give control back to the browser so the frame is shown.
+    msecSleep(fs->fsleep);
+#else
     if (fs->fsleep)
         msecSleep(fs->fsleep);
+#endif
     return 0;
 }
 

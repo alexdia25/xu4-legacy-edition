@@ -25,6 +25,9 @@
 #include "sound.h"
 #include "utils.h"
 
+#ifdef __EMSCRIPTEN__
+extern void webImportGameData();
+#endif
 #ifdef ANDROID
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_main.h>      // main() is called by SDLActivity.
@@ -208,7 +211,12 @@ missing_value:
 //----------------------------------------------------------------------------
 
 static void initResourcePaths(StringTable* st) {
-#ifdef ANDROID
+#if defined(__EMSCRIPTEN__)
+    // The player's files (IndexedDB) & the packed modules (web/shell.html).
+    sst_init(st, 2, 16);
+    sst_append(st, "/xu4", -1);
+    sst_append(st, "/data", -1);
+#elif defined(ANDROID)
     sst_init(st, 2, 64);
     sst_append(st, androidInternalData(), -1);
     sst_append(st, androidModuleDir(), -1);
@@ -266,6 +274,9 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     androidCopyModules();
     if (! u4fsetup())
         androidImportGameData();
+#endif
+#ifdef __EMSCRIPTEN__
+    webImportGameData();
 #endif
 
     if (!u4fsetup())

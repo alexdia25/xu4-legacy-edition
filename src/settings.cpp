@@ -69,6 +69,8 @@ void Settings::init(const char* profileName) {
 #if defined(ANDROID)
         userPath = androidInternalData();
         userPath += '/';
+#elif defined(__EMSCRIPTEN__)
+        userPath = "/xu4/";     // Kept in IndexedDB by web/shell.html.
 #elif defined(MACOSX)
             FSRef folder;
             OSErr err = FSFindFolder(kUserDomain, kApplicationSupportFolderType, kCreateFolder, &folder);

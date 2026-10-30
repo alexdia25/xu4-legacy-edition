@@ -17,7 +17,7 @@ on:
 
 permissions:
   contents: write
-  actions: write    # to start the Flatpak repository update
+  actions: write    # to start the Pages update
 
 env:
   TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
@@ -179,9 +179,9 @@ jobs:
               --title "XU4 Legacy Edition ${TAG#legacy-}" \
               --notes-file dist/release-notes.md $PRE
           fi
-          # Serve the new Flatpak from the repository on GitHub Pages, so
-          # installed copies update (pre-releases are not served).
+          # Update the GitHub Pages site: the web version and the Flatpak
+          # repository, so installed copies update (not for pre-releases).
           case "$TAG" in
             *-pre*|*-rc*|*-beta*) ;;
-            *) gh workflow run flatpak-repo.yml --ref "${{ github.event.repository.default_branch }}" ;;
+            *) gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}" ;;
           esac

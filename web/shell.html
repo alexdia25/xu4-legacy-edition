@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>XU4 Legacy Edition</title>
+<meta name="description" content="Ultima IV recreated, with gamepad, touch and console style menus. Plays your own copy of the DOS game.">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="XU4 Legacy">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --bg: #000; --panel: #0a0a2a; --edge: #3a5ad0; --text: #e8e8f0; --dim: #9aa0c0; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+               font: 16px/1.45 system-ui, sans-serif; overflow: hidden;
+               touch-action: none; -webkit-user-select: none; user-select: none; }
+  canvas { display: block; background: #000; outline: none; }
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+             padding: 16px; background: rgba(0,0,0,.85); z-index: 10; }
+  .overlay[hidden] { display: none; }
+  .box { max-width: 30rem; width: 100%; background: var(--panel); border: 2px solid var(--edge);
+         border-radius: 8px; padding: 20px; box-sizing: border-box; }
+  .box h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
+  .box p { margin: .5rem 0; color: var(--dim); }
+  .box code { color: var(--text); }
+  button, label.button { display: inline-block; margin: .5rem .5rem 0 0; padding: .55rem 1.1rem;
+           font: inherit; font-weight: 600; color: #fff; background: #2a4aa0; border: 0;
+           border-radius: 6px; cursor: pointer; }
+  button.quiet { background: #333a5a; }
+  input[type=file] { display: none; }
+  #menuButton { position: fixed; top: env(safe-area-inset-top, 0); right: env(safe-area-inset-right, 0);
+                margin: 6px; padding: 4px 10px; background: rgba(40,50,100,.55); z-index: 5; }
+  #status { min-height: 1.4em; }
+  #rotate { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #rotate { display: block; color: #fc6; }
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<button id="menuButton" hidden aria-label="Files and saves">Files</button>
+
+<div class="overlay" id="startBox">
+  <div class="box">
+    <h1>XU4 Legacy Edition</h1>
+    <p>Ultima IV recreated, with gamepad, touch and console style menus. It plays your own copy of
+       the DOS game (<code>ultima4.zip</code>, free from GOG); your files and saved games stay in this
+       browser.</p>
+    <p id="rotate">Turn your device sideways to play.</p>
+    <p id="status">Loading...</p>
+    <button id="playButton" disabled>Play</button>
+  </div>
+</div>
+
+<div class="overlay" id="filesBox" hidden>
+  <div class="box">
+    <h1 id="filesTitle">Game files</h1>
+    <p id="filesText"></p>
+    <label class="button" for="fileInput">Choose Files</label>
+    <button class="quiet" id="exportButton">Export Saves</button>
+    <button class="quiet" id="closeFiles">Close</button>
+    <input type="file" id="fileInput" multiple>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const DATA = '/xu4';
+let syncing = false, needSync = false, pendingChoose = null;
+
+// Write the files in DATA back to IndexedDB.
+function syncSave() {
+  if (syncing) { needSync = true; return; }
+  syncing = true;
+  FS.syncfs(false, (err) => {
+    syncing = false;
+    if (err) console.warn('xu4: saving to IndexedDB failed', err);
+    if (needSync) { needSync = false; syncSave(); }
+  });
+}
+
+const INTRO = 'XU4 needs the Ultima IV for DOS game files: choose <code>ultima4.zip</code> ' +
+  '(or the files of the GOG release). You can also add <code>u4upgrad.zip</code>, Apple II or C64 ' +
+  'disk images and the Sega Master System ROM.';
+
+function showFiles(text, canClose) {
+  $('filesText').innerHTML = text;
+  $('closeFiles').hidden = !canClose;
+  $('exportButton').hidden = !canClose;
+  $('filesBox').hidden = false;
+}
+
+async function saveChosen(files) {
+  let n = 0;
+  for (const f of files) {
+    const data = new Uint8Array(await f.arrayBuffer());
+    FS.writeFile(DATA + '/' + f.name, data);
+    ++n;
+  }
+  await new Promise((done) => FS.syncfs(false, () => done()));
+  return n;
+}
+
+$('fileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (!files.length) return;
+  const n = await saveChosen(files);
+  if (pendingChoose) {
+    const resolve = pendingChoose;
+    pendingChoose = null;
+    $('filesBox').hidden = true;
+    resolve(n);
+  } else {
+    showFiles(n + ' file(s) added. Modules that need them are listed in Graphics & Music; ' +
+              'new game data is read the next time the game starts.', true);
+  }
+});
+$('closeFiles').onclick = () => { $('filesBox').hidden = true; };
+$('menuButton').onclick = () => showFiles(INTRO.replace('XU4 needs', 'XU4 uses') +
+  ' Export Saves downloads your settings and saved games as a zip.', true);
+
+// A zip archive (stored, not compressed) of every file under DATA.
+function crc32(buf) {
+  let c, crc = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; ++i) {
+    c = (crc ^ buf[i]) & 0xFF;
+    for (let k = 0; k < 8; ++k) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1;
+    crc = (crc >>> 8) ^ c;
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function zipFiles(entries) {
+  const parts = [], dir = [];
+  let offset = 0;
+  const enc = new TextEncoder();
+  for (const [name, data] of entries) {
+    const nm = enc.encode(name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true);
+    h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(h, nm, data);
+    const d = new DataView(new ArrayBuffer(46));
+    d.setUint32(0, 0x02014b50, true); d.setUint16(4, 20, true); d.setUint16(6, 20, true);
+    d.setUint32(16, crc, true); d.setUint32(20, data.length, true);
+    d.setUint32(24, data.length, true); d.setUint16(28, nm.length, true);
+    d.setUint32(42, offset, true);
+    dir.push(d, nm);
+    offset += 30 + nm.length + data.length;
+  }
+  const size = dir.reduce((s, p) => s + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true);
+  end.setUint16(10, entries.length, true); end.setUint32(12, size, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...parts, ...dir, end], { type: 'application/zip' });
+}
+function listFiles(path, prefix, out) {
+  for (const name of FS.readdir(path)) {
+    if (name === '.' || name === '..') continue;
+    const full = path + '/' + name, st = FS.stat(full);
+    if (FS.isDir(st.mode)) listFiles(full, prefix + name + '/', out);
+    else if (!/\.(zip|dsk|do|d64|d81|sms)$/i.test(name))   // Not the game data.
+      out.push([prefix + name, FS.readFile(full)]);
+  }
+  return out;
+}
+$('exportButton').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(zipFiles(listFiles(DATA, '', [])));
+  a.download = 'xu4-saves-' + new Date().toISOString().slice(0, 10) + '.zip';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+};
+
+var Module = {
+  canvas: $('canvas'),
+  noInitialRun: true,
+  preRun: [() => {
+    FS.mkdir(DATA);
+    FS.mount(IDBFS, {}, DATA);
+    addRunDependency('xu4-idbfs');
+    FS.syncfs(true, (err) => {
+      if (err) console.warn('xu4: reading IndexedDB failed', err);
+      removeRunDependency('xu4-idbfs');
+    });
+  }],
+  onRuntimeInitialized: () => {
+    $('status').textContent = '';
+    $('playButton').disabled = false;
+  },
+  setStatus: (text) => { if (text) $('status').textContent = text; },
+  print: (text) => console.log(text),
+  printErr: (text) => console.warn(text),
+  // Called by the game (src/web.cpp) when ultima4.zip is missing.
+  xu4ChooseFiles: (retry) => new Promise((resolve) => {
+    pendingChoose = resolve;
+    showFiles(retry ? 'ultima4.zip was not found in the chosen files. ' + INTRO : INTRO, false);
+  }),
+};
+
+$('playButton').onclick = () => {
+  $('startBox').hidden = true;
+  $('menuButton').hidden = false;
+  $('canvas').focus();
+  // Keep saves: write back every few seconds and when the page is hidden.
+  setInterval(syncSave, 5000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) syncSave(); });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  Module.callMain([]);
+};
+
+if ('serviceWorker' in navigator && location.protocol === 'https:')
+  navigator.serviceWorker.register('sw.js');
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

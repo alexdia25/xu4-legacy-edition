@@ -316,7 +316,7 @@ int screenInitState(ScreenState* state, const Settings* settings, int dw, int dh
     state->displayH = dh;
 
     // Scale automatically in fullscreen mode.
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
     if (settings->fullscreen)
 #endif
     {

@@ -1,0 +1,15 @@
+{
+  "name": "XU4 Legacy Edition",
+  "short_name": "XU4 Legacy",
+  "description": "Ultima IV recreated, with gamepad, touch and console style menus.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,82 @@
+# Publish the GitHub Pages site (https://<owner>.github.io/<repo>/):
+#  - /play/     the web version of the game (dist/build-web.sh), which
+#               phones & tablets (and iOS, with Add to Home Screen) can
+#               install as an app;
+#  - /flatpak/  the Flatpak repository, from the latest release's bundle, so
+#               the game installs with one click on a Steam Deck or any Linux
+#               with Flatpak and updates with every other Flatpak;
+#  - /          a page with links to both.
+# The Release workflow starts this after each full release; it can also be
+# run from the Actions tab.  The Flatpak repository needs the
+# FLATPAK_GPG_KEY & FLATPAK_GPG_KEY_ID secrets (dist/flatpak/README.md) and
+# is left out without them.  Pages must be set to deploy from GitHub Actions.
+name: Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.20
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q flatpak ostree
+          git clone -q --depth 1 -b v2.0.8 https://github.com/0branch/boron /tmp/boron
+          (cd /tmp/boron && ./configure --static && make -j4)
+          sudo cp /tmp/boron/boron /usr/local/bin
+      - name: Build the web version
+        run: |
+          dist/build-web.sh "$(git describe --tags --always | sed 's/^legacy-//')"
+      - name: Make the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
+          SITE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          mkdir -p site
+          cp -r build-web/site site/play
+          if [ -n "$FLATPAK_GPG_KEY" ]; then
+            dist/flatpak-repo.sh site/flatpak
+            FLATPAK=1
+          else
+            echo "::warning::No FLATPAK_GPG_KEY secret, so no Flatpak repository"
+            FLATPAK=0
+          fi
+          sed "s|@SITE@|$SITE|g; s|@REPO@|$GITHUB_REPOSITORY|g" dist/site/index.html > site/index.html
+          if [ $FLATPAK = 0 ]; then
+            # Drop the Flatpak section of the page.
+            sed -i '/<!-- flatpak -->/,/<!-- \/flatpak -->/d' site/index.html
+          fi
+          touch site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

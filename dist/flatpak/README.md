@@ -9,9 +9,9 @@ Flatpak repository
 ------------------
 
 After a full release (not a -pre, -rc or -beta), the Release workflow starts
-the Flatpak repository workflow (`.github/workflows/flatpak-repo.yml`).  It
-runs `dist/flatpak-repo.sh` on the release's bundle and publishes the signed
-repository on GitHub Pages:
+the Pages workflow (`.github/workflows/pages.yml`), which also publishes the
+web version of the game.  It runs `dist/flatpak-repo.sh` on the release's
+bundle and publishes the signed repository on GitHub Pages:
 
  - https://alexdia25.github.io/xu4-legacy-edition/ (install page)
  - https://alexdia25.github.io/xu4-legacy-edition/flatpak/xu4-legacy.flatpakref
@@ -35,5 +35,5 @@ Installed copies then update with `flatpak update` or Discover.
 
 3. In Settings > Pages, set Source to GitHub Actions.
 
-4. Run Actions > Flatpak repository > Run workflow once to publish the
+4. Run Actions > Pages > Run workflow once to publish the
    current release.

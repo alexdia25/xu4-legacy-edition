@@ -234,6 +234,11 @@ static inline void dispatchEvent(InputEvent* ie)
     controller->inputEvent(ie);
 }
 
+// Pixels per window unit: more than 1 when the drawing surface has a higher
+// pixel density than the window (the web page on a phone), as the mouse is
+// reported in window units.
+static float pointerScale = 1.0f;
+
 static void mouseButtonHandler(const SDL_MouseButtonEvent* ev)
 {
     InputEvent ie;
@@ -241,8 +246,8 @@ static void mouseButtonHandler(const SDL_MouseButtonEvent* ev)
     ie.type = ev->down ? IE_MOUSE_PRESS : IE_MOUSE_RELEASE;
     ie.n = ev->button;  // SDL_BUTTON_LEFT/MIDDLE/RIGHT match CMOUSE_*.
     ie.state = 0;
-    ie.x = (int16_t) ev->x;
-    ie.y = (int16_t) ev->y;
+    ie.x = (int16_t) (ev->x * pointerScale);
+    ie.y = (int16_t) (ev->y * pointerScale);
 
     dispatchEvent(&ie);
 }
@@ -321,7 +326,12 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 
     xu4.config->gameTitle(title);
 
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    // The window always fills the screen (or the page).
+    if (false) {
+#else
     if (settings->fullscreen) {
+#endif
         const SDL_DisplayMode* mode =
             SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
         if (mode) {
@@ -334,9 +344,11 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
         ss = SGL;
         gpu_free(&ss->gpu);
 
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
         SDL_SetWindowFullscreen(ss->view, settings->fullscreen);
         if (! settings->fullscreen)
             SDL_SetWindowSize(ss->view, dw, dh);
+#endif
         SDL_SetWindowTitle(ss->view, title);
     } else {
         xu4.screenSys = ss = (ScreenSDL*) calloc(1, sizeof(ScreenSDL));
@@ -356,8 +368,15 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
         SDL_WindowFlags flags = SDL_WINDOW_OPENGL;
+#ifdef __EMSCRIPTEN__
+        // The canvas fills the page, at the screen's full pixel density.
+        flags |= SDL_WINDOW_FILL_DOCUMENT | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#elif defined(ANDROID)
+        flags |= SDL_WINDOW_FULLSCREEN;     // Hides the system bars.
+#else
         if (settings->fullscreen)
             flags |= SDL_WINDOW_FULLSCREEN;
+#endif
 
         ss->view = SDL_CreateWindow(title, dw, dh, flags);
         if (! ss->view)
@@ -382,6 +401,10 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 
     //----------------------------------
 
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    SDL_GetWindowSizeInPixels(ss->view, &dw, &dh);
+    pointerScale = SDL_GetWindowPixelDensity(ss->view);
+#endif
     scale = screenInitState(state, settings, dw, dh);
 
     /* enable or disable the mouse cursor */
@@ -548,8 +571,8 @@ void EventHandler::handleInputEvents(Controller* waitCon,
                 ie.type  = IE_MOUSE_MOVE;
                 ie.n     = 0;
                 ie.state = 0;
-                ie.x = (int16_t) event.motion.x;
-                ie.y = (int16_t) event.motion.y;
+                ie.x = (int16_t) (event.motion.x * pointerScale);
+                ie.y = (int16_t) (event.motion.y * pointerScale);
                 dispatchEvent(&ie);
                 break;
 
@@ -574,6 +597,21 @@ void EventHandler::handleInputEvents(Controller* waitCon,
             case SDL_EVENT_GAMEPAD_REMOVED:
                 closeGamepad(ss, event.gdevice.which);
                 break;
+
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            {
+                // The screen turned or the page was resized: keep the
+                // scale and centre the game in the new size.
+                ScreenState* st = (ScreenState*) screenState();
+                st->displayW = event.window.data1;
+                st->displayH = event.window.data2;
+                st->aspectX = (st->displayW - st->aspectW) / 2;
+                st->aspectY = (st->displayH - st->aspectH) / 2;
+                pointerScale = SDL_GetWindowPixelDensity(ss->view);
+            }
+                break;
+#endif
 
             case SDL_EVENT_WINDOW_FOCUS_LOST:
                 // Pause Legacy option: the game, its timers & music wait

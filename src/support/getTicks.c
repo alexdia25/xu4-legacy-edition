@@ -10,6 +10,9 @@
 #include <sys/time.h>
 #include <time.h>
 #endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 static int64_t getTicks_start = 0;
 
@@ -54,6 +57,8 @@ void msecSleep(uint32_t ms)
         return;
 #ifdef _WIN32
     Sleep(ms);
+#elif defined(__EMSCRIPTEN__)
+    emscripten_sleep(ms);   // Lets the browser run (needs ASYNCIFY).
 #else
    struct timespec stime;
    stime.tv_sec  = ms / 1000;
