@@ -9,73 +9,204 @@ on [Codeberg].
 
 This fork aims to make Ultima IV smoother and easier to get into,
 especially for someone who has just downloaded the free release from
-[GOG].  Planned and in-progress work:
-
- - **Controller support.**  A platform independent gamepad layer on
-   SDL3, which is now the only platform backend.  The Select (Back, −)
-   button opens and closes the game menu, and Start pauses.
- - **Game menu.**  Escape during play opens a menu drawn like the title
-   menus: Journal, How to Play, the Books of Britannia, the World Map,
-   Save Game, Settings, Graphics & Music (the module list) and Quit
-   Game.  The document reader, module list and world map share the look
-   of the title menus too, drawn with the game's own font.
- - **Console style menus.**  An optional interface modelled on the Sega
-   Master System version: an action menu instead of one key per command,
-   conversation topics that are discovered and listed rather than typed,
-   and pickers for spells, items, numbers and words, so the whole game
-   can be played with a D-pad and two buttons.  It switches on by itself
-   when a gamepad is used, or can be turned on for keyboard play with
-   Settings > Legacy Edition Options > Console (SMS) Menus.
- - **Mouse-only and touch play.**  The console menus can also be played
-   with just taps (left clicks), as a step towards touch screens: tap
-   the map to move toward the tap (hold to keep walking, drag to steer),
-   tap your party or the message area for the action menu, tap the party
-   list for the Ztats, and tap menu items, letters and numbers to pick
-   them (tap outside a list to cancel).  Direction prompts take a tap
-   toward the target and the gypsy's questions a tap on a card.  No right
-   button or hovering is needed.  The first tap switches the console
-   menus on.  The menu icon in the top left corner opens the game menu.
- - **Documents in the game.**  Bringing the out-of-game material (the
-   History of Britannia, the Book of Mystic Wisdom, the cloth map) into
-   the flow of play, so the game can be played without leaving XU4.
-   The ULTIMA4.TXT file of the GOG release is split into separate
-   documents, which can be read from Books of Britannia in the game menu.
-   Each book is read a chapter at a time (Left/Right, or Enter for the
-   contents).  A Runes book shows the rune for each letter and some words
-   written in runes, How to Play is a short guide for new players, and
-   the Journal keeps the virtues, quest items and clues heard.  The
-   reader has three text sizes (- and +, or the shoulder buttons).  The
-   History of Britannia is offered when the story asks you to read it,
-   and with Spell Info In Lists on, ? (the right shoulder button, a right
-   click, or holding it down on a touch screen) on a spell or reagent in
-   a list opens its page in the Book of Mystic Wisdom.
- - **World map.**  World Map in the game menu (or the left shoulder
-   button on a gamepad) shows all of Britannia drawn with the
-   tiles of the chosen module, like the cloth map that came with the game.
-   It can also be opened with View Map in the console action menu, and
-   the party's position is framed in yellow.  The moongates are marked with the moon phase which opens them, and the
-   names written on the cloth map are shown in runes, or in English with
-   R (Y on a gamepad).  Zoom with +/- (A, the shoulder buttons, the
-   mouse wheel or a tap) and pan with the arrows or by dragging.
- - **Pixel-sharp graphics by default.**  The video filter defaults to
-   point scaling instead of HQX.
- - **Apple II graphics & music.**  The Apple-II module and Apple-II-Music
-   soundtrack read the art and Mockingboard tunes of the Apple II release
-   straight from its disk images (see
-   [Apple II Disk Images](#apple-ii-disk-images)).
- - **Commodore 64 graphics & music.**  The C64 module and C64-Music
-   soundtrack read the art and SID tunes of the C64 release from its disk
-   images, and the C64-Remastered module uses the art of the Ultima IV
-   Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
- - **Sega Master System graphics & music.**  The SMS module and SMS-Music
-   soundtrack read the tiles, font, story pictures, virtue cards and music
-   of the Master System release from its ROM (see [SMS ROM](#sms-rom)).
- - **More platforms.**  Builds for Windows, macOS and Linux, and a
-   Flatpak repository for one-click installs and updates on the Steam
-   Deck and other Linux systems (see [Installing](#installing)).
-
-Like XU4, this fork needs the Ultima IV for DOS data files, which are
+[GOG].  Like XU4, it needs the Ultima IV for DOS data files, which are
 freeware from [GOG].  No game data is stored in this repository.
+
+What it adds to XU4:
+
+ - [Gamepad, mouse and touch play](#gamepad-mouse-and-touch), with
+   console style menus modelled on the Sega Master System version.
+ - A [game menu](#the-game-menu) on Escape, drawn like the title menus.
+ - The [Books of Britannia](#books-of-britannia) in the game: the
+   History, the Book of Mystic Wisdom, the Hints, the reference card, the
+   runes, a How to Play guide and a Journal of the quest.
+ - A [world map](#world-map) and a [dungeon map](#dungeon-map).
+ - [Legacy Edition options](#legacy-edition-options): conveniences,
+   difficulty presets, autosave and several characters.
+ - [Graphics & music modules](#graphics--music-modules) for the Apple II,
+   Commodore 64 and Sega Master System versions, read from your own disk
+   images or ROM.
+ - [Builds](#installing) for Windows, macOS and Linux, and a Flatpak for
+   the Steam Deck.
+
+Features
+--------
+
+### Gamepad, Mouse and Touch
+
+The whole game can be played with a gamepad, a mouse or a touch screen.
+The **console style menus**, modelled on the Sega Master System version,
+replace one key per command with an action menu, list the topics of a
+conversation as they are discovered instead of having them typed, and
+give pickers for spells, items, numbers and letters.  They switch on by
+themselves when a gamepad is used or the screen is tapped, and can be
+turned on for keyboard play in Settings > Legacy Edition Options.
+
+![The action menu](doc/screenshots/dos-action-menu.png)
+![Conversation topics](doc/screenshots/dos-talk-topics.png)
+
+Talk topics unlock by the rules of the Master System version: a topic
+opens once the right answer, topic or hint has been heard, and hints
+from other people are saved with the game.
+
+| In play                | Keyboard            | Gamepad      | Mouse & touch               |
+|------------------------|---------------------|--------------|-----------------------------|
+| Walk                   | Arrow keys          | Stick, D-pad | Tap beside the party (hold to keep walking, drag to steer) |
+| The obvious action (board, klimb, descend...) | Enter | A | |
+| Action menu            | Tab                 | X            | Tap the party or the messages |
+| Pass a turn            | Space               | B            |                             |
+| Party status (Ztats)   | Z                   |              | Tap the party list          |
+| World map              | Escape, M           | Y or L       |                             |
+| Game menu              | Escape              | Select (View) | The icon in the top left corner |
+| Pause                  | Pause               | Start        |                             |
+
+In menus and lists, A or X picks and B backs out, and a tap picks an
+item (a tap outside a list cancels).  Direction prompts take a tap
+toward the target, and the gypsy's questions a tap on a card.  The
+obvious action is XU4's Smart 'Enter' Key; with that option off, Enter
+opens the action menu instead.
+
+The letter commands of the original game all still work, and Enter
+keeps XU4's behaviour when the console menus are on.  The first time a
+gamepad is used, Walk Into To Act and Automatic Actions are switched on
+as well, so walking into a door opens it and walking into someone
+talks.
+
+### The Game Menu
+
+Escape (Select on a gamepad) opens a menu drawn like the title menus:
+Return to Game, Journal, How to Play, Books of Britannia, World Map,
+Save Game, Settings, Graphics & Music (the module list) and Quit Game.
+Settings can be changed without leaving the game, and Quit Game offers
+to save first.
+
+![The game menu](doc/screenshots/game-menu.png)
+
+### Books of Britannia
+
+The printed material that came with the game is read inside it.  The
+ULTIMA4.TXT file of the GOG release is split into the History of
+Britannia, the Book of Mystic Wisdom, the Hints and the player reference
+card, and each book is read a chapter at a time (Left/Right, or Enter
+for the contents).  The reader also has:
+
+ - **Runes**: the rune for each letter, the combined runes, and some
+   words written in runes.
+ - **How to Play**: a short guide for new players, from talking to
+   people to the quest and the options.
+ - **Journal**: the path of each virtue, the quest items found and the
+   clues heard.
+ - **Three text sizes**: - and + (or the shoulder buttons) change the
+   size of the text, which rewraps to fit.
+
+![The History, with its contents](doc/screenshots/reader-contents.png)
+![The runes](doc/screenshots/reader-runes.png)
+
+The books also turn up when they are needed: the History of Britannia
+is offered when the story asks you to read it, and with Spell Info In
+Lists on, ? on a spell or reagent in a list (the right shoulder button,
+a right click, or holding it on a touch screen) opens its page of the
+Book of Mystic Wisdom.
+
+![Spell list with costs](doc/screenshots/spell-list.png)
+![The Fireball page of the Book of Mystic Wisdom](doc/screenshots/wisdom-entry.png)
+
+![The journal](doc/screenshots/journal.png)
+
+### World Map
+
+World Map in the game menu (or Y on a gamepad) shows all of Britannia
+drawn with the tiles of the chosen module, like the cloth map that came
+with the game.  The party is framed in yellow, the moongates are marked
+with the moon phase that opens them, and the names written on the cloth
+map are shown in runes, or in English with R (Y on a gamepad).  Zoom with
++/- (A, the shoulder buttons, the mouse wheel or a tap) and pan with the
+arrows or by dragging.
+
+![World map with runes](doc/screenshots/dos-worldmap.png)
+![World map zoomed in, with English names](doc/screenshots/dos-worldmap-zoom.png)
+
+### Dungeon Map
+
+Dungeons remember the rooms seen.  The Dungeon Map option shows them as
+a mini map beside the first person view, or replaces the view with a top
+down map.
+
+![Dungeon mini map](doc/screenshots/dungeon-minimap.png)
+![Top down dungeon map](doc/screenshots/dungeon-topdown.png)
+
+### Legacy Edition Options
+
+Settings > Legacy Edition Options holds the conveniences of this
+edition.  Each can be switched off for the game as it was.
+
+![Legacy Edition options](doc/screenshots/legacy-options.png)
+
+| Option                 | What it does                                       | Starts |
+|------------------------|----------------------------------------------------|--------|
+| Console (SMS) Menus    | The action menu and pickers described above        | On with a gamepad or a tap |
+| Walk Into To Act       | Walking into someone talks, into a foe attacks, into a locked door opens it | On with a gamepad |
+| Fold Repeated Moves    | "North (x5)" instead of five lines                 | On     |
+| Cancel Spends No Turn  | Backing out of a command costs nothing             | On     |
+| Shops Compare Arms     | Shops show how gear compares with what each member has, and offer to equip it | On |
+| Spell Info In Lists    | Spell lists show what each spell does and costs, and ? opens its Wisdom page | On |
+| Heal In Action Menu    | A Heal or Cure shortcut when someone needs it      | On     |
+| Auto Combat            | The party fights on its own                        | Off    |
+| Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
+
+**Rules, Saving & Cheats** sets the difficulty: Classic is the game as
+it was, while Modern and Story are gentler, and each rule can also be
+set on its own (whether poison kills, starvation, shared experience, the
+turn timer, and whether a fallen party is raised by Lord British or may
+reload).  It also turns on autosave with a history of saves to go back
+to, several characters each with their own saves, and a Cheats menu.
+
+![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
+
+The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
+(the game waits while its window is in the background).  The video
+filter defaults to point scaling, for pixel sharp graphics.
+
+### Graphics & Music Modules
+
+Graphics & Music in the game menu lists the modules in two sections:
+Graphics, where one game module is chosen, and Music, where one
+soundtrack (or the game's own music) is chosen, so any soundtrack can go
+with any graphics.  A module is only listed when the files it needs are
+found.  Besides XU4's own Ultima-IV and U4-Upgrade modules, there are:
+
+ - **Apple-II** and **Apple-II-Music**: the title, intro, tiles, font,
+   line drawn dungeons, shrine and ending pictures, and the Mockingboard
+   music of the Apple II release, read from its disk images (see
+   [Apple II Disk Images](#apple-ii-disk-images)).
+ - **C64** and **C64-Music**: the title, intro pictures, tiles, font and
+   virtue cards, and the SID music of the Commodore 64 release, read from
+   its disk images.  **C64-Remastered** uses the art of the Ultima IV
+   Remastered fan release (see [C64 Disk Images](#c64-disk-images)).
+ - **SMS** and **SMS-Music**: the title, map tiles, font, story pictures,
+   the gypsy's cards, the shrine visions and the endgame pictures, and
+   the music of the Sega Master System release, read from its ROM (see
+   [SMS ROM](#sms-rom)).
+
+The game itself (maps, rules and conversations) stays the DOS one.
+
+![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
+![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
+
+![C64 tiles on the overworld](doc/screenshots/c64-overworld.png)
+![C64 tiles in Yew, with the action menu](doc/screenshots/c64-town.png)
+
+The C64 module (top) and the C64-Remastered module (bottom): the title,
+the moongate of the intro, the gypsy's cards and the first view of
+Britannia.
+
+![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
+
+![SMS tiles on the overworld](doc/screenshots/sms-overworld.png)
+![SMS tiles in Yew, with the action menu](doc/screenshots/sms-town.png)
+
+Getting Started
+---------------
 
 ### Installing
 
@@ -121,21 +252,6 @@ Every download is on the [releases page].  The game data
     The Deck's controls work as a gamepad, which turns on the console
     menus; Quit Game is in the game menu (the View button).
 
-### Game Modules
-
-The module list (Graphics & Music in the game menu) lists the modules
-in two sections: Graphics, where one game module is chosen, and Music, where
-one soundtrack module (or the game's own music) is chosen.  Space or a click
-picks a module and Enter or Play starts with the checked pair.
-
-The Apple-II module uses the graphics of the original Apple II release, and
-the Apple-II-Music soundtrack plays its Mockingboard music (see
-[Apple II Disk Images](#apple-ii-disk-images) below).  The C64, C64-Music &
-C64-Remastered modules do the same for the Commodore 64 release (see
-[C64 Disk Images](#c64-disk-images)), and the SMS & SMS-Music modules for
-the Sega Master System release (see [SMS ROM](#sms-rom)).  A module is only
-listed when the files it needs are found.
-
 ### Data Folders
 
 XU4 Legacy Edition looks for the game data, modules, disk images and ROMs
@@ -154,8 +270,8 @@ saved games), so put the files there.
 
 The Apple-II module reads its graphics straight from the disk images of
 Ultima IV for the Apple II, and the Apple-II-Music soundtrack reads the
-Mockingboard tunes from them.  These are only listed in the Game Module
-Browser when all four disks are found.  The DOS game files are still needed for
+Mockingboard tunes from them.  They are only listed in Graphics & Music
+when all four disks are found.  The DOS game files are still needed for
 everything else.
 
 The release came on two floppy disks, used on both sides, so there are four
@@ -205,8 +321,8 @@ pictures and cards.  It reads them from `u4remastered.d81`, or from
 
 Put the images in any of the [data folders](#data-folders), or in a `c64` folder
 inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The
-modules are only listed in the Game Module Browser when their disk images
-are found.
+modules are only listed in Graphics & Music when their disk images are
+found.
 
 ### SMS ROM
 
@@ -223,48 +339,11 @@ The ROM must be the Europe/USA release (512 KB, SHA-1
 `a90e21e5961bcf2e10b715a009c04e7c2017a3b1`) with the `.sms` extension; its
 file name doesn't matter.  Put it in any of the [data folders](#data-folders), or in
 an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
-Windows.  The modules are only listed in the Game Module Browser when the
+Windows.  The modules are only listed in Graphics & Music when the
 ROM is found.  Nothing from the ROM is stored in the modules.
 
-### Screenshots
-
-The DOS graphics with the console style menus: the action menu, and the
-topics of a conversation.
-
-![DOS graphics with the console action menu](doc/screenshots/dos-action-menu.png)
-![DOS graphics with conversation topics](doc/screenshots/dos-talk-topics.png)
-
-The world map with the DOS tiles: all of Britannia with the cloth map's
-place names in runes, the moon phase at each moongate, and the party
-framed in yellow (on Verity Isle); then zoomed in, with the names in
-English.
-
-![World map with runes](doc/screenshots/dos-worldmap.png)
-![World map zoomed in, with English names](doc/screenshots/dos-worldmap-zoom.png)
-
-The Apple-II module, using the tiles of the Apple II release: the
-overworld near Britain, and the town of Yew.
-
-![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
-![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
-
-The C64 module, using the tiles of the Commodore 64 release: the
-overworld near Britain, and the town of Yew.
-
-![C64 tiles on the overworld](doc/screenshots/c64-overworld.png)
-![C64 tiles in Yew, with the action menu](doc/screenshots/c64-town.png)
-
-The C64 module (top) and the C64-Remastered module (bottom): the title,
-the moongate of the intro, the gypsy's cards and the first view of
-Britannia.
-
-![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
-
-The SMS module, using the tiles of the Sega Master System release: the
-overworld near Britain, and the town of Yew.
-
-![SMS tiles on the overworld](doc/screenshots/sms-overworld.png)
-![SMS tiles in Yew, with the action menu](doc/screenshots/sms-town.png)
+About This Fork
+---------------
 
 ### Why SDL3 Only
 

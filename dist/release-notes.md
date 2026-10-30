@@ -101,11 +101,12 @@ The source code is in `xu4-legacy-*.tar.gz`.
 ## What's new compared with XU4
 
 - **Gamepad support** through SDL3.  The console style menus switch on by
-  themselves when a controller is used.  A opens the action menu and
-  picks, B cancels, Y shows stats, Select opens the xu4 menu and
-  Start pauses.
+  themselves when a controller is used.  In play A does the obvious
+  action (XU4's smart Enter key), X opens the action menu, Y the world
+  map and B passes; in menus A or X picks and B backs out.  Select opens
+  the game menu and Start pauses.
 - **Console (SMS) style menus**, also available for keyboard play under
-  Configure > Enhanced Interface Options: an action menu instead of one
+  Settings > Legacy Edition Options: an action menu instead of one
   key per command, conversation topics that are listed as they are
   discovered, and pickers in place of typed input.
 - **Documents in the game.**  The ULTIMA4.TXT file of the GOG release is
