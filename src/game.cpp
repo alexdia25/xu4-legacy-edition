@@ -1018,12 +1018,26 @@ static void smsQuitMenu() {
 /*
  * Show a book of the document reader, or the book last read if book is -1.
  */
-void gameShowBook(int book) {
+static DocReader* docReader() {
     static DocReader* reader = NULL;
     if (! reader)
         reader = new DocReader;
+    return reader;
+}
+
+void gameShowBook(int book) {
+    DocReader* reader = docReader();
     if (book >= 0)
         reader->showBook(book);
+    xu4.eventHandler->runController(reader);
+}
+
+/*
+ * Show the entry of the Book of Mystic Wisdom for a spell or reagent.
+ */
+void gameShowWisdom(const char* name) {
+    DocReader* reader = docReader();
+    reader->showEntry(DOC_WISDOM, name);
     xu4.eventHandler->runController(reader);
 }
 
@@ -1899,13 +1913,21 @@ const char* gameGetInput(int maxlen) {
  * Console style (SMS) pickers used in place of typed letters and numbers.
  */
 
+static int spellPickIndex[SPELL_MAX];
+
+// Open the Book of Mystic Wisdom at a spell picked from the list.
+static void showSpellWisdom(int n) {
+    gameShowWisdom(spellGetName(spellPickIndex[n]));
+}
+
 /*
  * Pick a spell.  If mixed is true then only spells with mixtures are listed.
- * Returns the spell index, or -1 if cancelled or there are none.
+ * With Spell Info on, '?' (or R) opens the Book of Mystic Wisdom at the
+ * spell.  Returns the spell index, or -1 if cancelled or there are none.
  */
 static int smsChooseSpell(bool mixed) {
     const char* names[SPELL_MAX];
-    int index[SPELL_MAX];
+    int* index = spellPickIndex;
     int count = 0;
     for (int i = 0; i < SPELL_MAX; ++i) {
         if (mixed && c->saveGame->mixtures[i] < 1)
@@ -1924,7 +1946,8 @@ static int smsChooseSpell(bool mixed) {
         screenMessage("%cNone Mixed!%c\n", FG_GREY, FG_WHITE);
         return -1;
     }
-    int n = EventHandler::chooseItem(names, count);
+    int n = EventHandler::chooseItem(names, count, 0, 8,
+                xu4.settings->legacy.spellInfo ? showSpellWisdom : NULL);
     return (n < 0) ? -1 : index[n];
 }
 

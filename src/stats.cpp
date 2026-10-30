@@ -8,6 +8,9 @@
 #include "stats.h"
 
 #include "config.h"
+#include "game.h"
+#include "names.h"
+#include "settings.h"
 #include "party.h"
 #include "spell.h"
 #include "weapon.h"
@@ -530,6 +533,14 @@ bool ReagentsMenuController::keyPressed(int key) {
         break;
     case U4_ENTER:
         xu4.eventHandler->setControllerDone();
+        break;
+
+    case '?':
+    case U4_PAD_R:
+        // Spell Info: read about the reagent in the Book of Mystic Wisdom.
+        if (! xu4.settings->legacy.spellInfo || ! menu->isVisible())
+            return MenuController::keyPressed(key);
+        gameShowWisdom(getReagentName((Reagent) (*menu->getCurrent())->getId()));
         break;
 
     case U4_ESC:

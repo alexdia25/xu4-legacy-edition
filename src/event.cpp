@@ -945,8 +945,9 @@ bool AlphaActionController::keyPressed(int key) {
 class ListPickerController : public WaitableController<int> {
 public:
     ListPickerController(const char* const* items, int count, int start,
-                         int rows, int line)
-        : items(items), count(count), rows(rows), line(line), top(0) {
+                         int rows, int line, void (*info)(int))
+        : items(items), info(info), count(count), rows(rows), line(line),
+          top(0) {
         value = -1;
         sel = (start >= 0 && start < count) ? start : 0;
         scrollToSel();
@@ -964,7 +965,13 @@ private:
             top = sel - rows + 1;
     }
 
+    void showInfo() {
+        info(sel);
+        draw();
+    }
+
     const char* const* items;
+    void (*info)(int);  // Shows more about an item ('?' or R).
     int count;
     int rows;
     int line;       // First message area line used.
@@ -1009,6 +1016,13 @@ bool ListPickerController::keyPressed(int key) {
         value = -1;
         doneWaiting();
         return true;
+    case '?':
+    case U4_PAD_R:
+        if (info) {
+            showInfo();
+            return true;
+        }
+        return EventHandler::globalKeyHandler(key);
     case U4_PAGE_UP:            // Scroll the list by one line.
         if (top > 0)
             sel = top - 1;
@@ -1052,6 +1066,17 @@ bool ListPickerController::inputEvent(const InputEvent* ev) {
         xu4.eventHandler->setPointerRepeat(this, 0);
         break;
     case IE_MOUSE_PRESS:
+        if (info && ev->n == CMOUSE_RIGHT) {
+            // A right click shows more about the item.
+            EventHandler::pointerPos(ev, &x, &y);
+            y = y / CHAR_HEIGHT - (TEXT_AREA_Y + line);
+            if (y >= 0 && y < rows && top + y < count) {
+                sel = top + y;
+                draw();
+                showInfo();
+            }
+            break;
+        }
         if (! EventHandler::pointerTap(ev, &x, &y))
             break;
         x = x / CHAR_WIDTH - TEXT_AREA_X;
@@ -1816,7 +1841,7 @@ void EventHandler::waitAnyKeyTimeout()
  * and the text cursor left at the start of where it was.
  */
 int EventHandler::chooseItem(const char* const* items, int count, int start,
-                             int maxRows)
+                             int maxRows, void (*info)(int))
 {
     if (count < 1)
         return -1;
@@ -1835,7 +1860,7 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
     bool cursor = screenState()->cursorVisible;
     screenHideCursor();
 
-    ListPickerController ctrl(items, count, start, rows, line);
+    ListPickerController ctrl(items, count, start, rows, line, info);
     ctrl.draw();
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();

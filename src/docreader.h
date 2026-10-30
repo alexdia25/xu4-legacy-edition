@@ -39,7 +39,8 @@ public:
     virtual bool inputEvent(const InputEvent*);
 
     void showJournal() { book = BOOK_JOURNAL; }
-    void showBook(int n) { book = n; }
+    void showBook(int n) { book = n; entry.clear(); }
+    void showEntry(int n, const char* name) { book = n; entry = name; }
 
 private:
     struct Chapter {
@@ -58,6 +59,7 @@ private:
     std::vector<Chapter> chapters;
     std::vector<std::string> view;      // The chapter, wrapped to the page.
     std::vector<HitArea> hits;
+    std::string entry;          // Chapter to open (see showEntry).
     WorkBuffer* work;
     int book;
     int lastBook;               // Book & chapter to return to.
@@ -71,6 +73,7 @@ private:
     void openBook(int n, int chap = 0);
     void openChapter(int n);
     void findChapters();
+    int  findEntry(const std::string& name) const;
     bool titleOnly(int start, int end) const;
     void redraw();
     void drawTabs();

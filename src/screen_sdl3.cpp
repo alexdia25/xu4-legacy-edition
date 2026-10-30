@@ -202,6 +202,10 @@ static void keyHandler(const SDL_KeyboardEvent* ev)
             }
             else if (token >= SDLK_F1 && token <= SDLK_F12)
                 key = U4_FKEY + (token - SDLK_F1);
+            else if (token == SDLK_SLASH && (mods & SDL_KMOD_SHIFT))
+                key = '?';
+            else if (token == SDLK_EQUALS && (mods & SDL_KMOD_SHIFT))
+                key = '+';
             else if (token >= ' ' && token < 0x7F)
                 key = token;
             else

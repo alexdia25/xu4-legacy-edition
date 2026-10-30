@@ -164,7 +164,8 @@ public:
     static bool wait_msecs(unsigned int msecs);
     static void ignoreInput();
     static int  chooseItem(const char* const* items, int count,
-                           int start = 0, int maxRows = 8);
+                           int start = 0, int maxRows = 8,
+                           void (*info)(int) = NULL);
     static bool smsMenus();
 
     // Prompts backed out of while a command is armed (see gameCancelArm).

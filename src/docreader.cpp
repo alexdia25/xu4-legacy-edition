@@ -537,6 +537,35 @@ void DocReader::findChapters()
                                                      : lines.size();
 }
 
+// The first three letters of a name, in lower case.
+static string entryKey(const string& name)
+{
+    string key;
+    for (char ch : name) {
+        if (isalpha((unsigned char) ch))
+            key += tolower((unsigned char) ch);
+        if (key.size() == 3)
+            break;
+    }
+    return key;
+}
+
+/*
+ * Find the chapter for a spell or reagent named as the game names it.  The
+ * names differ a little from the book ("X-it" is "Xit", "Sulfur Ash" is
+ * "Sulphurous Ash"), so only the first three letters are compared.
+ * Returns -1 if there is none.
+ */
+int DocReader::findEntry(const string& name) const
+{
+    string key = entryKey(name);
+    for (size_t i = 0; i < chapters.size(); ++i) {
+        if (entryKey(chapters[i].title) == key)
+            return i;
+    }
+    return -1;
+}
+
 /*
  * Return true if lines start to end hold nothing but headings and a few
  * centered title lines.
@@ -636,6 +665,12 @@ bool DocReader::present()
     // remade each time, so it starts over).
     int chap = (book == lastBook && book != BOOK_JOURNAL) ? chapter : 0;
     openBook(book, chap);
+    if (! entry.empty()) {
+        int n = findEntry(entry);
+        if (n >= 0)
+            openChapter(n);
+        entry.clear();
+    }
     screenSetLayer(LAYER_TOP_MENU, renderReader, this);
     return true;
 }
