@@ -53,4 +53,10 @@ void legacyJournalReset();
 std::string legacyJournalText();
 const char* legacyVirtueWord(int karma);
 
+// Dungeon map: the cells of each dungeon level the party has seen.
+void legacyDungeonLoad();
+bool legacyDungeonWrite(const char* userPath);
+void legacyDungeonSee(int mapId, int level, int x, int y);
+bool legacyDungeonSeen(int mapId, int level, int x, int y);
+
 #endif

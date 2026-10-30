@@ -16,6 +16,7 @@
 #include "location.h"
 #include "names.h"
 #include "map.h"
+#include "mapmgr.h"
 #include "screen.h"
 #include "settings.h"
 #include "party.h"
@@ -230,10 +231,11 @@ namespace fs = std::filesystem;
 bool legacyReloadPending = false;
 
 #define HISTORY_COUNT   8
+#define DNGSEEN_SAV     "dngseen.sav"
 
 static const char* saveFiles[] = {
     PARTY_SAV, MONSTERS_SAV, OUTMONST_SAV, DNGMAP_SAV, TALKWORDS_SAV,
-    "journal.sav", "dngseen.sav", NULL
+    "journal.sav", DNGSEEN_SAV, NULL
 };
 
 static fs::path userDir() {
@@ -682,7 +684,8 @@ void legacyNoteClue(const char* place, const char* who, const char* text) {
 void legacyJournalReset() {
     std::error_code ec;
     fs::remove(userDir() / JOURNAL_SAV, ec);
-    fs::remove(userDir() / "dngseen.sav", ec);
+    fs::remove(userDir() / DNGSEEN_SAV, ec);
+    legacyDungeonLoad();
 }
 
 static void wrapText(std::string& out, const std::string& text,
@@ -824,4 +827,52 @@ std::string legacyJournalText() {
         wrapText(out, who + ": " + text, "        ", 54);
     }
     return out;
+}
+
+//----------------------------------------------------------------------------
+// Dungeon map
+//
+// One bit for each cell of the eight levels of the eight dungeons, kept in
+// dngseen.sav.  Bit x of dngSeen[dungeon][level][y] is set once the party
+// has seen that cell.
+
+static uint8_t dngSeen[8][8][8];
+
+static uint8_t* seenRow(int mapId, int level, int y) {
+    int dng = mapId - MAP_DECEIT;
+    if (dng < 0 || dng > 7 || level < 0 || level > 7 || y < 0 || y > 7)
+        return NULL;
+    return &dngSeen[dng][level][y];
+}
+
+void legacyDungeonLoad() {
+    memset(dngSeen, 0, sizeof(dngSeen));
+    FILE* fp = fopen((userDir() / DNGSEEN_SAV).string().c_str(), "rb");
+    if (fp) {
+        if (fread(dngSeen, 1, sizeof(dngSeen), fp) != sizeof(dngSeen))
+            memset(dngSeen, 0, sizeof(dngSeen));
+        fclose(fp);
+    }
+}
+
+bool legacyDungeonWrite(const char* userPath) {
+    std::string fn(userPath);
+    fn += DNGSEEN_SAV;
+    FILE* fp = fopen(fn.c_str(), "wb");
+    if (! fp)
+        return false;
+    bool ok = fwrite(dngSeen, 1, sizeof(dngSeen), fp) == sizeof(dngSeen);
+    fclose(fp);
+    return ok;
+}
+
+void legacyDungeonSee(int mapId, int level, int x, int y) {
+    uint8_t* row = seenRow(mapId, level, y);
+    if (row && x >= 0 && x < 8)
+        *row |= 1 << x;
+}
+
+bool legacyDungeonSeen(int mapId, int level, int x, int y) {
+    const uint8_t* row = seenRow(mapId, level, y);
+    return row && x >= 0 && x < 8 && (*row & (1 << x));
 }

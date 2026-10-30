@@ -46,6 +46,9 @@ private:
     DungeonGraphicType tilesToGraphic(const Dungeon*,
                                       const std::vector<MapTile> &tiles);
     void drawWall(int graphic);
+    void markSeen(const Dungeon* dungeon);
+    void drawTopDown(const Dungeon* dungeon, TileView* view);
+    void drawMiniMap(const Dungeon* dungeon);
     bool loadApple2Geometry();
     void drawApple2(Context* c, Direction dir);
     int  apple2Shape(const MapTile& mt) const;
@@ -62,6 +65,9 @@ private:
     TileId up_ladder;
     TileId down_ladder;
     TileId updown_ladder;
+    TileId wall;
+    TileId secret_door;
+    uint8_t seenNow[8];         // Cells in sight this turn (bit x of row y).
     int      viewBottom;
     int      spotTrapRange;
     uint32_t spotTrapTime;

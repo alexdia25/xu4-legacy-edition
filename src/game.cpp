@@ -340,6 +340,7 @@ bool GameController::initContext() {
     } else
         talkWordsClear();
     }
+    legacyDungeonLoad();
 
     /* load in monsters.sav */
     {
@@ -464,6 +465,11 @@ int gameSave(const char* userPath) {
         if (! saveGameMonstersWrite(mons.table, fp))
             goto write_error;
         fclose(fp);
+    }
+
+    if (! legacyDungeonWrite(userPath)) {
+        screenMessage("Error writing to %s\n", "dngseen.sav");
+        return 0;
     }
 
     if (xu4.settings->legacy.autosave)

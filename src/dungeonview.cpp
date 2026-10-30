@@ -12,6 +12,8 @@
 #include "error.h"
 #include "imageloader.h"
 #include "imagemgr.h"
+#include "legacy.h"
+#include "party.h"
 #include "settings.h"
 #include "scale.h"
 #include "screen.h"
@@ -35,6 +37,9 @@ DungeonView::DungeonView(int x, int y, int columns, int rows) : TileView(x, y, r
     up_ladder     = tileset->getByName(SYM_UP_LADDER)->getId();
     down_ladder   = tileset->getByName(SYM_DOWN_LADDER)->getId();
     updown_ladder = tileset->getByName(SYM_UP_DOWN_LADDER)->getId();
+    wall          = tileset->getByName(Tile::sym.dungeonTiles[15])->getId();
+    secret_door   = tileset->getByName(Tile::sym.dungeonTiles[14])->getId();
+    memset(seenNow, 0, sizeof(seenNow));
 
     cacheGraphicData();
 }
@@ -88,6 +93,15 @@ void DungeonView::display(Context * c, TileView *view)
     vector<MapTile> tiles;
     Coords drawLoc;
     int x, y;
+    int mapMode = xu4.settings->legacy.dungeonMap;
+
+    if (mapMode != DungeonMap_Off)
+        markSeen(dungeon);
+
+    if (mapMode == DungeonMap_TopDown) {
+        drawTopDown(dungeon, view);
+        return;
+    }
 
     /* 1st-person perspective */
     if (screen3dDungeonViewEnabled) {
@@ -133,6 +147,8 @@ void DungeonView::display(Context * c, TileView *view)
                     drawInDungeon(tiles.front(), 0, y, dir);
             }
         }
+        if (mapMode == DungeonMap_Mini)
+            drawMiniMap(dungeon);
     }
 
     /* 3rd-person perspective */
@@ -151,6 +167,145 @@ void DungeonView::display(Context * c, TileView *view)
                     view->drawTile(tiles, x, y);
             }
         }
+    }
+}
+
+static bool blocksSight(const Dungeon* dungeon, const Coords& co) {
+    DungeonToken tok = dungeon->tokenAt(co);
+    return tok == DUNGEON_WALL || tok == DUNGEON_SECRET_DOOR ||
+           tok == DUNGEON_DOOR;
+}
+
+/*
+ * Remember the cells the party can see from where it stands: the corridor
+ * ahead up to the first wall or door and the cells beside it, as the 3-D
+ * view shows them.  Nothing is seen without light.
+ */
+void DungeonView::markSeen(const Dungeon* dungeon) {
+    vector<MapTile> tiles;
+    Coords co;
+    int mapId = dungeon->id;
+    int level = c->location->coords.z;
+
+    memset(seenNow, 0, sizeof(seenNow));
+    if (c->party->getTorchDuration() <= 0)
+        return;
+
+    for (int fwd = 0; fwd <= 4; ++fwd) {
+        for (int side = -1; side <= 1; ++side) {
+            if (side && fwd > 3)
+                continue;
+            dungeonGetTiles(co, tiles, fwd, side);
+            legacyDungeonSee(mapId, level, co.x, co.y);
+            if (co.x >= 0 && co.x < 8 && co.y >= 0 && co.y < 8)
+                seenNow[co.y] |= 1 << co.x;
+        }
+        dungeonGetTiles(co, tiles, fwd, 0);
+        if (fwd && blocksSight(dungeon, co))
+            break;
+    }
+}
+
+/*
+ * Draw the level from above, turned so the party faces up the screen as the
+ * movement keys do.  Cells in sight show what is there now, other cells seen
+ * before show only the level itself, and the rest stay black.
+ */
+void DungeonView::drawTopDown(const Dungeon* dungeon, TileView* view) {
+    vector<MapTile> tiles;
+    Coords co;
+    int mapId = dungeon->id;
+    int level = c->location->coords.z;
+
+    for (int y = 0; y < VIEWPORT_H; y++) {
+        for (int x = 0; x < VIEWPORT_W; x++) {
+            dungeonGetTiles(co, tiles, (VIEWPORT_H / 2) - y,
+                            x - (VIEWPORT_W / 2));
+
+            if (x == VIEWPORT_W/2 && y == VIEWPORT_H/2) {
+                view->drawTile(avatar, x, y);
+                continue;
+            }
+            if (! legacyDungeonSeen(mapId, level, co.x, co.y)) {
+                view->drawTile(black, x, y);
+                continue;
+            }
+            if (! (seenNow[co.y & 7] & (1 << (co.x & 7)))) {
+                // Remembered: the level only, no creatures.
+                tiles.clear();
+                tiles.push_back(MapTile(dungeon->getTileFromData(co)));
+            }
+
+            // Hidden things look as they do in the 3-D view.
+            for (MapTile& mt : tiles) {
+                if (mt.id == secret_door)
+                    mt = MapTile(wall);
+                else if (dungeon->tokenForTile(mt.id) == DUNGEON_TRAP)
+                    mt = MapTile(corridor);
+            }
+            view->drawTile(tiles, x, y);
+        }
+    }
+}
+
+/*
+ * Draw the whole level, north up, in the top right corner of the 3-D view.
+ */
+void DungeonView::drawMiniMap(const Dungeon* dungeon) {
+    const int cell = 5;
+    const int size = 8 * cell;
+    const int left = BORDER_WIDTH + VIEWPORT_W * TILE_WIDTH - size - 3;
+    const int top  = BORDER_HEIGHT + 2;
+    Image* img = xu4.screenImage;
+    const Coords& pos = c->location->coords;
+    int mapId = dungeon->id;
+    int r, g, b;
+
+    img->fillRect(left - 1, top - 1, size + 2, size + 2, 150, 150, 150);
+    img->fillRect(left, top, size, size, 0, 0, 0);
+
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            if (! legacyDungeonSeen(mapId, pos.z, x, y))
+                continue;
+            switch (dungeon->tokenAt(Coords(x, y, pos.z))) {
+            case DUNGEON_WALL:
+            case DUNGEON_SECRET_DOOR:
+                r = 120; g = 110; b = 100; break;
+            case DUNGEON_DOOR:
+                r = 170; g = 100; b = 40; break;
+            case DUNGEON_ROOM:
+                r = 200; g = 60; b = 60; break;
+            case DUNGEON_LADDER_UP:
+            case DUNGEON_LADDER_DOWN:
+            case DUNGEON_LADDER_UPDOWN:
+            case DUNGEON_CEILING_HOLE:
+            case DUNGEON_FLOOR_HOLE:
+                r = 80; g = 200; b = 80; break;
+            case DUNGEON_FOUNTAIN:
+            case DUNGEON_MAGIC_ORB:
+            case DUNGEON_ALTAR:
+            case DUNGEON_CHEST:
+                r = 80; g = 140; b = 230; break;
+            case DUNGEON_FIELD:
+                r = 190; g = 80; b = 190; break;
+            default:
+                r = 45; g = 45; b = 55; break;
+            }
+            img->fillRect(left + x * cell, top + y * cell, cell, cell, r, g, b);
+        }
+    }
+
+    // The party, with a mark on the side it faces.
+    int px = left + (pos.x & 7) * cell;
+    int py = top  + (pos.y & 7) * cell;
+    img->fillRect(px + 1, py + 1, cell - 2, cell - 2, 250, 220, 60);
+    switch (c->saveGame->orientation) {
+    case DIR_NORTH: img->fillRect(px + 2, py, 1, 1, 255, 255, 255); break;
+    case DIR_SOUTH: img->fillRect(px + 2, py + cell - 1, 1, 1, 255, 255, 255); break;
+    case DIR_WEST:  img->fillRect(px, py + 2, 1, 1, 255, 255, 255); break;
+    case DIR_EAST:  img->fillRect(px + cell - 1, py + 2, 1, 1, 255, 255, 255); break;
+    default: break;
     }
 }
 
