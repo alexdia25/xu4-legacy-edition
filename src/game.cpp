@@ -1224,18 +1224,19 @@ bool GameController::keyPressed(int key) {
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
 
-    // The action menu (gamepad X, Tab, or a tap on the party).
-    if (key == U4_ACTIONS || key == U4_TAB) {
+    // The action menu: gamepad X, a tap on the party, or Tab when
+    // Enter is the smart Enter key (otherwise Enter, with console menus).
+    bool smartEnter = settings.enhancements &&
+                      settings.enhancementsOptions.smartEnterKey;
+    if (key == U4_ACTIONS || (key == U4_TAB && smartEnter) ||
+        (key == U4_ENTER && ! smartEnter && EventHandler::smsMenus())) {
         key = smsActionMenu();
         if (key < 0)
             return true;
     }
     /* Translate context-sensitive action key into a useful command */
-    else if (key == U4_ENTER) {
-        if (settings.enhancements &&
-            settings.enhancementsOptions.smartEnterKey)
-            key = smartEnterKey();
-    }
+    else if (key == U4_ENTER && smartEnter)
+        key = smartEnterKey();
 
     if ((c->location->context & CTX_DUNGEON) && strchr("abefjlotxy", key))
         screenMessage("%cNot here!%c\n", FG_GREY, FG_WHITE);
