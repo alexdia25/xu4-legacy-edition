@@ -127,6 +127,8 @@ int gameSave(const char* userPath);
 void gameShowJournal();
 void gameShowBook(int book);
 void gameShowWisdom(const char* name);
+void gameSwitchModules();
+bool gameModuleSwitchWaiting();
 
 /* action functions */
 void destroy();

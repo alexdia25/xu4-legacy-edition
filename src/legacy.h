@@ -37,6 +37,7 @@ struct LegacySaveInfo {
 extern bool legacyReloadPending;
 
 void legacySaveDone(const char* userPath);
+void legacyCopySaveFiles(const std::string& from, const std::string& to);
 void legacyAutosave();
 bool legacyWipeChoice();
 std::vector<LegacySaveInfo> legacyCharacters();

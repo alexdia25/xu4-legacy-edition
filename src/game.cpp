@@ -2,6 +2,7 @@
  * game.cpp
  */
 
+#include <filesystem>
 #include "game.h"
 #include "discourse.h"
 #include "docreader.h"
@@ -251,6 +252,75 @@ public:
  *
  * Return true if loading is successful.
  */
+/*
+ * Graphics & music modules chosen during play are loaded without leaving the
+ * game: it is saved, everything is restarted with the new modules, the save
+ * is loaded again and then the player's own save files are put back.  Towns
+ * & combat cannot be saved, so there the switch waits until the party is
+ * back on the world map or in a dungeon.
+ */
+#define SWITCH_DIR  "module-switch/"
+
+static bool moduleSwitchPending = false;
+static bool moduleSwitchRestore = false;
+
+static bool moduleSwitchReady() {
+    return xu4.stage == StagePlay && c && c->location &&
+           (c->location->context & CTX_CAN_SAVE_GAME) &&
+           ! c->party->isDead();
+}
+
+static void moduleSwitchNow() {
+    std::string user = xu4.settings->getUserPath();
+    std::string keep = user + SWITCH_DIR;
+
+    moduleSwitchPending = false;
+    legacyCopySaveFiles(user, keep);
+
+    // Not a save the player made, so leave the save history alone.
+    bool autosave = xu4.settings->legacy.autosave;
+    xu4.settings->legacy.autosave = false;
+    int saved = gameSave(user.c_str());
+    xu4.settings->legacy.autosave = autosave;
+    if (! saved) {
+        legacyCopySaveFiles(keep, user);
+        return;
+    }
+
+    moduleSwitchRestore = true;
+    legacyReloadPending = true;
+    xu4.gameReset = 1;
+    xu4.eventHandler->quitGame();
+}
+
+static void moduleSwitchDone() {
+    if (moduleSwitchRestore) {
+        moduleSwitchRestore = false;
+        std::string user = xu4.settings->getUserPath();
+        legacyCopySaveFiles(user + SWITCH_DIR, user);
+        std::error_code ec;
+        std::filesystem::remove_all(
+                std::filesystem::u8path(user + SWITCH_DIR), ec);
+    }
+}
+
+/*
+ * Load the modules named in the settings (see moduleSwitchNow).
+ */
+void gameSwitchModules() {
+    if (moduleSwitchReady())
+        moduleSwitchNow();
+    else
+        moduleSwitchPending = true;
+}
+
+/*
+ * Return true if new modules wait for the party to be back outside.
+ */
+bool gameModuleSwitchWaiting() {
+    return moduleSwitchPending;
+}
+
 bool GameController::initContext() {
     const Settings& settings = *xu4.settings;
 
@@ -264,6 +334,7 @@ bool GameController::initContext() {
     /* load in the save game (if not done by intro) */
     if (! xu4.saveGame) {
         if (! saveGameLoad()) {
+            moduleSwitchDone();
             xu4.stage = StageIntro;     // Go back to intro.
             return false;
         }
@@ -377,6 +448,7 @@ bool GameController::initContext() {
     xu4.screenImage->fill(Image::black);
 
     initScreenWithoutReloadingState();
+    moduleSwitchDone();
     return true;
 }
 
@@ -614,6 +686,8 @@ int GameController::exitToParentMap() {
         if (prevMap != currentMap && prevMap->isWorldMap() &&
             currentMap->type != Map::COMBAT)
             legacyAutosave();
+        if (moduleSwitchPending && moduleSwitchReady())
+            moduleSwitchNow();
         return 1;
     }
     return 0;
@@ -723,6 +797,11 @@ void GameController::finishTurn() {
         }
     }
 
+
+    if (moduleSwitchPending && moduleSwitchReady()) {
+        moduleSwitchNow();
+        return;
+    }
 
     /* draw a prompt */
     screenPrompt();

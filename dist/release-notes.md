@@ -34,6 +34,10 @@ makes Ultima IV easier to play on modern systems, especially with the free
   Enter key), X opens the action menu, Y the world map and B passes a
   turn; in menus A or X picks and B backs out.  On the keyboard, Tab
   opens the action menu.
+- Picking other graphics during play no longer goes back to the title:
+  the game carries on where it was with the new graphics (in a town or a
+  battle, once the party is back outside).  Your save files are not
+  changed.
 - The help lines of the books, the world map and Graphics & Music name
   the gamepad buttons or the keys, whichever was used last.  The books'
   footer has a second line, with Tab (or 1-7) to change book.

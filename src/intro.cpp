@@ -2150,6 +2150,8 @@ void IntroController::updateGameMenu(MenuEvent &event) {
                 xu4.gameBrowser->openSettings = false;
                 settingsFromGameMenu();
             }
+            if (gameModuleSwitchWaiting())
+                hubStatus = "The new graphics load outdoors.";
             break;
         case MI_HUB_QUIT:
             quitMenu.getItemById(MI_QUIT_SAVE)->setVisible(

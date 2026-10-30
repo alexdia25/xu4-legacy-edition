@@ -255,6 +255,10 @@ static void copySaveFiles(const fs::path& from, const fs::path& to) {
     }
 }
 
+void legacyCopySaveFiles(const std::string& from, const std::string& to) {
+    copySaveFiles(fs::u8path(from), fs::u8path(to));
+}
+
 /*
  * Read the avatar's name & level from a party.sav file.
  */

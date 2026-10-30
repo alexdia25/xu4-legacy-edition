@@ -173,8 +173,9 @@ filter defaults to point scaling, for pixel sharp graphics.
 Graphics & Music in the game menu lists the modules in two sections:
 Graphics, where one game module is chosen, and Music, where one
 soundtrack (or the game's own music) is chosen, so any soundtrack can go
-with any graphics.  A module is only listed when the files it needs are
-found.  Besides XU4's own Ultima-IV and U4-Upgrade modules, there are:
+with any graphics.  Changing them during play keeps the game going where
+it was (in a town or a battle, once the party is back outside).  A
+module is only listed when the files it needs are found.  Besides XU4's own Ultima-IV and U4-Upgrade modules, there are:
 
  - **Apple-II** and **Apple-II-Music**: the title, intro, tiles, font,
    line drawn dungeons, shrine and ending pictures, and the Mockingboard

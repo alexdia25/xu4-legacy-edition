@@ -10,6 +10,7 @@
 #include "docreader.h"
 #include "worldmap.h"
 #include "event.h"
+#include "game.h"
 #include "image32.h"
 #include "intro.h"
 #include "gamepad.h"
@@ -704,8 +705,14 @@ bool GameBrowser::keyPressed(int key)
                 xu4.settings->setGame(game);
                 xu4.settings->setSoundtrack(music);
                 xu4.settings->write();
-                xu4.eventHandler->quitGame();
-                xu4.gameReset = 1;
+                if (xu4.stage == StagePlay) {
+                    // Keep playing with the new modules.
+                    xu4.eventHandler->setControllerDone(true);
+                    gameSwitchModules();
+                } else {
+                    xu4.eventHandler->quitGame();
+                    xu4.gameReset = 1;
+                }
             }
         }
             return true;
