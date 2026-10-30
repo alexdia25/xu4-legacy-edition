@@ -131,7 +131,8 @@ struct LegacyOptions {
     bool spellInfo;         // Spell lists show cost & effect.
     bool healShortcut;      // Action menu offers Cast Heal/Cure.
     bool pauseUnfocused;    // Pause while the window has no focus.
-    bool autosave;          // Save on entering & leaving places.
+    bool autosave;          // Save on entering & leaving places, history.
+    bool keepCharacters;    // New games keep the others; pick at Journey.
     bool batterySaver;      // Stop animating after a minute idle.
     bool scanlines;
     bool cheatsMenu;        // Cheats in the in-game settings.

@@ -526,6 +526,16 @@ void EventHandler::handleInputEvents(Controller* waitCon,
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_WHEEL:
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+            case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+            case SDL_EVENT_WINDOW_EXPOSED:
+                lastInputTime = getTicks();
+                break;
+        }
+        switch (event.type) {
+            case SDL_EVENT_KEY_DOWN:
                 keyHandler(&event.key);
                 break;
 

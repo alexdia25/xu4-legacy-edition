@@ -314,9 +314,10 @@ IntroController::IntroController() :
     rulesMenu.add(MI_RULES_03,     new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
     rulesMenu.add(MI_RULES_04,     new EnumMenuItem("  Turn Timer    %s",          2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
     rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
-    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave                 %s", 2,  7,/*'a'*/  0, &lo.autosave));
-    rulesMenu.add(MI_RULES_07,     new BoolMenuItem("Cheats In Settings       %s", 2,  8,/*'i'*/  7, &lo.cheatsMenu));
-    rulesMenu.add(MI_RULES_CHEATS,                  "\010 Cheats",                 2,  9,/*'h'*/  3);
+    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  7,/*'a'*/  0, &lo.autosave));
+    rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  8,/*'k'*/  0, &lo.keepCharacters));
+    rulesMenu.add(MI_RULES_07,     new BoolMenuItem("Cheats In Settings       %s", 2,  9,/*'i'*/  7, &lo.cheatsMenu));
+    rulesMenu.add(MI_RULES_CHEATS,                  "\010 Cheats",                 2, 10,/*'h'*/  3);
     rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu.addShortcutKey(CANCEL, ' ');
@@ -352,6 +353,13 @@ bool IntroController::present() {
     init();
     preloadMap();
     listenerId = gs_listen(1<<SENDER_MENU, introNotice, this);
+
+    // Party Wipe: go straight back to the last save.
+    if (legacyReloadPending) {
+        legacyReloadPending = false;
+        mode = INTRO_MENU;
+        startGame(true);
+    }
     return true;
 }
 
@@ -1064,6 +1072,10 @@ void IntroController::finishInitiateGame(const string &nameBuffer, SexType sex)
     delete xu4.saveGame;
     xu4.saveGame = NULL;    // Make GameController::init() reload the game.
 
+    // Keep Characters: the game being played is kept, not overwritten.
+    if (xu4.settings->legacy.keepCharacters)
+        legacyParkActive();
+
     FILE *saveGameFile = fopen((xu4.settings->getUserPath() + PARTY_SAV).c_str(), "wb");
     if (!saveGameFile) {
         questionArea.hideCursor();
@@ -1090,6 +1102,8 @@ void IntroController::finishInitiateGame(const string &nameBuffer, SexType sex)
     }
 
     fclose(saveGameFile);
+    if (xu4.settings->legacy.keepCharacters)
+        legacyNameNewCharacter(nameBuffer.c_str());
 
     // Start with no conversation words heard.
     talkWordsClear();
@@ -1288,12 +1302,134 @@ string IntroController::getQuestion(int v1, int v2) {
  * Starts the game.
  */
 void IntroController::journeyOnward() {
-    // Return to a running game or attempt to load a saved one.
+    // Keep Characters: choose whose journey, or an earlier save.
+    if (xu4.settings->legacy.keepCharacters) {
+        int choice = chooseJourney();
+        if (choice < 0) {
+            updateScreen();
+            return;
+        }
+        if (choice > 0) {
+            startGame(true);
+            return;
+        }
+    }
+    startGame(false);
+}
+
+/*
+ * Return to a running game or attempt to load a saved one.  If reload is
+ * true the saved game replaces any game running.
+ */
+void IntroController::startGame(bool reload) {
+    if (reload) {
+        delete xu4.saveGame;
+        xu4.saveGame = NULL;
+        justInitiatedNewGame = true;    // Makes the game reinitialize.
+    }
     if (xu4.saveGame || saveGameLoad()) {
         xu4.stage = StagePlay;
         xu4.eventHandler->setControllerDone();
     } else {
+        justInitiatedNewGame = false;
         updateScreen();     // Shows errorMessage set by saveGameLoad().
+    }
+}
+
+/*
+ * Draw a list screen in the menu area with a title and hint.
+ */
+void IntroController::drawListScreen(const char* title, const char* hint) {
+    backgroundArea.draw(BKGD_INTRO);
+    menuArea.clear();
+    screenHideCursor();
+    menuArea.textAt(1, 0, title);
+    if (hint)
+        menuArea.textAt(1, 10, hint);
+    drawBeasties();
+}
+
+/*
+ * Ask whose journey to take up (Keep Characters option).  Returns -1 if
+ * cancelled, 0 to carry on with the active game as is, 1 if another game
+ * was made active (which must then be loaded).
+ */
+int IntroController::chooseJourney() {
+    for (;;) {
+        std::vector<LegacySaveInfo> chars = legacyCharacters();
+        if (chars.empty())
+            return 0;   // Nothing kept; Journey Onward reports this.
+
+        std::vector<std::string> labels;
+        for (const LegacySaveInfo& ch : chars)
+            labels.push_back(ch.active ? ch.label + " *" : ch.label);
+        labels.push_back("Earlier saves...");
+        labels.push_back("Delete a character...");
+
+        std::vector<const char*> items;
+        for (const std::string& str : labels)
+            items.push_back(str.c_str());
+
+        drawListScreen("Whose journey?", "* is the one last played");
+        int n = EventHandler::chooseList(&menuArea, 1, 2, 37, 8,
+                                         items.data(), items.size());
+        if (n < 0)
+            return -1;
+
+        int nchars = chars.size();
+        if (n < nchars) {
+            if (chars[n].active)
+                return 0;
+            legacySelectCharacter(chars[n]);
+            return 1;
+        }
+
+        // Earlier saves or deletion: pick the character first.
+        bool earlier = (n == nchars);
+        items.resize(nchars);
+        drawListScreen(earlier ? "Earlier saves of whom?"
+                               : "Delete which character?", NULL);
+        int who = EventHandler::chooseList(&menuArea, 1, 2, 37, 8,
+                                           items.data(), nchars);
+        if (who < 0)
+            continue;
+
+        if (earlier) {
+            std::vector<LegacySaveInfo> saves = legacySaveHistory(chars[who]);
+            if (saves.empty()) {
+                drawListScreen("No earlier saves are kept.",
+                               "Saves are kept with Autosave & History.");
+                EventHandler::waitAnyKey();
+                continue;
+            }
+            std::vector<const char*> sitems;
+            for (const LegacySaveInfo& sv : saves)
+                sitems.push_back(sv.label.c_str());
+            drawListScreen("Which save? (newest first)", NULL);
+            int pick = EventHandler::chooseList(&menuArea, 1, 2, 37, 8,
+                                                sitems.data(), sitems.size());
+            if (pick < 0)
+                continue;
+            legacyRestoreSave(saves[pick]);
+            return 1;
+        }
+
+        // Delete, once asked twice.
+        drawListScreen(chars[who].label.c_str(), NULL);
+        menuArea.textAt(1, 3, "Delete this character and all");
+        menuArea.textAt(1, 4, "of their saves?");
+        static const char* noYes[2] = { "No", "Yes" };
+        if (EventHandler::chooseList(&menuArea, 1, 6, 10, 2, noYes, 2) != 1)
+            continue;
+        menuArea.textAt(1, 4, "of their saves?  Truly?");
+        if (EventHandler::chooseList(&menuArea, 1, 6, 10, 2, noYes, 2) != 1)
+            continue;
+        if (chars[who].active) {
+            delete xu4.saveGame;
+            xu4.saveGame = NULL;
+            justInitiatedNewGame = true;
+        }
+        legacyDeleteCharacter(chars[who]);
     }
 }
 

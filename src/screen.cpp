@@ -291,6 +291,8 @@ void screenDelete() {
 /**
  * Re-initializes the screen and implements any changes made in settings
  */
+static int screenGeneration = 0;    // Changes when GPU resources are remade.
+
 void screenReInit() {
     Screen* screen = XU4_SCREEN;
 
@@ -298,6 +300,7 @@ void screenReInit() {
 
     screenDelete_data(XU4_SCREEN);
     screenInit_sys(xu4.settings, &screen->state, SYS_RESET);
+    ++screenGeneration;
     screenInit_data(screen, *xu4.settings); // Load new backgrounds, etc.
     clearBorders(screen);
 
@@ -861,6 +864,8 @@ static void screenUploadCursor(Screen* sp, uint32_t stex) {
     gpu_blitTexture(stex, sp->state.cursorX, sp->state.cursorY, &cimg);
 }
 
+static void screenDrawScanlines(const ScreenState* ss);
+
 void screenRender() {
     Screen* sp = XU4_SCREEN;
     void* gpu = xu4.gpu;
@@ -926,6 +931,35 @@ void screenRender() {
             rl->func(ss, rl->data);
     }
     }
+
+    if (xu4.settings->legacy.scanlines)
+        screenDrawScanlines(ss);
+}
+
+/*
+ * Darken every other line, one pair for each of the 200 lines of the
+ * original screen, for the look of a CRT (the Scanlines option).
+ */
+static void screenDrawScanlines(const ScreenState* ss) {
+    static int madeFor = -1;
+    static uint32_t tex = 0;
+
+    if (madeFor != screenGeneration) {
+        Image32 img;
+        image32_init(&img);
+        image32_allocPixels(&img, 1, U4_SCREEN_H * 2);
+        for (int y = 0; y < img.h; ++y)
+            img.pixels[y] = (y & 1) ? 0x60000000 : 0;
+        tex = gpu_makeTexture(&img);
+        image32_freePixels(&img);
+        madeFor = screenGeneration;
+    }
+
+    float rect[4];
+    rect[0] = rect[1] = 0.0f;
+    rect[2] = (float) ss->aspectW;
+    rect[3] = (float) ss->aspectH;
+    gpu_drawImage(xu4.gpu, tex, rect, ss->aspectW, ss->aspectH);
 }
 
 void screenDrawImageInMapArea(Symbol name) {

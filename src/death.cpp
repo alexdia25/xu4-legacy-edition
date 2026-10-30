@@ -4,6 +4,7 @@
 
 #include "config.h"
 #include "game.h"
+#include "legacy.h"
 #include "mapmgr.h"
 #include "party.h"
 #include "portal.h"
@@ -47,6 +48,12 @@ void deathStart(int delaySeconds) {
         if(EventHandler::wait_msecs(delaySeconds * 1000))
             return;
     }
+
+    // Party Wipe option: back to the last save instead.
+    screenShowCursor();
+    if (legacyWipeChoice())
+        return;
+    screenHideCursor();
 
     eh->pushController(new DeathController);
 }

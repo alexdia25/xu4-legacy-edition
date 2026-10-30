@@ -464,6 +464,9 @@ int gameSave(const char* userPath) {
             goto write_error;
         fclose(fp);
     }
+
+    if (xu4.settings->legacy.autosave)
+        legacySaveDone(userPath);   // Keep a copy in the save history.
     return 1;
 
 write_error:
@@ -599,6 +602,11 @@ int GameController::exitToParentMap() {
 
         locationFree(&c->location);
         gameStampCommandTime();     // Restart turn Pass timer.
+
+        // Autosave on coming out of a place onto the world map.
+        if (prevMap != currentMap && prevMap->isWorldMap() &&
+            currentMap->type != Map::COMBAT)
+            legacyAutosave();
         return 1;
     }
     return 0;

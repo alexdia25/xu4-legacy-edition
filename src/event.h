@@ -169,9 +169,14 @@ public:
     // Prompts backed out of while a command is armed (see gameCancelArm).
     static int  cancelCount;
     static bool cancelArmed;
+
+    // Time of the last key, button or pointer press (getTicks).
+    static uint32_t lastInputTime;
     static void noteCancel() { if (cancelArmed) ++cancelCount; }
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
+    static int  chooseList(TextView* view, int x, int y, int width,
+                           int rows, const char* const* items, int count);
     static int  chooseInline(TextView* view, const char* const* items,
                              int count, const int16_t* tapAreas = NULL);
 

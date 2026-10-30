@@ -2,7 +2,21 @@
  * legacy.cpp - Legacy Edition features after the Ultima III & V ports.
  */
 
+#include <cstdio>
+#include <cstring>
+#include <ctime>
+#include <filesystem>
+#include <system_error>
+#include <algorithm>
+#include <chrono>
 #include "context.h"
+#include "discourse.h"
+#include "event.h"
+#include "game.h"
+#include "location.h"
+#include "map.h"
+#include "screen.h"
+#include "settings.h"
 #include "party.h"
 #include "spell.h"
 #include "config.h"
@@ -115,7 +129,7 @@ const char* legacyCheat(int cheat) {
 const char* legacySpellEffect(int spell) {
     static const char* effects[26] = {
         "Wakes one",        // Awaken
-        "Moves the party",  // Blink
+        "Party leaps far",  // Blink
         "Cures poison",     // Cure
         "Removes a field",  // Dispel
         "Makes a field",    // Energy Field
@@ -128,14 +142,14 @@ const char* legacySpellEffect(int spell) {
         "Lights the way",   // Light
         "Strikes a foe",    // Magic Missile
         "Stops all magic",  // Negate
-        "Opens a chest",    // Open
+        "Disarms a chest",  // Open
         "Shields party",    // Protection
         "Party is faster",  // Quickness
         "Raises the dead",  // Resurrect
         "Puts foes asleep", // Sleep
-        "Shakes the foes",  // Tremor
+        "Quake vs. foes",   // Tremor
         "Turns undead",     // Undead
-        "Shows the map",    // View
+        "Shows the land",   // View
         "Turns the wind",   // Winds
         "Out of dungeon",   // X-it
         "Up a level",       // Y-up
@@ -198,5 +212,369 @@ bool legacyHealShortcut(int* spell, int* caster, int* subject, int onlyCaster) {
     *spell = sp;
     *caster = best;
     *subject = who;
+    return true;
+}
+
+//--------------------------------------------------------------------------
+// Saves & characters
+//
+// The game being played is always saved in the user directory as before.
+// Each save is also copied to history/<character>/1 (the older ones move
+// up to 8).  Other characters are kept in characters/<folder>/ and are
+// swapped with the active one when chosen.  character.txt in the user
+// directory names the folder of the active character.
+
+namespace fs = std::filesystem;
+
+bool legacyReloadPending = false;
+
+#define HISTORY_COUNT   8
+
+static const char* saveFiles[] = {
+    PARTY_SAV, MONSTERS_SAV, OUTMONST_SAV, DNGMAP_SAV, TALKWORDS_SAV,
+    "journal.sav", "dngseen.sav", NULL
+};
+
+static fs::path userDir() {
+    return fs::u8path(xu4.settings->getUserPath());
+}
+
+static void copySaveFiles(const fs::path& from, const fs::path& to) {
+    std::error_code ec;
+    fs::create_directories(to, ec);
+    for (const char** fn = saveFiles; *fn; ++fn) {
+        fs::path src = from / *fn;
+        fs::path dst = to / *fn;
+        if (fs::exists(src, ec))
+            fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+        else
+            fs::remove(dst, ec);
+    }
+}
+
+/*
+ * Read the avatar's name & level from a party.sav file.
+ */
+static bool readPartyInfo(const fs::path& dir, std::string* name, int* level) {
+    FILE* fp = fopen((dir / PARTY_SAV).string().c_str(), "rb");
+    if (! fp)
+        return false;
+    SaveGame sg;
+    bool ok = sg.read(fp) && sg.members > 0;
+    fclose(fp);
+    if (ok) {
+        *name = sg.players[0].name;
+        *level = sg.players[0].hpMax / 100;
+    }
+    return ok;
+}
+
+/*
+ * Return a name safe to use as a directory.
+ */
+static std::string folderName(const std::string& name) {
+    std::string out;
+    for (char ch : name) {
+        if (isalnum((unsigned char) ch) || ch == ' ' || ch == '-' || ch == '_')
+            out += ch;
+    }
+    while (! out.empty() && out.back() == ' ')
+        out.pop_back();
+    return out.empty() ? std::string("Avatar") : out;
+}
+
+static std::string readText(const fs::path& file) {
+    std::string text;
+    FILE* fp = fopen(file.string().c_str(), "r");
+    if (fp) {
+        char buf[256];
+        if (fgets(buf, sizeof(buf), fp)) {
+            text = buf;
+            while (! text.empty() && (text.back() == '\n' || text.back() == '\r'))
+                text.pop_back();
+        }
+        fclose(fp);
+    }
+    return text;
+}
+
+static void writeText(const fs::path& file, const std::string& text) {
+    FILE* fp = fopen(file.string().c_str(), "w");
+    if (fp) {
+        fprintf(fp, "%s\n", text.c_str());
+        fclose(fp);
+    }
+}
+
+/*
+ * Return the character folder of the active game (creating the name from
+ * the avatar if there is none yet), or an empty string if there is no game.
+ */
+static std::string activeFolder() {
+    fs::path base = userDir();
+    std::string folder = readText(base / "character.txt");
+    if (folder.empty()) {
+        std::string name;
+        int level;
+        if (! readPartyInfo(base, &name, &level))
+            return folder;
+        folder = folderName(name);
+        writeText(base / "character.txt", folder);
+    }
+    return folder;
+}
+
+static long long fileTime(const fs::path& file) {
+    std::error_code ec;
+    auto ft = fs::last_write_time(file, ec);
+    if (ec)
+        return 0;
+    auto sys = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+            ft - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+    return (long long) std::chrono::system_clock::to_time_t(sys);
+}
+
+static std::string describe(const fs::path& dir, const char* what) {
+    std::string name;
+    int level = 0;
+    if (! readPartyInfo(dir, &name, &level))
+        return std::string();
+    std::string place = readText(dir / "place.txt");
+    char buf[96];
+    snprintf(buf, sizeof(buf), "%s%s, level %d%s%s", what, name.c_str(), level,
+             place.empty() ? "" : " - ", place.c_str());
+    return buf;
+}
+
+/*
+ * Called after the game is saved: note where, and keep a copy in the
+ * save history.
+ */
+void legacySaveDone(const char* userPath) {
+    std::error_code ec;
+    fs::path base = fs::u8path(userPath);
+    std::string folder = activeFolder();
+    if (folder.empty())
+        return;
+
+    const Map* map = c->location->map;
+    const char* place = map->isWorldMap() ? "Britannia" : map->getName();
+    writeText(base / "place.txt", place ? place : "");
+
+    fs::path hist = base / "history" / fs::u8path(folder);
+    fs::create_directories(hist, ec);
+    fs::remove_all(hist / std::to_string(HISTORY_COUNT), ec);
+    for (int i = HISTORY_COUNT - 1; i >= 1; --i) {
+        fs::path from = hist / std::to_string(i);
+        if (fs::exists(from, ec))
+            fs::rename(from, hist / std::to_string(i + 1), ec);
+    }
+    fs::path dst = hist / "1";
+    copySaveFiles(base, dst);
+    fs::copy_file(base / "place.txt", dst / "place.txt",
+                  fs::copy_options::overwrite_existing, ec);
+}
+
+/*
+ * Save the game, if the Autosave option is on and the game can be saved
+ * here.  Called on entering & leaving places.
+ */
+void legacyAutosave() {
+    if (! xu4.settings->legacy.autosave)
+        return;
+    if (! (c->location->context & CTX_CAN_SAVE_GAME) || c->party->isDead())
+        return;
+    if (gameSave(xu4.settings->getUserPath().c_str()))
+        screenMessage("%c(saved)%c\n", FG_GREY, FG_WHITE);
+}
+
+/*
+ * The party has fallen.  With the Party Wipe option, offer to go back to
+ * the last save.  Returns true if the game will be reloaded.
+ */
+bool legacyWipeChoice() {
+    if (! xu4.settings->legacy.wipeChoice)
+        return false;
+    if (! fs::exists(userDir() / PARTY_SAV))
+        return false;
+
+    screenMessage("\n\n%cThe party has fallen!%c\nTry again from the last save? ",
+                  FG_YELLOW, FG_WHITE);
+    static const char* const labels[] = { "Yes", "No", NULL, NULL };
+    int ch = EventHandler::readChoice("yn \033", labels);
+    if (ch != 'y') {
+        screenMessage("\n");
+        return false;
+    }
+
+    // Restart from the title, which loads the save straight away.
+    legacyReloadPending = true;
+    xu4.gameReset = 1;
+    xu4.eventHandler->quitGame();
+    return true;
+}
+
+/*
+ * List the active character (first) & the others kept.
+ */
+std::vector<LegacySaveInfo> legacyCharacters() {
+    std::vector<LegacySaveInfo> list;
+    std::error_code ec;
+    fs::path base = userDir();
+    std::string active = activeFolder();
+
+    if (! active.empty()) {
+        LegacySaveInfo info;
+        info.dir    = base.string();
+        info.folder = active;
+        info.label  = describe(base, "");
+        info.time   = fileTime(base / PARTY_SAV);
+        info.active = true;
+        if (! info.label.empty())
+            list.push_back(info);
+    }
+
+    fs::path chars = base / "characters";
+    if (fs::is_directory(chars, ec)) {
+        std::vector<LegacySaveInfo> others;
+        for (const auto& ent : fs::directory_iterator(chars, ec)) {
+            if (! ent.is_directory())
+                continue;
+            LegacySaveInfo info;
+            info.dir    = ent.path().string();
+            info.folder = ent.path().filename().u8string();
+            if (info.folder == active)
+                continue;
+            info.label  = describe(ent.path(), "");
+            info.time   = fileTime(ent.path() / PARTY_SAV);
+            info.active = false;
+            if (! info.label.empty())
+                others.push_back(info);
+        }
+        std::sort(others.begin(), others.end(),
+                  [](const LegacySaveInfo& a, const LegacySaveInfo& b) {
+                      return a.time > b.time;
+                  });
+        list.insert(list.end(), others.begin(), others.end());
+    }
+    return list;
+}
+
+/*
+ * List the saves of a character: the last one then the earlier ones kept
+ * in its history.
+ */
+std::vector<LegacySaveInfo> legacySaveHistory(const LegacySaveInfo& ch) {
+    std::vector<LegacySaveInfo> list;
+    std::error_code ec;
+    fs::path hist = userDir() / "history" / fs::u8path(ch.folder);
+    for (int i = 1; i <= HISTORY_COUNT; ++i) {
+        fs::path dir = hist / std::to_string(i);
+        if (! fs::exists(dir / PARTY_SAV, ec))
+            continue;
+        LegacySaveInfo info;
+        info.dir    = dir.string();
+        info.folder = ch.folder;
+        info.time   = fileTime(dir / PARTY_SAV);
+        info.active = false;
+        std::string place = readText(dir / "place.txt");
+        char when[32];
+        time_t t = (time_t) info.time;
+        strftime(when, sizeof(when), "%b %d %H:%M", localtime(&t));
+        info.label = std::string(when) + (place.empty() ? "" : " " + place);
+        list.push_back(info);
+    }
+    return list;
+}
+
+/*
+ * Keep the active game in characters/ so that a new one can be started
+ * without losing it.  Returns false if there was nothing to keep.
+ */
+bool legacyParkActive() {
+    std::string folder = activeFolder();
+    if (folder.empty())
+        return false;
+    fs::path base = userDir();
+    fs::path dst = base / "characters" / fs::u8path(folder);
+    copySaveFiles(base, dst);
+    std::error_code ec;
+    fs::copy_file(base / "place.txt", dst / "place.txt",
+                  fs::copy_options::overwrite_existing, ec);
+    for (const char** fn = saveFiles; *fn; ++fn)
+        fs::remove(base / *fn, ec);
+    fs::remove(base / "character.txt", ec);
+    fs::remove(base / "place.txt", ec);
+    return true;
+}
+
+/*
+ * Give a new character a folder that no other character uses.
+ */
+void legacyNameNewCharacter(const char* avatarName) {
+    fs::path base = userDir();
+    std::string folder = folderName(avatarName);
+    std::string name = folder;
+    std::error_code ec;
+    for (int n = 2; fs::exists(base / "characters" / fs::u8path(name), ec) ||
+                    fs::exists(base / "history" / fs::u8path(name), ec); ++n)
+        name = folder + " " + std::to_string(n);
+    writeText(base / "character.txt", name);
+}
+
+/*
+ * Make a kept character the active one (the active one is kept first).
+ */
+bool legacySelectCharacter(const LegacySaveInfo& ch) {
+    if (ch.active)
+        return true;
+    fs::path src = fs::u8path(ch.dir);
+    legacyParkActive();
+    fs::path base = userDir();
+    copySaveFiles(src, base);
+    std::error_code ec;
+    fs::copy_file(src / "place.txt", base / "place.txt",
+                  fs::copy_options::overwrite_existing, ec);
+    writeText(base / "character.txt", ch.folder);
+    fs::remove_all(src, ec);
+    return true;
+}
+
+/*
+ * Make an earlier save from the history the active game.
+ */
+bool legacyRestoreSave(const LegacySaveInfo& save) {
+    fs::path base = userDir();
+    if (activeFolder() != save.folder) {
+        // Find and activate the character first.
+        std::vector<LegacySaveInfo> chars = legacyCharacters();
+        for (const LegacySaveInfo& ch : chars)
+            if (ch.folder == save.folder)
+                legacySelectCharacter(ch);
+    }
+    fs::path src = fs::u8path(save.dir);
+    copySaveFiles(src, base);
+    std::error_code ec;
+    fs::copy_file(src / "place.txt", base / "place.txt",
+                  fs::copy_options::overwrite_existing, ec);
+    writeText(base / "character.txt", save.folder);
+    return true;
+}
+
+/*
+ * Delete a character with all its saves.
+ */
+bool legacyDeleteCharacter(const LegacySaveInfo& ch) {
+    std::error_code ec;
+    fs::path base = userDir();
+    if (ch.active) {
+        for (const char** fn = saveFiles; *fn; ++fn)
+            fs::remove(base / *fn, ec);
+        fs::remove(base / "character.txt", ec);
+        fs::remove(base / "place.txt", ec);
+    } else {
+        fs::remove_all(fs::u8path(ch.dir), ec);
+    }
+    fs::remove_all(base / "history" / fs::u8path(ch.folder), ec);
     return true;
 }

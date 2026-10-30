@@ -21,4 +21,29 @@ const char* legacyCheat(int cheat);
 const char* legacySpellEffect(int spell);
 bool legacyHealShortcut(int* spell, int* caster, int* subject, int onlyCaster);
 
+#include <string>
+#include <vector>
+
+// Saves & characters.
+struct LegacySaveInfo {
+    std::string dir;        // Directory holding the save files.
+    std::string folder;     // Character folder name (characters only).
+    std::string label;      // "Name, level 3 - Britain" ...
+    long long   time;       // Seconds since the epoch of the save.
+    bool        active;     // The character being played.
+};
+
+extern bool legacyReloadPending;
+
+void legacySaveDone(const char* userPath);
+void legacyAutosave();
+bool legacyWipeChoice();
+std::vector<LegacySaveInfo> legacyCharacters();
+std::vector<LegacySaveInfo> legacySaveHistory(const LegacySaveInfo& ch);
+bool legacyParkActive();
+void legacyNameNewCharacter(const char* avatarName);
+bool legacySelectCharacter(const LegacySaveInfo& ch);
+bool legacyRestoreSave(const LegacySaveInfo& save);
+bool legacyDeleteCharacter(const LegacySaveInfo& ch);
+
 #endif

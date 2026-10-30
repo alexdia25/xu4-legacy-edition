@@ -397,6 +397,8 @@ bool Settings::read() {
             legacy.pauseUnfocused = toInt(val);
         else if (VALUE("autosave="))
             legacy.autosave = toInt(val);
+        else if (VALUE("keepCharacters="))
+            legacy.keepCharacters = toInt(val);
         else if (VALUE("batterySaver="))
             legacy.batterySaver = toInt(val);
         else if (VALUE("scanlines="))
@@ -564,6 +566,7 @@ bool Settings::write() {
             "healShortcut=%d\n"
             "pauseUnfocused=%d\n"
             "autosave=%d\n"
+            "keepCharacters=%d\n"
             "batterySaver=%d\n"
             "scanlines=%d\n"
             "cheatsMenu=%d\n"
@@ -583,6 +586,7 @@ bool Settings::write() {
             legacy.healShortcut,
             legacy.pauseUnfocused,
             legacy.autosave,
+            legacy.keepCharacters,
             legacy.batterySaver,
             legacy.scanlines,
             legacy.cheatsMenu,

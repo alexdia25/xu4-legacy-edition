@@ -141,6 +141,9 @@ private:
     void startQuestions();
     void showStory();
     void journeyOnward();
+    void startGame(bool reload);
+    int  chooseJourney();
+    void drawListScreen(const char* title, const char* hint);
     void about();
 #ifdef GPU_RENDER
     void enableMap();
@@ -225,6 +228,7 @@ private:
         MI_RULES_05,
         MI_RULES_06,
         MI_RULES_07,
+        MI_RULES_08,
         MI_RULES_CHEATS,
         MI_CHEAT_HEAL,
         MI_CHEAT_GOLD,

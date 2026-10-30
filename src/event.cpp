@@ -472,6 +472,16 @@ resume:
 #endif
         if (repeatCon)
             pointerRepeat();
+        // Battery Saver: a minute after the last press the game stops
+        // animating & drawing until the next press.
+        if (xu4.settings->legacy.batterySaver && xu4.stage == StagePlay &&
+            ! getTicks_useVirtual &&
+            getTicks() - lastInputTime > 60000) {
+            msecSleep(100);
+            fs.realTime = getTicks();
+            continue;
+        }
+
         if (runTime >= timerInterval) {
             runTime -= timerInterval;
             timedEvents.tick();
@@ -1556,6 +1566,7 @@ bool EventHandler::defaultKeyHandler(int key) {
 //----------------------------------------------------------------------------
 
 int  EventHandler::cancelCount = 0;
+uint32_t EventHandler::lastInputTime = 0;
 bool EventHandler::cancelArmed = false;
 
 /*
@@ -1918,6 +1929,98 @@ void EventHandler::pointerRepeat()
  * for each item which picks it when tapped.
  * Returns the item index.
  */
+/*
+ * A vertical list drawn in a TextView: up & down move, Enter picks, Escape
+ * cancels (-1), a tap picks the row tapped.  Longer lists scroll.
+ */
+class ListChoiceController : public WaitableController<int> {
+public:
+    ListChoiceController(TextView* view, int x, int y, int width, int rows,
+                         const char* const* items, int count)
+        : view(view), x(x), y(y), width(width), rows(rows), items(items),
+          count(count), sel(0), top(0) {
+        value = -1;
+        if (this->rows > count)
+            this->rows = count;
+    }
+
+    virtual bool keyPressed(int key) {
+        switch (key) {
+        case U4_UP:
+        case U4_LEFT:
+            sel = (sel > 0) ? sel - 1 : count - 1;
+            break;
+        case U4_DOWN:
+        case U4_RIGHT:
+            sel = (sel < count - 1) ? sel + 1 : 0;
+            break;
+        case U4_ENTER:
+        case U4_KEYPAD_ENTER:
+        case U4_SPACE:
+            value = sel;
+            doneWaiting();
+            return true;
+        case U4_ESC:
+        case U4_PAD_B:
+            value = -1;
+            doneWaiting();
+            return true;
+        default:
+            return EventHandler::globalKeyHandler(key);
+        }
+        draw();
+        return true;
+    }
+
+    virtual bool inputEvent(const InputEvent* ev) {
+        int px, py;
+        if (EventHandler::pointerTap(ev, &px, &py)) {
+            view->mouseTextPos(ev->x, ev->y, px, py);
+            int row = py - y;
+            if (row >= 0 && row < rows && top + row < count) {
+                sel = top + row;
+                draw();
+                keyPressed(U4_ENTER);
+            }
+        }
+        return true;
+    }
+
+    void draw() {
+        if (sel < top)
+            top = sel;
+        else if (sel >= top + rows)
+            top = sel - rows + 1;
+        for (int i = 0; i < rows; ++i) {
+            int n = top + i;
+            char mark = ' ';
+            if (n == sel)
+                mark = CHARSET_BULLET;
+            view->textAtFmt(x, y + i, "%c%-*.*s", mark, width - 1, width - 1,
+                            (n < count) ? items[n] : "");
+        }
+    }
+
+private:
+    TextView* view;
+    int x, y, width, rows;
+    const char* const* items;
+    int count;
+    int sel, top;
+};
+
+int EventHandler::chooseList(TextView* view, int x, int y, int width,
+                             int rows, const char* const* items, int count)
+{
+    if (count < 1)
+        return -1;
+    view->hideCursor();
+    ListChoiceController ctrl(view, x, y, width, rows, items, count);
+    ctrl.draw();
+    xu4.eventHandler->pushController(&ctrl);
+    return ctrl.waitFor();
+}
+
 int EventHandler::chooseInline(TextView* view, const char* const* items,
                                int count, const int16_t* tapAreas)
 {

@@ -3,6 +3,7 @@
  */
 
 #include "portal.h"
+#include "legacy.h"
 
 #include "city.h"
 #include "config.h"
@@ -130,6 +131,9 @@ int usePortalAt(Location *location, const Coords& coords, PortalTriggerAction ac
     else if (portal->destid == location->map->id)
         location->coords = portal->start;
     else {
+        // Autosave the party on the place's square before going in.
+        if (action == ACTION_ENTER && location->context == CTX_WORLDMAP)
+            legacyAutosave();
         xu4.game->setMap(destination, portal->saveLocation, portal);
         musicPlayLocale();
     }
