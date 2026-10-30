@@ -1235,10 +1235,11 @@ bool NumberPickerController::inputEvent(const InputEvent* ev) {
 class LetterGridController : public WaitableController<int> {
 public:
     LetterGridController(int maxlen, int cols, TextView* view,
-                         int textX, int textY, int gridX, int gridY)
+                         int textX, int textY, int gridX, int gridY,
+                         bool cased = false)
         : maxlen(maxlen), cols(cols), view(view),
           textX(textX), textY(textY), gridX(gridX), gridY(gridY),
-          row(0), col(0), typed(false) {
+          row(0), col(0), typed(false), cased(cased), upper(cased) {
         value = 0;
         rows = (26 + cols - 1) / cols + 1;
     }
@@ -1253,7 +1254,7 @@ public:
 private:
     int rowLength(int r) const {
         if (r == rows - 1)
-            return 3;
+            return cased ? 4 : 3;
         int left = 26 - r * cols;
         return (left < cols) ? left : cols;
     }
@@ -1278,9 +1279,17 @@ private:
     int gridX, gridY;
     int row, col;
     bool typed;
+    bool cased;     // Upper & lower case letters (names).
+    bool upper;     // Upper case letters showing.
+
+    // The cell of the bottom row at column i.
+    int special(int i) const {
+        return (cased || i < 2) ? i : i + 1;
+    }
 };
 
-static const char* gridSpecial[3] = { "Spc", "Del", "End" };
+enum GridSpecial { GRID_SPACE, GRID_DEL, GRID_CASE, GRID_END };
+static const char* gridSpecial[4] = { "Spc", "Del", "abc", "End" };
 
 void LetterGridController::draw() const {
     char cell[40];
@@ -1294,12 +1303,16 @@ void LetterGridController::draw() const {
                 int x = i * 2;
                 if (r == row && i == col)
                     cell[x] = CHARSET_BULLET;
-                cell[x + 1] = 'A' + r * cols + i;
+                cell[x + 1] = (upper ? 'A' : 'a') + r * cols + i;
             } else {
                 int x = i * 5;
                 if (r == row && i == col)
                     cell[x] = CHARSET_BULLET;
-                memcpy(cell + x + 1, gridSpecial[i], 3);
+                int sp = special(i);
+                if (sp == GRID_CASE)
+                    memcpy(cell + x + 1, upper ? "abc" : "ABC", 3);
+                else
+                    memcpy(cell + x + 1, gridSpecial[sp], 3);
             }
         }
         textAt(gridX, gridY + r, cell);
@@ -1343,14 +1356,23 @@ bool LetterGridController::keyPressed(int key) {
             doneWaiting();
             return true;
         }
-        if (row < rows - 1)
-            add('a' + row * cols + col);
-        else if (col == 0)
+        if (row < rows - 1) {
+            add((upper ? 'A' : 'a') + row * cols + col);
+            // A name continues in lower case after its capital.
+            if (cased && buf.size() == 1)
+                upper = false;
+        } else switch (special(col)) {
+        case GRID_SPACE:
             add(' ');
-        else if (col == 1) {
+            break;
+        case GRID_DEL:
             if (! buf.empty())
                 buf.erase(buf.size() - 1);
-        } else {
+            break;
+        case GRID_CASE:
+            upper = ! upper;
+            break;
+        default:
             doneWaiting();
             return true;
         }
@@ -1369,7 +1391,7 @@ bool LetterGridController::keyPressed(int key) {
         break;
     default:
         if (key < 0x80 && isalpha(key)) {
-            add(tolower(key));
+            add(cased ? key : tolower(key));
             typed = true;
         } else
             return EventHandler::globalKeyHandler(key);
@@ -1383,7 +1405,7 @@ bool LetterGridController::keyPressed(int key) {
 }
 
 /*
- * Tap a letter (or Spc, Del, End) to pick it.
+ * Tap a letter (or Spc, Del, abc, End) to pick it.
  */
 bool LetterGridController::inputEvent(const InputEvent* ev) {
     int x, y;
@@ -1806,7 +1828,7 @@ const char* EventHandler::readStringView(int maxlen, TextView *view,
         int y = view->cursorY();
         view->hideCursor();
         LetterGridController ctrl(maxlen, 13, view, x, y,
-                                  (view->columns() - 26) / 2, y + 1);
+                                  (view->columns() - 26) / 2, y + 1, true);
         ctrl.draw();
         ctrl.drawText();
         xu4.eventHandler->pushController(&ctrl);
