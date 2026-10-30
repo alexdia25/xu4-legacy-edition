@@ -101,6 +101,13 @@ void Settings::init(const char* profileName) {
                 userPath += "/";
             }
         }
+#elif defined(__APPLE__)
+        char *home = getenv("HOME");
+        if (home && home[0]) {
+            userPath += home;
+            userPath += "/Library/Application Support/xu4/";
+        } else
+            userPath = "./";
 #elif defined(__unix__)
         char *home = getenv("HOME");
         if (home && home[0]) {

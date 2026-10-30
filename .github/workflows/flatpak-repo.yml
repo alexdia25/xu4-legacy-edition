@@ -1,0 +1,55 @@
+# Publish the Flatpak repository on GitHub Pages
+# (https://<owner>.github.io/<repo>/flatpak/) from the latest release's
+# Flatpak bundle, so the game installs with one click on a Steam Deck or any
+# Linux with Flatpak and then updates with every other Flatpak.  The Release
+# workflow starts this after each full release; it can also be run from the
+# Actions tab.  Needs the FLATPAK_GPG_KEY & FLATPAK_GPG_KEY_ID secrets and
+# Pages set to deploy from GitHub Actions (see dist/flatpak/README.md).
+name: Flatpak repository
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q flatpak ostree
+      - name: Make the repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+          FLATPAK_GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
+          SITE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          mkdir -p site
+          sed "s|@SITE@|$SITE|g; s|@REPO@|$GITHUB_REPOSITORY|g" dist/site/index.html > site/index.html
+          touch site/.nojekyll
+          dist/flatpak-repo.sh site/flatpak
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

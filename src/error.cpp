@@ -157,17 +157,22 @@ void errorWarning(const char *fmt, ...) {
 #else
 
 /*
- * no GUI error functions: errors go to standard error stream
+ * Errors go to the standard error stream; a fatal error is also shown in an
+ * SDL message box, as a game started from a launcher (Finder, Steam, a
+ * desktop menu) has no terminal.
  */
 
+#include <SDL3/SDL_messagebox.h>
+
 void errorFatal(const char *fmt, ...) {
+    char buffer[1000];
     va_list args;
 
-    fprintf(stderr, "xu4: error: ");
     va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
-    fprintf(stderr, "\n");
+    fprintf(stderr, "xu4: error: %s\n", buffer);
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "XU4 Error", buffer, NULL);
 
     exit(1);
 }

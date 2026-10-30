@@ -1,4 +1,4 @@
-# Build the Windows & Linux packages (and a Linux Flatpak bundle) and publish
+# Build the Windows, macOS & Linux packages (and a Linux Flatpak bundle) and publish
 # them as a GitHub release, either when a legacy-* tag is pushed or when run
 # from the Actions tab with a release tag (the tag is then created on the
 # commit that was built, or the files are replaced and the tag moved if that
@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  actions: write    # to start the Flatpak repository update
 
 env:
   TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
@@ -92,8 +93,24 @@ jobs:
           name: xu4-legacy-flatpak
           path: build-flatpak/*.flatpak
 
+  macos:
+    # A universal (Apple Silicon & Intel) app in a disk image.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: |
+          VERSION=${TAG#legacy-}
+          [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
+          dist/build-macos.sh "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xu4-legacy-macos
+          path: build-mac/*.dmg
   publish:
-    needs: [build, flatpak]
+    needs: [build, flatpak, macos]
     if: ${{ github.ref_type == 'tag' || inputs.tag != '' }}
     runs-on: ubuntu-latest
     steps:
@@ -126,3 +143,9 @@ jobs:
               --title "XU4 Legacy Edition ${TAG#legacy-}" \
               --notes-file dist/release-notes.md $PRE
           fi
+          # Serve the new Flatpak from the repository on GitHub Pages, so
+          # installed copies update (pre-releases are not served).
+          case "$TAG" in
+            *-pre*|*-rc*|*-beta*) ;;
+            *) gh workflow run flatpak-repo.yml --ref "${{ github.event.repository.default_branch }}" ;;
+          esac

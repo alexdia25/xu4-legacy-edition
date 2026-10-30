@@ -32,6 +32,9 @@ extern "C" const char* androidInternalData();
 #if defined(MACOSX)
 #include "macosx/osxinit.h"
 #endif
+#ifdef __APPLE__
+#include <SDL3/SDL_filesystem.h>
+#endif
 
 #ifdef _WIN32
 #include "win32console.c"
@@ -224,6 +227,12 @@ static void initResourcePaths(StringTable* st) {
         sst_appendCon(st, home, "/.local/share/xu4");
 #endif
     }
+#ifdef __APPLE__
+    // The Resources folder of the app bundle (render.pak & the modules).
+    const char* base = SDL_GetBasePath();
+    if (base)
+        sst_append(st, base, -1);
+#endif
 #ifdef DATADIR
     // Install directory of a build with another prefix (e.g. /app/share/xu4
     // in the Flatpak).

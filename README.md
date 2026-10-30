@@ -70,10 +70,56 @@ especially for someone who has just downloaded the free release from
  - **Sega Master System graphics & music.**  The SMS module and SMS-Music
    soundtrack read the tiles, font, story pictures, virtue cards and music
    of the Master System release from its ROM (see [SMS ROM](#sms-rom)).
- - **More platforms.**
+ - **More platforms.**  Builds for Windows, macOS and Linux, and a
+   Flatpak repository for one-click installs and updates on the Steam
+   Deck and other Linux systems (see [Installing](#installing)).
 
 Like XU4, this fork needs the Ultima IV for DOS data files, which are
 freeware from [GOG].  No game data is stored in this repository.
+
+### Installing
+
+Every download is on the [releases page].  The game data
+(`ultima4.zip`, or the files of the GOG release) goes in one of the
+[data folders](#data-folders).
+
+ - **Windows**: unpack the zip anywhere and run `xu4.exe`.  If the GOG
+   release is installed in its default folder, it is found by itself.
+ - **macOS** (11 or later, Apple Silicon and Intel): open the `.dmg` and
+   drag XU4 Legacy to Applications.  Put the game data in
+   `~/Library/Application Support/xu4` (in Finder, Go > Go to Folder;
+   the folder is made on the first run).  The app is not signed by an
+   Apple developer, so the first launch is refused: open System Settings
+   > Privacy & Security, scroll down to Security and click Open Anyway
+   beside XU4 Legacy.  Or once in Terminal:
+   `xattr -dr com.apple.quarantine "/Applications/XU4 Legacy.app"`.
+ - **Steam Deck and Linux with Flatpak**: install from the
+   [Flatpak repository], which keeps the game up to date like any other
+   Flatpak (see [Steam Deck](#steam-deck) below).  From a terminal:
+
+       flatpak install --user https://alexdia25.github.io/xu4-legacy-edition/flatpak/xu4-legacy.flatpakref
+
+   The `.flatpak` file on the releases page is the same build for an
+   offline install (`flatpak install --user <file>`), which never
+   updates by itself.  Put the game data in `~/.local/share/xu4`.
+ - **Other Linux**: the `.deb` package, or the `-linux.tar.gz` archive
+   with its `setup` installer.
+
+### Steam Deck
+
+ 1. Switch to Desktop Mode (Steam button > Power > Switch to Desktop).
+ 2. Open the [Flatpak repository] page in a browser and click Install;
+    open the downloaded file and Discover installs XU4 Legacy Edition.
+    (If Discover asks for a password and the Deck has none, set one in
+    Konsole with `passwd`.)
+ 3. Copy `ultima4.zip` (and any disk images or ROM for the other
+    modules) to `~/.local/share/xu4`, in the Dolphin file manager
+    (Home, then show hidden files with Ctrl+H).
+ 4. In Steam, still in Desktop Mode, choose Add a Game > Add a Non-Steam
+    Game, tick XU4 Legacy Edition and click Add Selected Programs.
+ 5. Return to Game Mode.  The game is in the library under Non-Steam.
+    The Deck's controls work as a gamepad, which turns on the console
+    menus; Quit Game is in the game menu (the View button).
 
 ### Game Modules
 
@@ -96,6 +142,9 @@ XU4 Legacy Edition looks for the game data, modules, disk images and ROMs
 in the same places as XU4 (listed under Running in the original readme
 below), and on Windows also in `C:\GOG Games\Ultima 4 - Quest of the Avatar`,
 where the GOG release installs by default.
+
+On macOS the folder is `~/Library/Application Support/xu4`, which also
+holds the settings and saved games.
 
 The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
 modules, disk images and the SMS ROM) and `~/.config/xu4` (settings and
@@ -257,6 +306,8 @@ The original XU4 readme follows.
 [XU4 download page]: https://xu4.sourceforge.net/download.html
 [Codeberg]: https://codeberg.org/xU4/xu4
 [GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
+[releases page]: https://github.com/alexdia25/xu4-legacy-edition/releases/latest
+[Flatpak repository]: https://alexdia25.github.io/xu4-legacy-edition/
 
 
 XU4
@@ -351,6 +402,8 @@ XU4 searches for data, modules and zipfiles in the following places:
  - The current directory when xu4 is run
  - On Linux: `$HOME/.local/share/xu4`, `/usr/share/xu4` & `/usr/local/share/xu4`
  - On Windows: `%LOCALAPPDATA%\xu4`
+ - On macOS: `$HOME/Library/Application Support/xu4` and the app's
+   Resources folder
 
 The DOS game zipfiles (ultima4.zip & u4upgrad.zip) don't need to be unpacked,
 but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
@@ -359,8 +412,9 @@ but if they are the contents may be in a subdirectory named `ultima4` or `u4`.
 
 At the title screen, a configuration menu can be accessed by pressing
 'c'.  Here, the screen scale, filter, volume and other settings can be
-modified.  These settings are stored in `$HOME/.config/xu4/xu4rc` on Linux
-and `%APPDATA%\xu4\xu4.cfg` on Windows.
+modified.  These settings are stored in `$HOME/.config/xu4/xu4rc` on Linux,
+`$HOME/Library/Application Support/xu4/xu4rc` on macOS and
+`%APPDATA%\xu4\xu4.cfg` on Windows.
 
 The saved game files are stored in the settings directory.
 
