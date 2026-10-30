@@ -21,6 +21,7 @@
 #include "intro.h"
 #include "item.h"
 #include "imagemgr.h"
+#include "legacy.h"
 #include "location.h"
 #include "mapmgr.h"
 #include "portal.h"
@@ -51,6 +52,7 @@ static void gameSpellCastVoc(int spell, int caster, int subject, int spellMp);
 
 /* conversation functions */
 static bool talkAt(const Coords &coords, int distance);
+static Person* talkablePersonAt(City* city, const Coords &coords, int distance);
 static bool canTalkNearby();
 
 /* action functions */
@@ -787,9 +789,20 @@ void GameController::gameNotice(int sender, void* eventData, void* user) {
             screenMessage("\n%cStarving!!!%c\n", FG_YELLOW, FG_WHITE);
             soundPlay(SOUND_NPC_STRUCK);
 
-            // 2 damage to each party member for starving!
-            for (int i = 0; i < c->saveGame->members; i++) {
-                if (c->party->member(i)->applyDamage(c->location->map, 2))
+            // 2 damage to each party member for starving!  The Mild
+            // starvation rule stops at half hit points, None does no harm.
+            uint8_t rule = xu4.settings->legacy.starvation;
+            for (int i = 0; rule != Starve_None && i < c->saveGame->members; i++) {
+                int damage = 2;
+                if (rule == Starve_Mild) {
+                    const SaveGamePlayerRecord& pr = c->saveGame->players[i];
+                    int floor = pr.hpMax / 2;
+                    if (pr.hp - damage < floor)
+                        damage = pr.hp - floor;
+                    if (damage <= 0)
+                        continue;
+                }
+                if (c->party->member(i)->applyDamage(c->location->map, damage))
                     pcMask |= 1 << i;
             }
 
@@ -980,6 +993,20 @@ static void smsQuitMenu() {
  */
 #define QUIT_KEY    -2
 #define MAP_KEY     -3
+#define HEAL_KEY    -4
+#define CAST_DONE_KEY 0x1f   // A command already done; just end the turn.
+
+/*
+ * Cast the spell picked by the heal shortcut.  Returns ' ' so that the
+ * turn ends (as a Pass that prints nothing).
+ */
+static int castHealShortcut(int spell, int caster, int subject) {
+    screenMessage("Cast Spell!\n%s: %s\n%s on %s\n",
+                  c->saveGame->players[caster].name, spellGetName(spell),
+                  spellGetName(spell), c->saveGame->players[subject].name);
+    gameCastSpell(spell, caster, subject);
+    return CAST_DONE_KEY;
+}
 
 static int smsActionMenu() {
     struct Action {
@@ -1022,9 +1049,20 @@ static int smsActionMenu() {
         } else
             second = 't';
     }
-    const char* items[count];
-    int keys[count];
+    const char* items[count + 1];
+    int keys[count + 1];
     int n = 0;
+
+    // Heal In Action Menu: a heal or cure for whoever needs it most.
+    int healSpell, healCaster, healSubject;
+    char healName[24];
+    if (xu4.settings->legacy.healShortcut &&
+        legacyHealShortcut(&healSpell, &healCaster, &healSubject, -1)) {
+        snprintf(healName, sizeof(healName), "Cast %s",
+                 spellGetName(healSpell));
+        items[n] = healName;
+        keys[n++] = HEAL_KEY;
+    }
 
     for (int pass = 0; pass < 3; ++pass) {
         for (int i = 0; i < count; ++i) {
@@ -1111,6 +1149,8 @@ static int smsActionMenu() {
         worldMapShow();
         return -1;
     }
+    if (keys[pick] == HEAL_KEY)
+        return castHealShortcut(healSpell, healCaster, healSubject);
     return keys[pick];
 }
 
@@ -1125,6 +1165,10 @@ bool GameController::keyPressed(int key) {
 
     if (key == U4_PAD_B)
         return true;
+
+    // Note prompts backed out of, for the Cancel Spends No Turn option.
+    EventHandler::cancelArmed = true;
+    int cancels = EventHandler::cancelCount;
 
     /* Translate context-sensitive action key into a useful command */
     if (key == U4_ENTER) {
@@ -1273,6 +1317,9 @@ bool GameController::keyPressed(int key) {
 
         case ' ':
             screenMessage("Pass\n");
+            break;
+
+        case CAST_DONE_KEY:
             break;
 
         case '+':
@@ -1660,6 +1707,13 @@ bool GameController::keyPressed(int key) {
             break;
         }
 
+    EventHandler::cancelArmed = false;
+    if (valid && endTurn && settings.legacy.freeCancel &&
+        EventHandler::cancelCount != cancels) {
+        screenMessage("%cCancelled%c\n", FG_GREY, FG_WHITE);
+        endTurn = 0;
+    }
+
     if (valid && endTurn) {
         if (xu4.eventHandler->getController() == xu4.game)
             c->location->turnCompleter->finishTurn();
@@ -1813,6 +1867,13 @@ static int smsChooseSpell(bool mixed) {
         if (mixed && c->saveGame->mixtures[i] < 1)
             continue;
         names[count] = spellGetName(i);
+        if (xu4.settings->legacy.spellInfo) {
+            // Spell Info: the cost beside each name.
+            static char label[SPELL_MAX][20];
+            snprintf(label[count], sizeof(label[0]), "%-11.11s%3d",
+                     spellGetName(i), spellGetRequiredMP(i));
+            names[count] = label[count];
+        }
         index[count++] = i;
     }
     if (count == 0) {
@@ -1926,6 +1987,8 @@ Direction gameGetDirection() {
 
 bool gameSpellMixHowMany(int spell, int num, Ingredients *ingredients) {
     int i;
+
+    EventHandler::cancelArmed = false;  // Something is done.
 
     /* entered 0 mixtures, don't mix anything! */
     if (num == 0) {
@@ -2177,6 +2240,9 @@ void castSpell(int player) {
         return;
 
     screenMessage("%s!\n", spellGetName(spell)); //Prints spell name at prompt
+    if (xu4.settings->legacy.spellInfo)
+        screenMessage("%c%dmp %s%c\n", FG_GREY, spellGetRequiredMP(spell),
+                      legacySpellEffect(spell), FG_WHITE);
 
     c->stats->setView(STATS_PARTY_OVERVIEW);
 
@@ -2654,6 +2720,80 @@ void GameController::updateMoons(bool showmoongates)
     }
 }
 
+/*
+ * Print the message for a move.  With the Fold Repeated Moves option the
+ * same move made again replaces the previous line with "North (x2)" and so
+ * on, as long as nothing but the prompt was printed in between.
+ */
+static void moveMessage(const char* fmt, const char* dir) {
+    static char lastMove[24];
+    static uint32_t lastSerial;
+    static int count;
+    char text[24];
+
+    snprintf(text, sizeof(text), fmt, dir);
+    if (xu4.settings->legacy.foldMoves && c->line > 0 && c->col == 1 &&
+        screenMessageSerial() == lastSerial + 1 &&
+        strcmp(text, lastMove) == 0) {
+        ++count;
+        c->line--;
+        c->col = 0;
+        screenMessage("%c%s (x%d)\n", CHARSET_PROMPT, text, count);
+    } else {
+        count = 1;
+        strcpy(lastMove, text);
+        screenMessage("%s\n", text);
+    }
+    lastSerial = screenMessageSerial();
+}
+
+/*
+ * Act on what blocks the party: talk to a townsperson (also across a shop
+ * counter), attack a hostile creature, open or unlock a door.
+ * Returns true if something was done.
+ */
+static bool bumpAction(Direction dir) {
+    Map* map = c->location->map;
+    Coords pos = c->location->coords;
+    map_move(pos, dir, map);
+
+    City* city = static_cast<City*>(map);
+    if (isCity(city)) {
+        vector<Coords> path =
+            gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
+                                         c->location->coords, 1, 2,
+                                         &Tile::canTalkOverTile, true);
+        int dist = 1;
+        for (vector<Coords>::iterator i = path.begin(); i != path.end(); i++) {
+            if (talkablePersonAt(city, *i, dist)) {
+                screenMessage("Talk\n");
+                talkAt(*i, dist);
+                return true;
+            }
+            ++dist;
+        }
+    }
+
+    Creature* m = dynamic_cast<Creature*>(map->objectAt(pos));
+    if (m && m->isAttackable() && ! m->isGood() &&
+        (m->objType != Object::PERSON ||
+         m->movement == MOVEMENT_ATTACK_AVATAR)) {
+        screenMessage("Attack\n");
+        return attackAt(pos);
+    }
+
+    const Tile* tile = map->tileTypeAt(pos, WITH_OBJECTS);
+    if (tile->isDoor()) {
+        screenMessage("Open\n");
+        return openAt(pos);
+    }
+    if (tile->isLockedDoor()) {
+        screenMessage("Jimmy\n");
+        return jimmyAt(pos);
+    }
+    return false;
+}
+
 /**
  * Handles feedback after avatar moved during normal 3rd-person view.
  */
@@ -2665,7 +2805,7 @@ void GameController::avatarMoved(MoveEvent &event) {
             switch (c->transportContext) {
                 case TRANSPORT_FOOT:
                 case TRANSPORT_HORSE:
-                    screenMessage("%s\n", getDirectionName(event.dir));
+                    moveMessage("%s", getDirectionName(event.dir));
                     break;
                 case TRANSPORT_SHIP:
                     if (event.result & MOVE_TURNED)
@@ -2673,7 +2813,7 @@ void GameController::avatarMoved(MoveEvent &event) {
                     else if (event.result & MOVE_SLOWED)
                         screenMessage("%cSlow progress!%c\n", FG_GREY, FG_WHITE);
                     else
-                        screenMessage("Sail %s!\n", getDirectionName(event.dir));
+                        moveMessage("Sail %s!", getDirectionName(event.dir));
                     break;
                 case TRANSPORT_BALLOON:
                     screenMessage("%cDrift Only!%c\n", FG_GREY, FG_WHITE);
@@ -2706,6 +2846,13 @@ horse_moved:
                     event.result = MOVE_SUCCEEDED | MOVE_END_TURN;
                     }*/
             }
+
+            /* Walk Into To Act: do what would be typed next */
+            if ((event.result & MOVE_BLOCKED) &&
+                xu4.settings->legacy.bumpToAct &&
+                (c->transportContext & TRANSPORT_FOOT_OR_HORSE) &&
+                bumpAction(event.dir))
+                event.result = (MoveResult)(MOVE_SUCCEEDED | MOVE_END_TURN);
 
             /* if we're still blocked */
             if ((event.result & MOVE_BLOCKED) && !xu4.settings->filterMoveMessages) {
@@ -2765,13 +2912,13 @@ void GameController::avatarMovedInDungeon(MoveEvent &event) {
         if (event.userEvent) {
             const char* msg;
             if (event.result & MOVE_TURNED) {
-                msg = (dirRotateCCW(orientation) == realDir) ? "Turn Left\n"
-                                                             : "Turn Right\n";
+                msg = (dirRotateCCW(orientation) == realDir) ? "Turn Left"
+                                                             : "Turn Right";
             } else {
                 /* show 'Advance' or 'Retreat' in dungeons */
-                msg = (realDir == orientation) ? "Advance\n" : "Retreat\n";
+                msg = (realDir == orientation) ? "Advance" : "Retreat";
             }
-            screenMessage(msg);
+            moveMessage("%s", msg);
         }
 
         if (event.result & MOVE_BLOCKED) {
@@ -3406,9 +3553,14 @@ void GameController::timerFired() {
          * force pass if no commands within last 20 seconds
          */
         Controller *controller = xu4.eventHandler->getController();
-        if (dynamic_cast<TurnController *>(controller)) {
+        if (controller && controller->isCombatController() &&
+            static_cast<CombatController*>(controller)->autoCombatTurn()) {
+            // Auto Combat took the turn.
+        } else if (dynamic_cast<TurnController *>(controller)) {
             c->commandTimer += 1000 / xu4.settings->gameCyclesPerSecond;
-            if (gameTimeSinceLastCommand() > 20) {
+            uint8_t timer = xu4.settings->legacy.turnTimer;
+            if (timer != TurnTimer_Off &&
+                gameTimeSinceLastCommand() > (timer == TurnTimer_Slow ? 60 : 20)) {
                 /* pass the turn, and redraw the text area prompt */
                 controller->keyPressed(U4_SPACE);
             }

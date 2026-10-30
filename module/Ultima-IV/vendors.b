@@ -149,6 +149,7 @@ weapons: context [
         ][
             >> '^/'
             => select description type shop-vars
+            compare-arms type
 
             either gt? party 'gold mul price 2 [
                 howmany_buy
@@ -221,6 +222,7 @@ weapons: context [
                 add-items type quant
                 vo 9
                 => "^/% says: A fine choice!^/" shop-vars
+                offer-ready type
                 anything_else_buy
             ][
                 check_money
@@ -397,6 +399,7 @@ armor: context [
         ][
             >> '^/'
             => select description type shop-vars
+            compare-arms type
 
             either gt? party 'gold mul price 2 [
                 howmany_buy
@@ -449,6 +452,7 @@ armor: context [
                 add-items type quant
                 vo 8
                 => "^/% says: Good choice!^/" shop-vars
+                offer-ready type
                 anything_else_buy
             ][
                 check_money

@@ -3,6 +3,7 @@
  */
 
 #include "combat.h"
+#include "legacy.h"
 
 #include "config.h"
 #include "death.h"
@@ -929,6 +930,10 @@ bool CombatController::keyPressed(int key) {
     bool valid = true;
     bool endTurn = true;
 
+    // Note prompts backed out of, for the Cancel Spends No Turn option.
+    EventHandler::cancelArmed = true;
+    int cancels = EventHandler::cancelCount;
+
     switch (key) {
     case U4_PAD_B:
         return true;
@@ -937,6 +942,16 @@ bool CombatController::keyPressed(int key) {
     case U4_DOWN:
     case U4_LEFT:
     case U4_RIGHT:
+        if (settings.legacy.bumpToAct) {
+            // Walking into a foe attacks it.
+            Coords pos = getCurrentPlayer()->coords;
+            map_move(pos, keyToDirection(key), map);
+            if (map->creatureAt(pos)) {
+                screenMessage("Attack: ");
+                attack(keyToDirection(key));
+                break;
+            }
+        }
         c->location->move(keyToDirection(key), true);
         break;
 
@@ -952,9 +967,18 @@ bool CombatController::keyPressed(int key) {
     case U4_ENTER:
         if (EventHandler::smsMenus()) {
             // Console style action menu for the current party member.
-            const char* items[7];
-            char keys[8];
+            const char* items[8];
+            char keys[9];
             int n = 0;
+            int healSpell, healCaster, healSubject;
+            char healName[24];
+            if (settings.legacy.healShortcut &&
+                legacyHealShortcut(&healSpell, &healCaster, &healSubject,
+                                   focus)) {
+                snprintf(healName, sizeof(healName), "Cast %s",
+                         spellGetName(healSpell));
+                items[n] = healName; keys[n++] = '!';
+            }
             items[n] = "Attack";     keys[n++] = 'a';
             items[n] = "Cast Spell"; keys[n++] = 'c';
             items[n] = "Use Item";   keys[n++] = 'u';
@@ -970,6 +994,16 @@ bool CombatController::keyPressed(int key) {
             int pick = EventHandler::chooseItem(items, n);
             if (pick < 0)
                 return true;
+            if (keys[pick] == '!') {
+                screenMessage("Cast Spell!\n%s on %s\n",
+                              spellGetName(healSpell),
+                              c->saveGame->players[healSubject].name);
+                gameCastSpell(healSpell, healCaster, healSubject);
+                gameStampCommandTime();
+                if (xu4.eventHandler->getController() == this)
+                    c->location->turnCompleter->finishTurn();
+                return true;
+            }
             return keyPressed(keys[pick]);
         }
         return EventHandler::defaultKeyHandler(key);
@@ -1118,6 +1152,12 @@ bool CombatController::keyPressed(int key) {
             ZtatsController ctrl;
             xu4.eventHandler->pushController(&ctrl);
             ctrl.waitFor();
+
+            // A look at the stats is not an action.
+            if (settings.legacy.freeCancel) {
+                announceActivePlayer();
+                endTurn = false;
+            }
         }
         break;
 
@@ -1164,6 +1204,14 @@ bool CombatController::keyPressed(int key) {
         return EventHandler::defaultKeyHandler(key);
     }
 
+    EventHandler::cancelArmed = false;
+    if (valid && endTurn && settings.legacy.freeCancel &&
+        EventHandler::cancelCount != cancels) {
+        screenMessage("%cCancelled%c\n", FG_GREY, FG_WHITE);
+        announceActivePlayer();
+        endTurn = false;
+    }
+
     if (valid) {
         gameStampCommandTime();
         if (endTurn && (xu4.eventHandler->getController() == this))
@@ -1176,19 +1224,23 @@ bool CombatController::keyPressed(int key) {
 /**
  * Key handler for choosing an attack direction
  */
-void CombatController::attack() {
-    screenMessage("Dir: ");
-
-    Direction dir = EventHandler::readDir();
-    if (dir == DIR_NONE)
-        return;
+void CombatController::attack(Direction dir, int presetRange) {
+    bool bump = (dir != DIR_NONE);  // Walked into a foe or auto combat.
+    if (! bump) {
+        screenMessage("Dir: ");
+        dir = EventHandler::readDir();
+        if (dir == DIR_NONE)
+            return;
+    }
     screenMessage("%s\n", getDirectionName(dir));
 
     PartyMember *attacker = getCurrentPlayer();
 
     const Weapon *weapon = attacker->getWeapon();
     int range = weapon->range;
-    if (weapon->canChooseDistance()) {
+    if (bump && weapon->canChooseDistance()) {
+        range = presetRange ? presetRange : 1;
+    } else if (weapon->canChooseDistance()) {
         screenMessage("Range: ");
         range = EventHandler::readChoice("123456789") - '0';
         if (range < 1 || range > weapon->range)
@@ -1353,6 +1405,115 @@ PartyMember *CombatMap::partyMemberAt(Coords coords) {
             return *i;
     }
     return NULL;
+}
+
+/*
+ * Return true if the member whose turn it is fights by itself
+ * (the Auto Combat option).
+ */
+bool CombatController::isAutoTurn() {
+    uint8_t mode = xu4.settings->legacy.autoCombat;
+    if (mode == AutoCombat_Off || camping)
+        return false;
+    if (mode == AutoCombat_Companions && focus == 0)
+        return false;
+    PartyMember* pm = getCurrentPlayer();
+    return pm && ! pm->isDisabled();
+}
+
+/*
+ * Take the turn of an auto combat member: strike a foe within reach of
+ * the readied weapon in one of the four directions, or else step toward
+ * the nearest foe (never off the map, which would flee).
+ * Returns false if it is not an auto combat turn.
+ */
+bool CombatController::autoCombatTurn() {
+    // The turn waits (e.g. flashing a hit) with the timers running.
+    static bool busy = false;
+    if (busy)
+        return true;
+    if (! isAutoTurn())
+        return false;
+    busy = true;
+
+    PartyMember* pm = getCurrentPlayer();
+    const Weapon* weapon = pm->getWeapon();
+    int range = weapon->range;
+    int dir;
+
+    for (dir = DIR_WEST; dir <= DIR_SOUTH; ++dir) {
+        vector<Coords> path =
+            gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
+                                pm->coords, 1, range,
+                                weapon->canAttackThroughObjects() ? NULL
+                                                : &Tile::canAttackOverTile,
+                                false);
+        for (size_t i = 0; i < path.size(); ++i) {
+            if (! map->creatureAt(path[i]))
+                continue;
+            if (weapon->rangeAbsolute() && int(i + 1) != range)
+                break;
+            screenMessage("Attack: ");
+            attack((Direction) dir, i + 1);
+            goto done;
+        }
+    }
+
+    {
+        // Step toward the nearest foe.
+        CreatureVector foes = map->getCreatures();
+        const Creature* near = NULL;
+        int nearDist = 9999;
+        for (CreatureVector::iterator it = foes.begin(); it != foes.end(); ++it) {
+            int d = abs((*it)->coords.x - pm->coords.x) +
+                    abs((*it)->coords.y - pm->coords.y);
+            if (d < nearDist) {
+                nearDist = d;
+                near = *it;
+            }
+        }
+        if (! near) {
+            screenMessage("Pass\n");
+            goto done;
+        }
+
+        int dx = near->coords.x - pm->coords.x;
+        int dy = near->coords.y - pm->coords.y;
+        Direction order[4];
+        Direction hx = (dx < 0) ? DIR_WEST : DIR_EAST;
+        Direction hy = (dy < 0) ? DIR_NORTH : DIR_SOUTH;
+        if (abs(dx) >= abs(dy)) {
+            order[0] = hx; order[1] = hy;
+        } else {
+            order[0] = hy; order[1] = hx;
+        }
+        order[2] = dirReverse(order[1]);
+        order[3] = dirReverse(order[0]);
+
+        for (int i = 0; i < 4; ++i) {
+            if (i >= 2 && (dx == 0 || dy == 0))
+                break;      // Don't back away along the line to the foe.
+            Coords pos = pm->coords;
+            map_move(pos, order[i], map);
+            if (pos.x < 0 || pos.y < 0 || pos.x >= int(map->width) ||
+                pos.y >= int(map->height) || pos == pm->coords)
+                continue;
+            if (! map->tileTypeAt(pos, WITH_OBJECTS)->isWalkable() ||
+                map->objectAt(pos))
+                continue;
+            MoveResult res = c->location->move(order[i], true);
+            if (res & MOVE_SUCCEEDED)
+                goto done;
+        }
+        screenMessage("Pass\n");
+    }
+
+done:
+    gameStampCommandTime();
+    if (xu4.eventHandler->getController() == this)
+        c->location->turnCompleter->finishTurn();
+    busy = false;
+    return true;
 }
 
 /**

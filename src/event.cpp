@@ -1555,6 +1555,9 @@ bool EventHandler::defaultKeyHandler(int key) {
 
 //----------------------------------------------------------------------------
 
+int  EventHandler::cancelCount = 0;
+bool EventHandler::cancelArmed = false;
+
 /*
  * Read a player number.
  * Return -1 if none is selected.
@@ -1571,7 +1574,10 @@ int EventHandler::choosePlayer()
 
     ReadPlayerController ctrl;
     xu4.eventHandler->pushController(&ctrl);
-    return ctrl.waitFor();
+    int n = ctrl.waitFor();
+    if (n < 0)
+        noteCancel();
+    return n;
 }
 
 /**
@@ -1596,7 +1602,10 @@ int EventHandler::readAlphaAction(char lastValidLetter, const char* prompt)
 
     AlphaActionController ctrl(lastValidLetter, prompt);
     xu4.eventHandler->pushController(&ctrl);
-    return ctrl.waitFor();
+    int n = ctrl.waitFor();
+    if (n < 0)
+        noteCancel();
+    return n;
 }
 
 /*
@@ -1653,7 +1662,10 @@ char EventHandler::readChoice(const char* choices, const char* const* labels)
 
     ReadChoiceController ctrl(choices);
     xu4.eventHandler->pushController(&ctrl);
-    return ctrl.waitFor();
+    char ch = ctrl.waitFor();
+    if (ch == U4_ESC)
+        noteCancel();
+    return ch;
 }
 
 /*
@@ -1663,7 +1675,10 @@ Direction EventHandler::readDir()
 {
     ReadDirController ctrl;
     xu4.eventHandler->pushController(&ctrl);
-    return ctrl.waitFor();
+    Direction dir = ctrl.waitFor();
+    if (dir == DIR_NONE)
+        noteCancel();
+    return dir;
 }
 
 /**
@@ -1801,6 +1816,8 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
     ctrl.draw();
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();
+    if (n < 0)
+        noteCancel();
 
     for (int i = 0; i < rows; ++i)
         screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%*s",

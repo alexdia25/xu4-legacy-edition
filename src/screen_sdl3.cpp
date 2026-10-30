@@ -560,6 +560,14 @@ void EventHandler::handleInputEvents(Controller* waitCon,
                 closeGamepad(ss, event.gdevice.which);
                 break;
 
+            case SDL_EVENT_WINDOW_FOCUS_LOST:
+                // Pause Legacy option: the game, its timers & music wait
+                // until the player comes back and unpauses.
+                if (xu4.settings->legacy.pauseUnfocused &&
+                    xu4.stage == StagePlay && ! xu4.eventHandler->isPaused())
+                    xu4.eventHandler->togglePause();
+                break;
+
             case SDL_EVENT_QUIT:
                 quitGame();
                 break;

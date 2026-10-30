@@ -64,6 +64,8 @@ public:
     virtual void endCombat(bool adjustKarma);
 
     bool creatureRangedAttack(Creature* attacker, int dir);
+    bool autoCombatTurn();
+    bool isAutoTurn();
     void movePartyMember(MoveEvent &event);
 
 protected:
@@ -72,7 +74,7 @@ protected:
     void initCreature(const Creature *m);
     void fillCreatureTable(const Creature *creature);
     void placeCreatures();
-    void attack();
+    void attack(Direction dir = DIR_NONE, int presetRange = 0);
 
     // Properties
     CombatMap *map;

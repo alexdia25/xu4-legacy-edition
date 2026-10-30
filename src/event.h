@@ -165,6 +165,11 @@ public:
     static int  chooseItem(const char* const* items, int count,
                            int start = 0, int maxRows = 8);
     static bool smsMenus();
+
+    // Prompts backed out of while a command is armed (see gameCancelArm).
+    static int  cancelCount;
+    static bool cancelArmed;
+    static void noteCancel() { if (cancelArmed) ++cancelCount; }
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
     static int  chooseInline(TextView* view, const char* const* items,
@@ -193,6 +198,7 @@ public:
     bool run();
     void setScreenUpdate(void (*updateScreen)(void));
     void togglePause();
+    bool isPaused() const { return paused; }
     void expose();
 
     /* Controller functions */

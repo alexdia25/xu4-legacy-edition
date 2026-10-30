@@ -132,6 +132,7 @@ bool discourse_run(const Discourse* dis, uint16_t entry, Person* npc)
         return false;
 
     bool talked = false;
+    EventHandler::cancelArmed = false;  // A talk spends the turn.
     Controller noTurns;
     xu4.eventHandler->pushController(&noTurns);
 

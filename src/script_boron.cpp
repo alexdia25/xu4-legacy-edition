@@ -899,6 +899,133 @@ CFUNC(cf_removeItems)
     return UR_OK;
 }
 
+/*
+ * Return the weapon or armour for a vendor item id, or NULL.
+ */
+static void armsForItem(int id, const Weapon** w, const Armor** a)
+{
+    int ic = SCRIPT_ITEM_CLASS(id);
+    *w = NULL;
+    *a = NULL;
+    id = SCRIPT_ITEM_INDEX(id);
+    if (ic == IC_WEAPON)
+        *w = xu4.config->weapon(id);
+    else if (ic == IC_ARMOR)
+        *a = xu4.config->armor(id);
+}
+
+/*-cf-
+    compare-arms
+        item    word!
+    return: unset!
+
+    With the Shops Compare Arms option, print how the weapon or armour
+    compares with what each member of the party has readied or worn.
+*/
+CFUNC(cf_compareArms)
+{
+    const Weapon* w;
+    const Armor* a;
+    (void) ut;
+
+    ur_setId(res, UT_UNSET);
+    if (! xu4.settings->legacy.shopCompare)
+        return UR_OK;
+
+    armsForItem(xu4.config->scriptItemId(ur_atom(a1)), &w, &a);
+    if (! w && ! a)
+        return UR_OK;
+
+    if (w)
+        screenMessage("Damage %d%s\n", w->damage,
+                      (w->range > 1) ? ", ranged" : "");
+    else
+        screenMessage("Defense %d\n", a->defense);
+
+    for (int i = 0; i < c->party->size(); i++) {
+        PartyMember* pm = c->party->member(i);
+        int diff;
+        bool usable;
+        if (w) {
+            usable = w->canReady(pm->getClass());
+            diff = int(w->damage) - int(pm->getWeapon()->damage);
+        } else {
+            usable = a->canWear(pm->getClass());
+            diff = int(a->defense) - int(pm->getArmor()->defense);
+        }
+
+        char name[10];
+        snprintf(name, sizeof(name), "%-9.9s", pm->getName());
+        if (! usable)
+            screenMessage("%c%s can't%c\n", FG_GREY, name, FG_WHITE);
+        else if (diff > 0)
+            screenMessage("%c%s +%d%c\n", FG_GREEN, name, diff, FG_WHITE);
+        else if (diff < 0)
+            screenMessage("%c%s %d%c\n", FG_RED, name, diff, FG_WHITE);
+        else
+            screenMessage("%s same\n", name);
+    }
+    return UR_OK;
+}
+
+/*-cf-
+    offer-ready
+        item    word!
+    return: unset!
+
+    With the Shops Compare Arms option, offer to ready the weapon or wear
+    the armour just bought.
+*/
+CFUNC(cf_offerReady)
+{
+    const Weapon* w;
+    const Armor* a;
+    (void) ut;
+
+    ur_setId(res, UT_UNSET);
+    if (! xu4.settings->legacy.shopCompare)
+        return UR_OK;
+
+    armsForItem(xu4.config->scriptItemId(ur_atom(a1)), &w, &a);
+    if (! w && ! a)
+        return UR_OK;
+
+    int i;
+    for (i = 0; i < c->party->size(); i++) {
+        ClassType klass = c->party->member(i)->getClass();
+        if (w ? w->canReady(klass) : a->canWear(klass))
+            break;
+    }
+    if (i == c->party->size())
+        return UR_OK;   // Nobody can use it.
+
+    screenMessage(w ? "\nReady it now? " : "\nWear it now? ");
+    static const char* const labels[] = { "Yes", "No", NULL, NULL };
+    int ch = EventHandler::readChoice("yn \033", labels);
+    if (ch != 'y') {
+        screenMessage("\n");
+        return UR_OK;
+    }
+    screenMessage("\nWho? ");
+    int player = EventHandler::choosePlayer();
+    if (player < 0) {
+        screenMessage("\n");
+        return UR_OK;
+    }
+    PartyMember* pm = c->party->member(player);
+    screenMessage("%s\n", pm->getName());
+
+    EquipError err = w ? pm->setWeapon(w) : pm->setArmor(a);
+    if (err == EQUIP_SUCCEEDED)
+        screenMessage("%s %s!\n", pm->getName(), w ? "readies it" : "wears it");
+    else if (err == EQUIP_CLASS_RESTRICTED)
+        screenMessage("%cA %s may NOT use it%c\n", FG_GREY,
+                      getClassName(pm->getClass()), FG_WHITE);
+    else
+        screenMessage("%cNone left!%c\n", FG_GREY, FG_WHITE);
+    return UR_OK;
+}
+
 static const BoronCFunc pfFuncs[] = {
     cf_gameWait,
     cf_music,
@@ -922,7 +1049,9 @@ static const BoronCFunc pfFuncs[] = {
     cf_talkFlag,
     cf_addItem,
     cf_addItems,
-    cf_removeItems
+    cf_removeItems,
+    cf_compareArms,
+    cf_offerReady
 };
 
 static const char pfFuncSpecs[] =
@@ -948,7 +1077,9 @@ static const char pfFuncSpecs[] =
     "talk-flag n int!\n"
     "add-item item word!\n"
     "add-items item word! n int!\n"
-    "remove-items item word! n int!\n";
+    "remove-items item word! n int!\n"
+    "compare-arms item word!\n"
+    "offer-ready item word!\n";
 
 static void enumItems(UBuffer* ctx, const UAtom* atoms,
                       int itemClass, int itemIndex, int count )

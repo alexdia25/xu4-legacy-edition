@@ -207,6 +207,7 @@ public:
     void swapPlayers(int p1, int p2);
 
     int size() const;
+    void shareXp(int xp);
     PartyMember *member(int index) const;
     int memberIndex(Creature* person) const;
 

@@ -269,6 +269,9 @@ bool Settings::read() {
     innAlwaysCombat = 0;
     campingAlwaysCombat = 0;
 
+    memset(&legacy, 0, sizeof(legacy));
+    applyLegacyPreset(*this, LegacyPreset_Classic);
+
     /* mouse defaults to on */
     mouseOptions.enabled = 1;
 
@@ -376,6 +379,46 @@ bool Settings::read() {
             innAlwaysCombat = toInt(val);
         else if (VALUE("campingAlwaysCombat="))
             campingAlwaysCombat = toInt(val);
+
+        /* legacy options */
+        else if (VALUE("bumpToAct="))
+            legacy.bumpToAct = toInt(val);
+        else if (VALUE("foldMoves="))
+            legacy.foldMoves = toInt(val);
+        else if (VALUE("freeCancel="))
+            legacy.freeCancel = toInt(val);
+        else if (VALUE("shopCompare="))
+            legacy.shopCompare = toInt(val);
+        else if (VALUE("spellInfo="))
+            legacy.spellInfo = toInt(val);
+        else if (VALUE("healShortcut="))
+            legacy.healShortcut = toInt(val);
+        else if (VALUE("pauseUnfocused="))
+            legacy.pauseUnfocused = toInt(val);
+        else if (VALUE("autosave="))
+            legacy.autosave = toInt(val);
+        else if (VALUE("batterySaver="))
+            legacy.batterySaver = toInt(val);
+        else if (VALUE("scanlines="))
+            legacy.scanlines = toInt(val);
+        else if (VALUE("cheatsMenu="))
+            legacy.cheatsMenu = toInt(val);
+        else if (VALUE("autoCombat="))
+            legacy.autoCombat = settingEnum(autoCombatStrings(), val);
+        else if (VALUE("dungeonMap="))
+            legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
+        else if (VALUE("rules="))
+            legacy.preset = settingEnum(legacyPresetStrings(), val);
+        else if (VALUE("starvation="))
+            legacy.starvation = settingEnum(starvationStrings(), val);
+        else if (VALUE("turnTimer="))
+            legacy.turnTimer = settingEnum(turnTimerStrings(), val);
+        else if (VALUE("poisonKills="))
+            legacy.poisonKills = toInt(val);
+        else if (VALUE("sharedXp="))
+            legacy.sharedXp = toInt(val);
+        else if (VALUE("wipeChoice="))
+            legacy.wipeChoice = toInt(val);
 
         /* mouse options */
         else if (VALUE("mouseEnabled="))
@@ -512,6 +555,46 @@ bool Settings::write() {
             enhancementsOptions.u4TileTransparencyHackPixelShadowOpacity,
             enhancementsOptions.u4TrileTransparencyHackShadowBreadth);
 
+    fprintf(settingsFile,
+            "bumpToAct=%d\n"
+            "foldMoves=%d\n"
+            "freeCancel=%d\n"
+            "shopCompare=%d\n"
+            "spellInfo=%d\n"
+            "healShortcut=%d\n"
+            "pauseUnfocused=%d\n"
+            "autosave=%d\n"
+            "batterySaver=%d\n"
+            "scanlines=%d\n"
+            "cheatsMenu=%d\n"
+            "autoCombat=%s\n"
+            "dungeonMap=%s\n"
+            "rules=%s\n"
+            "starvation=%s\n"
+            "turnTimer=%s\n"
+            "poisonKills=%d\n"
+            "sharedXp=%d\n"
+            "wipeChoice=%d\n",
+            legacy.bumpToAct,
+            legacy.foldMoves,
+            legacy.freeCancel,
+            legacy.shopCompare,
+            legacy.spellInfo,
+            legacy.healShortcut,
+            legacy.pauseUnfocused,
+            legacy.autosave,
+            legacy.batterySaver,
+            legacy.scanlines,
+            legacy.cheatsMenu,
+            autoCombatStrings()[ legacy.autoCombat ],
+            dungeonMapStrings()[ legacy.dungeonMap ],
+            legacyPresetStrings()[ legacy.preset ],
+            starvationStrings()[ legacy.starvation ],
+            turnTimerStrings()[ legacy.turnTimer ],
+            legacy.poisonKills,
+            legacy.sharedXp,
+            legacy.wipeChoice);
+
     fclose(settingsFile);
 
     gs_emitMessage(SENDER_SETTINGS, this);
@@ -522,4 +605,62 @@ bool Settings::write() {
 const char** Settings::battleDiffStrings() {
     static const char* difficulty[] = {"Normal", "Hard", "Expert", NULL};
     return difficulty;
+}
+
+const char** Settings::legacyPresetStrings() {
+    static const char* names[] = {"Classic", "Modern", "Story", "Custom", NULL};
+    return names;
+}
+
+const char** Settings::starvationStrings() {
+    static const char* names[] = {"Classic", "Mild", "None", NULL};
+    return names;
+}
+
+const char** Settings::turnTimerStrings() {
+    static const char* names[] = {"Fast", "Slow", "Off", NULL};
+    return names;
+}
+
+const char** Settings::autoCombatStrings() {
+    static const char* names[] = {"Off", "Companions", "Whole Party", NULL};
+    return names;
+}
+
+const char** Settings::dungeonMapStrings() {
+    static const char* names[] = {"Off", "Mini Map", "Top Down", NULL};
+    return names;
+}
+
+/*
+ * Set the rules of a difficulty preset.  Classic is the game as it was,
+ * Modern eases the harsh parts, and Story takes away most of the danger
+ * of the long journey.
+ */
+void Settings::applyLegacyPreset(SettingsData& data, int preset) {
+    LegacyOptions& lo = data.legacy;
+    lo.preset = preset;
+    switch (preset) {
+        case LegacyPreset_Classic:
+            lo.poisonKills = true;
+            lo.starvation  = Starve_Classic;
+            lo.turnTimer   = TurnTimer_Fast;
+            lo.sharedXp    = false;
+            lo.wipeChoice  = false;
+            break;
+        case LegacyPreset_Modern:
+            lo.poisonKills = false;
+            lo.starvation  = Starve_Mild;
+            lo.turnTimer   = TurnTimer_Slow;
+            lo.sharedXp    = true;
+            lo.wipeChoice  = true;
+            break;
+        case LegacyPreset_Story:
+            lo.poisonKills = false;
+            lo.starvation  = Starve_None;
+            lo.turnTimer   = TurnTimer_Off;
+            lo.sharedXp    = true;
+            lo.wipeChoice  = true;
+            break;
+    }
 }

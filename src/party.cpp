@@ -10,6 +10,7 @@
 #include "context.h"
 #include "debug.h"
 #include "mapmgr.h"
+#include "settings.h"
 #include "sound.h"
 #include "stats.h"
 #include "tileset.h"
@@ -387,7 +388,10 @@ bool PartyMember::dealDamage(Map* map, Creature *m, int damage) {
 
     if (!Creature::dealDamage(map, m, damage)) {
         /* half the time you kill an evil creature you get a karma boost */
-        awardXp(m_xp);
+        if (xu4.settings->legacy.sharedXp && party)
+            party->shareXp(m_xp);
+        else
+            awardXp(m_xp);
         return false;
     }
     return true;
@@ -842,8 +846,15 @@ void Party::endTurn() {
                 break;
 
             case STAT_POISONED:
-                if (pc->applyDamage(loc->map, 2))
+            {
+                // Without "Poison Kills" a member limps home on one hit point.
+                int damage = 2;
+                if (! xu4.settings->legacy.poisonKills &&
+                    damage >= saveGame->players[i].hp)
+                    damage = saveGame->players[i].hp - 1;
+                if (damage > 0 && pc->applyDamage(loc->map, damage))
                     poisonedMask |= 1 << i;
+            }
                 break;
 
             default:
@@ -880,6 +891,24 @@ void Party::endTurn() {
     /* heal ship (25% chance it is healed each turn) */
     if ((loc->context == CTX_WORLDMAP) && (saveGame->shiphull < 50) && xu4_random(4) == 0)
         healShip(1);
+}
+
+/**
+ * Divide experience among the living members of the party (rounded up so
+ * that every member gains something).
+ */
+void Party::shareXp(int xp) {
+    int living = 0;
+    int i;
+    for (i = 0; i < size(); i++)
+        if (! member(i)->isDead())
+            ++living;
+    if (! living)
+        return;
+    xp = (xp + living - 1) / living;
+    for (i = 0; i < size(); i++)
+        if (! member(i)->isDead())
+            member(i)->awardXp(xp);
 }
 
 /**

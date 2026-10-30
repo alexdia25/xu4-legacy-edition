@@ -86,6 +86,66 @@ struct SettingsEnhancementOptions {
     int  u4TrileTransparencyHackShadowBreadth;
 };
 
+/*
+ * Legacy Edition options (after the Ultima III & V ports).  The
+ * convenience features default to off so that the game plays as it always
+ * has until they are chosen in the Legacy Options menu.
+ */
+enum LegacyPreset {
+    LegacyPreset_Classic,
+    LegacyPreset_Modern,
+    LegacyPreset_Story,
+    LegacyPreset_Custom
+};
+
+enum LegacyStarvation {
+    Starve_Classic,         // Damage until death.
+    Starve_Mild,            // Stops at half hit points.
+    Starve_None
+};
+
+enum LegacyTurnTimer {
+    TurnTimer_Fast,         // The original 20 second pass.
+    TurnTimer_Slow,         // 60 seconds.
+    TurnTimer_Off
+};
+
+enum LegacyAutoCombat {
+    AutoCombat_Off,
+    AutoCombat_Companions,  // All but the Avatar.
+    AutoCombat_Party
+};
+
+enum LegacyDungeonMap {
+    DungeonMap_Off,
+    DungeonMap_Mini,        // A small map in the corner of the view.
+    DungeonMap_TopDown      // The map in place of the 3-D view.
+};
+
+struct LegacyOptions {
+    // Convenience
+    bool bumpToAct;         // Walking into someone talks, a foe attacks...
+    bool foldMoves;         // "North (x5)" instead of five lines.
+    bool freeCancel;        // Backing out of a command spends no turn.
+    bool shopCompare;       // Shops compare arms with what is held.
+    bool spellInfo;         // Spell lists show cost & effect.
+    bool healShortcut;      // Action menu offers Cast Heal/Cure.
+    bool pauseUnfocused;    // Pause while the window has no focus.
+    bool autosave;          // Save on entering & leaving places.
+    bool batterySaver;      // Stop animating after a minute idle.
+    bool scanlines;
+    bool cheatsMenu;        // Cheats in the in-game settings.
+    uint8_t autoCombat;     // LegacyAutoCombat
+    uint8_t dungeonMap;     // LegacyDungeonMap
+    // Rules
+    uint8_t preset;         // LegacyPreset
+    uint8_t starvation;     // LegacyStarvation
+    uint8_t turnTimer;      // LegacyTurnTimer
+    bool poisonKills;
+    bool sharedXp;          // Kill experience is shared by the party.
+    bool wipeChoice;        // A party wipe offers to load the last save.
+};
+
 struct MouseOptions {
     bool enabled;
 };
@@ -112,6 +172,7 @@ public:
     int                 innTime;
     int                 keydelay;
     int                 keyinterval;
+    LegacyOptions       legacy;
     MouseOptions        mouseOptions;
     int                 musicVol;
     unsigned int        scale;
@@ -151,6 +212,12 @@ class Settings : public SettingsData {
 public:
     static uint8_t settingEnum(const char** names, const char* value);
     static const char** battleDiffStrings();
+    static const char** legacyPresetStrings();
+    static const char** starvationStrings();
+    static const char** turnTimerStrings();
+    static const char** autoCombatStrings();
+    static const char** dungeonMapStrings();
+    static void applyLegacyPreset(SettingsData& data, int preset);
 
     void init(const char* profileName);
     void setData(const SettingsData &data);

@@ -15,6 +15,7 @@
 #include "debug.h"
 #include "error.h"
 #include "imagemgr.h"
+#include "legacy.h"
 #include "sound.h"
 #include "party.h"
 #include "screen.h"
@@ -192,6 +193,7 @@ IntroController::IntroController() :
     confMenu.add(MI_CONF_01, new BoolMenuItem("Game Enhancements         %s",    2,  7,/*'e'*/  5, &settingsChanged.enhancements));
     confMenu.add(MI_CONF_GAMEPLAY,            "\010 Enhanced Gameplay Options",  2,  9,/*'g'*/ 11);
     confMenu.add(MI_CONF_INTERFACE,           "\010 Enhanced Interface Options", 2, 10,/*'n'*/ 12);
+    confMenu.add(MI_CONF_LEGACY,              "\010 Legacy Edition Options",     2, 11,/*'l'*/  2);
     confMenu.add(CANCEL,                      "\017 Main Menu",                  2, 12,/*'m'*/  2);
     confMenu.addShortcutKey(CANCEL, ' ');
     confMenu.setClosesMenu(CANCEL);
@@ -219,6 +221,8 @@ IntroController::IntroController() :
     gfxMenu.add(MI_VIDEO_02,                          new StringMenuItem("Gem Layout         %s", 2,  6,/*'e'*/ 1, &settingsChanged.gemLayout, screenGetGemLayoutNames()));
     gfxMenu.add(MI_VIDEO_03,                            new EnumMenuItem("Line Of Sight      %s", 2,  7,/*'l'*/ 0, &settingsChanged.lineOfSight, screenGetLineOfSightStyles()));
     gfxMenu.add(MI_VIDEO_07,                            new BoolMenuItem("Screen Shaking     %s", 2,  8,/*'k'*/ 8, &settingsChanged.screenShakes));
+    gfxMenu.add(MI_GFX_SCANLINES,                       new BoolMenuItem("Scanlines          %s", 2,  9,/*'c'*/ 1, &settingsChanged.legacy.scanlines));
+    gfxMenu.add(MI_GFX_BATTERY,                         new BoolMenuItem("Battery Saver      %s", 2, 10,/*'b'*/ 0, &settingsChanged.legacy.batterySaver));
     gfxMenu.add(MI_GFX_RETURN,               "\010 Return to Video Options",              2,  12,/*'r'*/  2);
     gfxMenu.setClosesMenu(MI_GFX_RETURN);
 
@@ -284,6 +288,55 @@ IntroController::IntroController() :
     interfaceMenu.add(USE_SETTINGS,                     "\010 Use These Settings",       2, 11,/*'u'*/  2);
     interfaceMenu.add(CANCEL,                           "\010 Cancel",                   2, 12,/*'c'*/  2);
     interfaceMenu.addShortcutKey(CANCEL, ' ');
+
+    LegacyOptions& lo = settingsChanged.legacy;
+    legacyMenu.setTitle("Legacy Edition Options:", 0, 0);
+    legacyMenu.add(MI_LEGACY_01,  new BoolMenuItem("Walk Into To Act         %s", 2,  1,/*'w'*/  0, &lo.bumpToAct));
+    legacyMenu.add(MI_LEGACY_02,  new BoolMenuItem("Fold Repeated Moves      %s", 2,  2,/*'f'*/  0, &lo.foldMoves));
+    legacyMenu.add(MI_LEGACY_03,  new BoolMenuItem("Cancel Spends No Turn    %s", 2,  3,/*'n'*/ 14, &lo.freeCancel));
+    legacyMenu.add(MI_LEGACY_04,  new BoolMenuItem("Shops Compare Arms       %s", 2,  4,/*'o'*/  2, &lo.shopCompare));
+    legacyMenu.add(MI_LEGACY_05,  new BoolMenuItem("Spell Info In Lists      %s", 2,  5,/*'i'*/  6, &lo.spellInfo));
+    legacyMenu.add(MI_LEGACY_06,  new BoolMenuItem("Heal In Action Menu      %s", 2,  6,/*'h'*/  0, &lo.healShortcut));
+    legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  7,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
+    legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  8,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
+    legacyMenu.add(MI_LEGACY_09,  new BoolMenuItem("Pause When Unfocused     %s", 2,  9,/*'p'*/  0, &lo.pauseUnfocused));
+    legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules, Saving & Cheats", 2, 10,/*'r'*/  2);
+    legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
+    legacyMenu.addShortcutKey(CANCEL, ' ');
+    legacyMenu.setClosesMenu(USE_SETTINGS);
+    legacyMenu.setClosesMenu(CANCEL);
+
+    rulesMenu.setTitle("Rules & Saving:", 0, 0);
+    rulesMenu.add(MI_RULES_PRESET, new EnumMenuItem("Difficulty      %s",          2,  1,/*'d'*/  0, &lo.preset, Settings::legacyPresetStrings()));
+    rulesMenu.add(MI_RULES_01,     new BoolMenuItem("  Poison Kills           %s", 2,  2,/*'p'*/  2, &lo.poisonKills));
+    rulesMenu.add(MI_RULES_02,     new EnumMenuItem("  Starvation    %s",          2,  3,/*'s'*/  2, &lo.starvation, Settings::starvationStrings()));
+    rulesMenu.add(MI_RULES_03,     new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
+    rulesMenu.add(MI_RULES_04,     new EnumMenuItem("  Turn Timer    %s",          2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
+    rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
+    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave                 %s", 2,  7,/*'a'*/  0, &lo.autosave));
+    rulesMenu.add(MI_RULES_07,     new BoolMenuItem("Cheats In Settings       %s", 2,  8,/*'i'*/  7, &lo.cheatsMenu));
+    rulesMenu.add(MI_RULES_CHEATS,                  "\010 Cheats",                 2,  9,/*'h'*/  3);
+    rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
+    rulesMenu.addShortcutKey(CANCEL, ' ');
+    rulesMenu.setClosesMenu(USE_SETTINGS);
+    rulesMenu.setClosesMenu(CANCEL);
+    ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
+
+    cheatsMenu.setTitle("Cheats:", 0, 0);
+    cheatsMenu.add(MI_CHEAT_HEAL,     "Heal & Cure The Party",     2,  1,/*'h'*/  0);
+    cheatsMenu.add(MI_CHEAT_GOLD,     "Gold +500",                 2,  2,/*'g'*/  0);
+    cheatsMenu.add(MI_CHEAT_FOOD,     "Food +100",                 2,  3,/*'f'*/  0);
+    cheatsMenu.add(MI_CHEAT_REAGENTS, "Reagents +10",              2,  4,/*'r'*/  0);
+    cheatsMenu.add(MI_CHEAT_TOOLS,    "Keys, Gems & Torches +5",   2,  5,/*'k'*/  0);
+    cheatsMenu.add(MI_CHEAT_LEVEL,    "Raise Every Level",         2,  6,/*'l'*/  6);
+    cheatsMenu.add(MI_CHEAT_VIRTUE,   "Advance Every Virtue",      2,  7,/*'v'*/  8);
+    cheatsMenu.add(MI_CHEAT_ITEMS,    "All Quest Items",           2,  8,/*'q'*/  4);
+    cheatsMenu.add(MI_CHEAT_EQUIP,    "Best Arms & Armour",        2,  9,/*'b'*/  0);
+    cheatsMenu.add(CANCEL,            "\010 Done",                 2, 12,/*'d'*/  2);
+    cheatsMenu.addShortcutKey(CANCEL, ' ');
+    cheatsMenu.setClosesMenu(CANCEL);
     interfaceMenu.setClosesMenu(USE_SETTINGS);
     interfaceMenu.setClosesMenu(CANCEL);
 }
@@ -1447,6 +1500,12 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateGameplayMenu(event);
     else if (menu == &interfaceMenu)
         updateInterfaceMenu(event);
+    else if (menu == &legacyMenu)
+        updateLegacyMenu(event);
+    else if (menu == &rulesMenu)
+        updateRulesMenu(event);
+    else if (menu == &cheatsMenu)
+        updateCheatsMenu(event);
 
     // beasties are always visible on the menus
     drawBeasties();
@@ -1486,6 +1545,9 @@ void IntroController::updateConfMenu(MenuEvent &event) {
             break;
         case MI_CONF_INTERFACE:
             runMenu(&interfaceMenu, &extendedMenuArea, true);
+            break;
+        case MI_CONF_LEGACY:
+            runMenu(&legacyMenu, &extendedMenuArea, true);
             break;
         case CANCEL:
             // discard settings
@@ -1707,6 +1769,91 @@ void IntroController::updateInterfaceMenu(MenuEvent &event) {
 
     // after drawing the menu, extra menu text can be added here
     extendedMenuArea.textAt(2, 3, "  (Open, Jimmy, etc.)");
+}
+
+void IntroController::updateLegacyMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE ||
+        event.type == MenuEvent::INCREMENT ||
+        event.type == MenuEvent::DECREMENT) {
+
+        switch(event.item->getId()) {
+            case MI_LEGACY_RULES:
+                rulesMenu.getItemById(MI_RULES_CHEATS)->setVisible(
+                                inGame && settingsChanged.legacy.cheatsMenu);
+                runMenu(&rulesMenu, &extendedMenuArea, true);
+                break;
+            case USE_SETTINGS:
+                xu4.settings->setData(settingsChanged);
+                xu4.settings->write();
+                break;
+            case CANCEL:
+                settingsChanged = *xu4.settings;
+                break;
+            default: break;
+        }
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+}
+
+void IntroController::updateRulesMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE ||
+        event.type == MenuEvent::INCREMENT ||
+        event.type == MenuEvent::DECREMENT) {
+
+        LegacyOptions& lo = settingsChanged.legacy;
+        switch(event.item->getId()) {
+            case MI_RULES_PRESET:
+                // Custom is only reached by changing one of the rules.
+                if (lo.preset == LegacyPreset_Custom)
+                    lo.preset = (event.type == MenuEvent::DECREMENT) ?
+                                LegacyPreset_Story : LegacyPreset_Classic;
+                Settings::applyLegacyPreset(settingsChanged, lo.preset);
+                break;
+            case MI_RULES_01:
+            case MI_RULES_02:
+            case MI_RULES_03:
+            case MI_RULES_04:
+            case MI_RULES_05:
+                lo.preset = LegacyPreset_Custom;
+                break;
+            case MI_RULES_07:
+                rulesMenu.getItemById(MI_RULES_CHEATS)->setVisible(
+                                inGame && lo.cheatsMenu);
+                break;
+            case MI_RULES_CHEATS:
+                runMenu(&cheatsMenu, &extendedMenuArea, true);
+                break;
+            case USE_SETTINGS:
+                xu4.settings->setData(settingsChanged);
+                xu4.settings->write();
+                break;
+            case CANCEL:
+                settingsChanged = *xu4.settings;
+                break;
+            default: break;
+        }
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+}
+
+void IntroController::updateCheatsMenu(MenuEvent &event) {
+    static const char* done = "";
+
+    if (event.type == MenuEvent::ACTIVATE) {
+        int id = event.item->getId();
+        if (id >= MI_CHEAT_HEAL && id <= MI_CHEAT_EQUIP)
+            done = legacyCheat(CHEAT_HEAL + (id - MI_CHEAT_HEAL));
+        else if (id == CANCEL)
+            done = "";
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    extendedMenuArea.textAt(2, 11, done);
 }
 
 /**

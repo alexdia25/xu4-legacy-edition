@@ -54,6 +54,7 @@ CXXSRCS=\
         imageview.cpp \
         intro.cpp \
         item.cpp \
+        legacy.cpp \
         location.cpp \
         map.cpp \
         maploader.cpp \

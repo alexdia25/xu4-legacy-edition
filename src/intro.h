@@ -107,6 +107,9 @@ public:
     void updateSpeedMenu(MenuEvent &event);
     void updateGameplayMenu(MenuEvent &event);
     void updateInterfaceMenu(MenuEvent &event);
+    void updateLegacyMenu(MenuEvent &event);
+    void updateRulesMenu(MenuEvent &event);
+    void updateCheatsMenu(MenuEvent &event);
 
 private:
     static void introNotice(int, void*, void*);
@@ -174,6 +177,8 @@ private:
         MI_GFX_TILE_TRANSPARENCY,
         MI_GFX_TILE_TRANSPARENCY_SHADOW_SIZE,
         MI_GFX_TILE_TRANSPARENCY_SHADOW_OPACITY,
+        MI_GFX_SCANLINES,
+        MI_GFX_BATTERY,
         MI_GFX_RETURN,
         MI_SOUND_01,
         MI_SOUND_02,
@@ -201,6 +206,35 @@ private:
         MI_INTERFACE_05,
         MI_INTERFACE_06,
         MI_INTERFACE_07,
+        MI_CONF_LEGACY,
+        MI_LEGACY_01,
+        MI_LEGACY_02,
+        MI_LEGACY_03,
+        MI_LEGACY_04,
+        MI_LEGACY_05,
+        MI_LEGACY_06,
+        MI_LEGACY_07,
+        MI_LEGACY_08,
+        MI_LEGACY_09,
+        MI_LEGACY_RULES,
+        MI_RULES_PRESET,
+        MI_RULES_01,
+        MI_RULES_02,
+        MI_RULES_03,
+        MI_RULES_04,
+        MI_RULES_05,
+        MI_RULES_06,
+        MI_RULES_07,
+        MI_RULES_CHEATS,
+        MI_CHEAT_HEAL,
+        MI_CHEAT_GOLD,
+        MI_CHEAT_FOOD,
+        MI_CHEAT_REAGENTS,
+        MI_CHEAT_TOOLS,
+        MI_CHEAT_LEVEL,
+        MI_CHEAT_VIRTUE,
+        MI_CHEAT_ITEMS,
+        MI_CHEAT_EQUIP,
         USE_SETTINGS = 0xFE,
         CANCEL = 0xFF
     };
@@ -221,6 +255,9 @@ private:
     Menu speedMenu;
     Menu gameplayMenu;
     Menu interfaceMenu;
+    Menu legacyMenu;
+    Menu rulesMenu;
+    Menu cheatsMenu;
 
     // data loaded in from title.exe
     IntroBinData *binData;

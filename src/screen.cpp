@@ -448,6 +448,15 @@ void screenMessageCenter(const char* text, int newlines) {
     screenMessageN(start, cp - start);
 }
 
+static uint32_t msgSerial = 0;
+
+/*
+ * Return a number that changes each time a message is printed.
+ */
+uint32_t screenMessageSerial() {
+    return msgSerial;
+}
+
 void screenMessageN(const char* buffer, int buflen) {
     bool colorize = xu4.settings->enhancements &&
                     xu4.settings->enhancementsOptions.textColorization;
@@ -547,6 +556,7 @@ newline:
     screenSetCursorPos(TEXT_AREA_X + c->col, TEXT_AREA_Y + c->line);
 
     XU4_SCREEN->needPrompt = 1;
+    ++msgSerial;
 }
 
 const vector<string>& screenGetGemLayoutNames() {
