@@ -537,7 +537,7 @@ void GameBrowser::redraw()
         mark = chosen ? CHARSET_ORB : CHARSET_BULLET;
         page.text(nx - 2 * big, y, &mark, 1,
                   chosen ? TextPage::GREEN : TextPage::GREY, 2);
-        page.text(nx, y, name.c_str(), name.size(),
+        page.text(nx, y, name.c_str(), (int) name.size(),
                   (n == sel) ? TextPage::WHITE : TextPage::TEXT, 2);
 
         if (mi.modFileI != NO_PARENT) {
@@ -545,7 +545,7 @@ void GameBrowser::redraw()
             const char* version = sst_stringL(&mi.modi, MI_VERSION, &vlen);
             string v = "v" + string(version, vlen);
             page.text(W - EDGE - 12 - page.textWidth(v.size()), y + 6,
-                      v.c_str(), v.size(), TextPage::GREY);
+                      v.c_str(), (int) v.size(), TextPage::GREY);
         }
     }
 
@@ -579,7 +579,7 @@ void GameBrowser::redraw()
             } else
                 end = text.size();
             page.text(EDGE + 8, ABOUT_Y + line * 10, text.c_str() + pos,
-                      end - pos, TextPage::TEXT);
+                      (int) (end - pos), TextPage::TEXT);
             pos = end;
         }
     }

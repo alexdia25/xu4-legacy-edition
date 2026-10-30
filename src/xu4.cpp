@@ -26,7 +26,12 @@
 #include "utils.h"
 
 #ifdef ANDROID
+#include <SDL3/SDL_hints.h>
+#include <SDL3/SDL_main.h>      // main() is called by SDLActivity.
 extern "C" const char* androidInternalData();
+extern const char* androidModuleDir();
+extern void androidCopyModules();
+extern void androidImportGameData();
 #endif
 
 #if defined(MACOSX)
@@ -206,6 +211,7 @@ static void initResourcePaths(StringTable* st) {
 #ifdef ANDROID
     sst_init(st, 2, 64);
     sst_append(st, androidInternalData(), -1);
+    sst_append(st, androidModuleDir(), -1);
 #else
     char* home;
 
@@ -254,6 +260,13 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     gs->verbose = opt->flags & OPT_VERBOSE;
 
     initResourcePaths(&gs->resourcePaths);
+#ifdef ANDROID
+    // Back opens the game menu (as Escape) instead of closing the app.
+    SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
+    androidCopyModules();
+    if (! u4fsetup())
+        androidImportGameData();
+#endif
 
     if (!u4fsetup())
     {

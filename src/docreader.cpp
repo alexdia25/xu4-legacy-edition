@@ -818,7 +818,7 @@ void DocReader::drawBody()
         int y = r * LINE_H;
         size_t mark = line.find(RUNE_MARK);
         if (mark == string::npos) {
-            body.text(x0, y, line.c_str(), line.size(), TextPage::TEXT);
+            body.text(x0, y, line.c_str(), (int) line.size(), TextPage::TEXT);
             continue;
         }
 
@@ -950,7 +950,7 @@ void DocReader::drawChapterList()
         page.text(x + EDGE + cw, ty, &mark, 1,
                   sel ? TextPage::BLUE : TextPage::GREY);
         page.text(x + EDGE + 3 * cw, ty, title.c_str(),
-                  std::min(title.size(), widest),
+                  (int) std::min(title.size(), widest),
                   sel ? TextPage::WHITE :
                   (i == chapter) ? TextPage::CYAN : TextPage::TEXT);
         addHit(x + EDGE, ty - 1, w - 2 * EDGE, 9, HIT_LIST + i);

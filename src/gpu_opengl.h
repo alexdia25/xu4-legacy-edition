@@ -2,8 +2,8 @@
 // Apple still ships OpenGL 3.3/4.1 core (deprecated in favour of Metal).
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
-#elif defined(__ANDROID__)
-#include <GLES3/gl31.h>
+#elif defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+#include <GLES3/gl3.h>
 #elif defined(USE_GLES)
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>

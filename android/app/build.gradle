@@ -1,0 +1,64 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Set by dist/build-android.sh: the version, and the directories of the
+// downloaded SDL3 & Boron sources and of the built modules.
+def xu4Version = project.findProperty('xu4.version') ?: 'dev'
+def xu4VersionCode = (project.findProperty('xu4.versionCode') ?: '1') as int
+def depsDir = project.findProperty('xu4.deps') ?: "${rootDir}/../build-android/deps"
+def assetsDir = project.findProperty('xu4.assets') ?: "${rootDir}/../build-android/assets"
+
+android {
+    namespace = 'io.github.alexdia25.xu4_legacy_edition'
+    compileSdk 35
+    ndkVersion = '27.2.12479018'
+
+    defaultConfig {
+        applicationId 'io.github.alexdia25.xu4_legacy_edition'
+        minSdk 24
+        targetSdk 35
+        versionCode xu4VersionCode
+        versionName xu4Version
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static', "-DXU4_DEPS=${depsDir}",
+                          "-DXU4_VERSION=${xu4Version}"
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            }
+        }
+    }
+
+    // A release key from the environment (see android/README.md), or else
+    // the debug key, so that a local build can still be installed.
+    signingConfigs {
+        release {
+            def ks = System.getenv('XU4_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('XU4_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('XU4_KEY_ALIAS') ?: 'xu4'
+                keyPassword System.getenv('XU4_KEY_PASSWORD') ?: System.getenv('XU4_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('XU4_KEYSTORE') ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    sourceSets.main {
+        java.srcDirs += "${depsDir}/SDL/android-project/app/src/main/java"
+        assets.srcDirs += assetsDir
+    }
+    externalNativeBuild {
+        cmake {
+            path 'jni/CMakeLists.txt'
+        }
+    }
+    lint {
+        abortOnError = false
+    }
+}

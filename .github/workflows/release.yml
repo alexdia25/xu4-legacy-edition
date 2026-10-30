@@ -1,4 +1,4 @@
-# Build the Windows, macOS & Linux packages (and a Linux Flatpak bundle) and publish
+# Build the Windows, macOS, Linux & Android packages (and a Linux Flatpak bundle) and publish
 # them as a GitHub release, either when a legacy-* tag is pushed or when run
 # from the Actions tab with a release tag (the tag is then created on the
 # commit that was built, or the files are replaced and the tag moved if that
@@ -111,8 +111,42 @@ jobs:
         with:
           name: xu4-legacy-macos
           path: build-mac/*.dmg
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+      - name: Build
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE }}
+          XU4_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          git clone -q --depth 1 -b v2.0.8 https://github.com/0branch/boron /tmp/boron
+          (cd /tmp/boron && ./configure --static && make -j4)
+          sudo cp /tmp/boron/boron /usr/local/bin
+          # The release key (android/README.md); without it the APK gets a
+          # throwaway debug key and will not install over other builds.
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/xu4.keystore"
+            export XU4_KEYSTORE="$RUNNER_TEMP/xu4.keystore"
+          fi
+          VERSION=${TAG#legacy-}
+          [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
+          dist/build-android.sh "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xu4-legacy-android
+          path: build-android/*.apk
   publish:
-    needs: [build, flatpak, macos]
+    needs: [build, flatpak, macos, android]
     if: ${{ github.ref_type == 'tag' || inputs.tag != '' }}
     runs-on: ubuntu-latest
     steps:

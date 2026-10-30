@@ -6,3 +6,8 @@ make.config
 build-linux/
 build-win/
 build-mac/
+build-android/
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+android/local.properties

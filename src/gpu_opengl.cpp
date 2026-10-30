@@ -39,11 +39,8 @@ extern uint32_t getTicks();
 #define MAP_ANIMATOR    &xu4.eventHandler->flourishAnim
 #endif
 
-#ifdef ANDROID
-#define DVERSION    "#version 310 es\n"
-#define PRECISION_F "precision mediump float;\n"
-#elif defined(USE_GLES)
-#define DVERSION    "#version 310 es\n"
+#if defined(ANDROID) || defined(USE_GLES)
+#define DVERSION    "#version 300 es\n"
 #define PRECISION_F "precision highp float;\n"
 #else
 #define DVERSION    "#version 330\n"
