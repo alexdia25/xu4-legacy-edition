@@ -105,6 +105,8 @@ jobs:
           VERSION=${TAG#legacy-}
           [ -n "$VERSION" ] || VERSION=$(git describe --tags --always)
           dist/build-macos.sh "$VERSION"
+          # The app must at least start (--help exits before the window).
+          "build-mac/dmg/XU4 Legacy.app/Contents/MacOS/xu4" --help
       - uses: actions/upload-artifact@v4
         with:
           name: xu4-legacy-macos

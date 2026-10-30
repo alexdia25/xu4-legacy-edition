@@ -2,6 +2,32 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.2 (pre-release)
+
+- **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
+  later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
+- **Steam Deck**: the Flatpak can be installed with one click from the
+  [Flatpak repository](https://alexdia25.github.io/xu4-legacy-edition/)
+  and then updates with your other Flatpaks; the README has the steps
+  for adding it to Steam.
+- **Game menu**: Escape (Select) opens a menu drawn like the title
+  menus, with the Journal, How to Play, the Books of Britannia, the
+  World Map, Save Game, Settings, Graphics & Music and Quit Game.
+- **Journal** of the virtues, quest items and clues heard, and a
+  **dungeon auto-map** (mini map or top-down view of the rooms seen).
+- **Legacy Edition options** (Settings): difficulty presets and rule
+  toggles, auto combat, gear compare and equip on buy, spells named by
+  effect and a heal shortcut, bump to act, folded repeated moves,
+  pause on focus loss, cheats, autosave with save history, several
+  characters, a choice after a party wipe, scanlines and a battery
+  saver.
+- The books are read a chapter at a time in three text sizes, the
+  History is offered when the story asks you to read it, and with Spell
+  Info In Lists on, a spell or reagent opens its Book of Mystic Wisdom
+  page (?, the right shoulder button, a right click or a long press).
+- A fatal error (such as missing game files) is shown in a message box
+  on macOS and Linux too.
+
 ## New in 1.1.5
 
 - **Talk menu**: topics now unlock by the Sega Master System rules for
@@ -44,6 +70,16 @@ Since 1.0:
 The game files are found automatically in `C:\GOG Games\Ultima 4 - Quest of
 the Avatar`.  Otherwise put them (or `ultima4.zip`) next to `xu4.exe`, or in
 `%LOCALAPPDATA%\xu4`.
+
+## Getting started (macOS)
+
+1. Open `xu4-legacy-*-macos.dmg` and drag XU4 Legacy to Applications.
+2. Put the DOS game files (or `ultima4.zip`) in
+   `~/Library/Application Support/xu4` (Finder: Go > Go to Folder).
+3. The app is not signed by an Apple developer, so the first launch is
+   refused: open System Settings > Privacy & Security and click Open
+   Anyway beside XU4 Legacy.  Or once in Terminal:
+   `xattr -dr com.apple.quarantine "/Applications/XU4 Legacy.app"`
 
 ## Getting started (Linux)
 
