@@ -445,7 +445,9 @@ std::vector<LegacySaveInfo> legacyCharacters() {
                 continue;
             LegacySaveInfo info;
             info.dir    = ent.path().string();
-            info.folder = ent.path().filename().u8string();
+            // u8string() gives std::u8string from C++20 (GCC 16's default).
+            auto name = ent.path().filename().u8string();
+            info.folder.assign(name.begin(), name.end());
             if (info.folder == active)
                 continue;
             info.label  = describe(ent.path(), "");
