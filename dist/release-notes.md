@@ -2,7 +2,18 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.1.5
+
+- **Talk menu**: topics now unlock by the Sega Master System rules for
+  each person, so a topic opens only after the right answer, topic or
+  hint (for example Joe's Stones only after answering yes, and the Rune
+  chain in Trinsic).  Hints from other people and the pub rumors are
+  saved with the game.
+- Questions the SMS answers with a list (Swindrik's reagent and others)
+  show the list, and the Ankh of Spirituality asks for its mantra.
+
 ## New in 1.1
+
 
 Since 1.0:
 
