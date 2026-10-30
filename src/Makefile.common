@@ -39,6 +39,8 @@ CXXSRCS=\
         discourse.cpp \
         dungeon.cpp \
         docreader.cpp \
+        help.cpp \
+        textpage.cpp \
         docs.cpp \
         dungeonview.cpp \
         error.cpp \

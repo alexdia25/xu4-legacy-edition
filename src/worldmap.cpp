@@ -99,29 +99,6 @@ static void setArea(GuiArea* area, float x, float y, float x2, float y2,
     area->wid = wid;
 }
 
-static float* emitArea(float* attr, const GuiArea* area, float colorIndex)
-{
-    float rect[4];
-    rect[0] = area->x;
-    rect[1] = area->y;
-    rect[2] = area->x2 - area->x;
-    rect[3] = area->y2 - area->y;
-    return gui_emitQuadCi(attr, rect, colorIndex);
-}
-
-static float* emitCentered(float* attr, TxfDrawState* ds, const GuiArea* area,
-                           const char* text, float colorIndex)
-{
-    int len = strlen(text);
-    float w = txf_emWidth(ds->tf, (const uint8_t*) text, len) * ds->psize;
-    float h = area->y2 - area->y;
-    ds->x = ds->marginL = (area->x + area->x2 - w) * 0.5f;
-    ds->y = area->y + (h - ds->psize * 0.7f) * 0.5f;
-    ds->prev = NULL;
-    ds->colorIndex = colorIndex;
-    return gui_emitText(ds, attr, text, len);
-}
-
 /*
  * Return the location on the world map (the outermost location).
  */
@@ -346,7 +323,7 @@ void WorldMapView::freeTextures()
 
 bool WorldMapView::present()
 {
-    if (! buildTextures()) {
+    if (! page.begin() || ! buildTextures()) {
         freeTextures();
         return false;
     }
@@ -372,6 +349,7 @@ void WorldMapView::conclude()
 {
     screenSetLayer(LAYER_TOP_MENU, NULL, NULL);
     freeTextures();
+    page.release();
     if (! xu4.settings->mouseOptions.enabled)
         screenShowMouseCursor(false);
 }
@@ -379,31 +357,48 @@ void WorldMapView::conclude()
 /*
  * Generate the frame, buttons & help line.
  */
+/*
+ * Draw the frame & buttons like the title menus, and place the map inside.
+ * The page is drawn first and the map over it.
+ */
 void WorldMapView::layout()
 {
     const ScreenState* ss = screenState();
-    TxfDrawState ds;
-    float W = ss->aspectW;
-    float H = ss->aspectH;
-    float mx = W * 0.02f;
-    float my = H * 0.02f;
-    float pad = H * 0.015f;
-    float footH = H * 0.06f;
-    float rect[4];
-    float* attr;
+    const int edge = 16;
+    const int footY = page.height() - edge - 18;
+    int W = page.width();
+    int cw = page.cellWidth();
+    float sx = float(ss->aspectW) / W;
+    float sy = float(ss->aspectH) / page.height();
 
-    ds.fontTable = ss->fontTable;
+    page.clear();
+    page.frame(0, 0, W, page.height(), 14);
+    page.fill(edge + 4, footY - 6, W - 2 * edge - 8, 2, TextPage::BLUE);
 
-    // Buttons at the bottom right, map above.
-    float x2 = W - mx;
-    float by = my;
-    float bw[4] = { footH * 1.3f, footH * 1.3f, W * 0.13f, W * 0.11f };
-    int wid[4] = { WI_BACK, WI_LANG, WI_ZOOM_IN, WI_ZOOM_OUT };
-    for (int i = 0; i < 4; ++i) {
-        setArea(gbox + wid[i], x2 - bw[3 - i], by, x2, by + footH, wid[i]);
-        x2 -= bw[3 - i] + pad * 0.5f;
+    const char* help = gamepad_inUse() ?
+        "D-pad Pan  A,X Zoom  Y Runes/English  B Back" :
+        "Arrows Pan  +,- Zoom  R Runes/English  Esc Back";
+    page.text(edge + 8, footY + 3, help, TextPage::GREY);
+
+    // Buttons at the bottom right (page pixels to GUI areas).
+    static const char* label[4] = { "-", "+", NULL, "Back" };
+    int wid[4] = { WI_ZOOM_OUT, WI_ZOOM_IN, WI_LANG, WI_BACK };
+    int x = W - edge - 6;
+    for (int i = 3; i >= 0; --i) {
+        const char* text = label[i];
+        if (! text)
+            text = english ? "Runes" : "English";
+        int w = (strlen(text) + 2) * cw;
+        x -= w;
+        page.fill(x, footY, w, 14, TextPage::DK_BLUE);
+        page.text(x + cw, footY + 3, text, TextPage::WHITE);
+        setArea(gbox + wid[i], x * sx, ss->aspectH - (footY + 14) * sy,
+                (x + w) * sx, ss->aspectH - footY * sy, wid[i]);
+        x -= cw;
     }
-    setArea(gbox + WI_MAP, mx, my + footH + pad, W - mx, H - my, WI_MAP);
+
+    setArea(gbox + WI_MAP, (edge + 2) * sx, ss->aspectH - (footY - 8) * sy,
+            (W - edge - 2) * sx, ss->aspectH - (edge + 2) * sy, WI_MAP);
 
     const GuiArea* area = gbox + WI_MAP;
     float aw = area->x2 - area->x;
@@ -412,39 +407,12 @@ void WorldMapView::layout()
 
     // Zoom in by doubling until the tiles are about as big as in the game
     // view.
-    float maxScale = H / 11.0f;
+    float maxScale = ss->aspectH / 11.0f;
     zoomMax = 0;
     while (fitScale * (2 << zoomMax) <= maxScale * 1.2f)
         ++zoomMax;
 
-    attr = gpu_beginRegion(work, REGION_FRAME);
-
-    rect[0] = 0.0f;
-    rect[1] = 0.0f;
-    rect[2] = W;
-    rect[3] = H;
-    attr = gui_emitQuadCi(attr, rect, COL_BLACK);
-
-    txf_begin(&ds, 1, footH * 0.55f, 0.0f, 0.0f);
-    static const char* buttonText[4] = { "-", "+", NULL, "Back" };
-    for (int i = 0; i < 4; ++i) {
-        const GuiArea* button = gbox + WI_ZOOM_OUT + i;
-        const char* text = buttonText[i];
-        if (! text)
-            text = english ? "Runes" : "English";
-        attr = emitArea(attr, button, COL_DK_BROWN);
-        attr = emitCentered(attr, &ds, button, text, COL_BEIGE);
-    }
-
-    const char* help = gamepad_inUse() ?
-        "D-pad: Pan   A, X: Zoom   Y: Runes/English   B: Back" :
-        "Arrows: Pan   +, -: Zoom   R: Runes/English   Esc: Back";
-    float hsize = footH * 0.45f;
-    txf_begin(&ds, 0, hsize, mx, my + (footH - hsize * 0.7f) * 0.5f);
-    ds.colorIndex = COL_BEIGE;
-    attr = gui_emitText(&ds, attr, help, strlen(help));
-
-    gpu_endRegion(work, REGION_FRAME, attr);
+    gpu_endRegion(work, REGION_FRAME, gpu_beginRegion(work, REGION_FRAME));
 }
 
 /*
@@ -587,8 +555,8 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
     if (work->dirty)
         gpu_updateWorkBuffer(xu4.gpu, GPU_DLIST_GUI, work);
 
-    gpu_enableGui(xu4.gpu, WID_NONE, 0);
-    gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_FRAME);
+    wm->page.upload();
+    wm->page.draw(ss);
 
     int box[4];
     box[0] = ss->aspectX + area->x;

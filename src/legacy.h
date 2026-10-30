@@ -52,6 +52,7 @@ void legacyNoteClue(const char* place, const char* who, const char* text);
 void legacyJournalReset();
 std::string legacyJournalText();
 const char* legacyVirtueWord(int karma);
+std::string legacyHelpText();
 
 // Dungeon map: the cells of each dungeon level the party has seen.
 void legacyDungeonLoad();

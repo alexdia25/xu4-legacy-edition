@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Shows the History, Wisdom, Hints & Keyboard documents so that they can be
- * read without leaving the game, and a table of the runes for reading the
- * runic signs & the world map.  The text keeps the layout of the original
- * fixed width files: runs of spaces are aligned to character columns while
- * words are drawn with the proportional GUI font.
+ * read without leaving the game, a table of the runes for reading the runic
+ * signs & the world map, the How to Play guide and the quest journal.  Each
+ * book is split into its chapters, which are read one at a time.
+ *
+ * The pages are drawn with the game's own character set inside the blue
+ * frame of the title menus.  The documents keep the layout of the original
+ * fixed width files, so they are shown at half the size of the game's text
+ * (80 columns across).
  */
 
-#include <math.h>
 #include <cctype>
 #include <cstring>
 #include <algorithm>
@@ -17,72 +20,56 @@
 #include "docreader.h"
 #include "event.h"
 #include "gamepad.h"
-#include "image32.h"
 #include "gpu.h"
+#include "gui.h"
 #include "legacy.h"
 #include "screen.h"
 #include "settings.h"
 #include "sound.h"
+#include "u4.h"
 #include "xu4.h"
 
 using std::string;
 
 #define ATTR_COUNT  7
 #define QUAD_ATTR   (6 * ATTR_COUNT)
-#define MIN_COLUMNS 60      // Narrowest text area in columns.
-#define MAX_FONT_SIZE 0.045f    // Largest text, as a fraction of the height.
-#define TAB_COUNT   (DOC_COUNT + 2)
-#define DOC_RUNES   DOC_COUNT   // The rune table tab.
-#define DOC_JOURNAL (DOC_COUNT + 1) // The quest journal tab.
+#define RUNE_QUADS  1200
 #define FONT_RUNES  3           // Index in ScreenState::fontTable.
 #define RUNE_MARK   '\x01'      // Starts a segment drawn in runes.
-#define RUNE_SCALE  1.7f        // Size of runes relative to the text.
 
-enum ReaderRegions {
-    REGION_FRAME,
-    REGION_TEXT,
-    REGION_BAR
+// Page layout (in page pixels).
+#define EDGE        16          // Frame & its grey line.
+#define TAB_Y       22
+#define BAR_Y       38
+#define RULE1_Y     60
+#define BODY_Y      68
+#define BODY_END    364
+#define RULE2_Y     368
+#define FOOT_Y      373
+#define LINE_H      10          // Body text line spacing.
+
+enum HitIds {
+    HIT_TAB   = 0,
+    HIT_PREV  = 20,
+    HIT_NEXT,
+    HIT_TITLE,
+    HIT_BACK,
+    HIT_LIST  = 100
 };
 
-static const int regionQuads[3] = { 200, 2400, 4 };
+static const char* bookTabs[DocReader::BOOK_COUNT] = {
+    "History", "Wisdom", "Hints", "Keyboard", "Runes", "How to Play",
+    "Journal"
+};
 
-static inline bool insideArea(const GuiArea* area, int x, int y)
+static const char* bookTitle(int n)
 {
-    return (x >= area->x && x < area->x2 &&
-            y >= area->y && y < area->y2);
-}
-
-static void setArea(GuiArea* area, float x, float y, float x2, float y2,
-                    int wid)
-{
-    area->x  = (uint16_t) x;
-    area->y  = (uint16_t) y;
-    area->x2 = (uint16_t) x2;
-    area->y2 = (uint16_t) y2;
-    area->wid = wid;
-}
-
-static float* emitArea(float* attr, const GuiArea* area, float colorIndex)
-{
-    float rect[4];
-    rect[0] = area->x;
-    rect[1] = area->y;
-    rect[2] = area->x2 - area->x;
-    rect[3] = area->y2 - area->y;
-    return gui_emitQuadCi(attr, rect, colorIndex);
-}
-
-// Emit text centered in an area.
-static float* emitCentered(float* attr, TxfDrawState* ds, const GuiArea* area,
-                           const char* text, float colorIndex)
-{
-    int len = strlen(text);
-    float w = txf_emWidth(ds->tf, (const uint8_t*) text, len) * ds->psize;
-    float h = area->y2 - area->y;
-    ds->x = ds->marginL = (area->x + area->x2 - w) * 0.5f;
-    ds->y = area->y + (h - ds->psize * 0.7f) * 0.5f;
-    ds->colorIndex = colorIndex;
-    return gui_emitText(ds, attr, text, len);
+    switch (n) {
+        case DocReader::BOOK_RUNES:   return "The Runes of Britannia";
+        case DocReader::BOOK_HELP:    return "How to Play";
+        case DocReader::BOOK_JOURNAL: return "Journal";
+    }
+    return docsTitle(GameDocument(n));
 }
 
 /*
@@ -191,99 +178,183 @@ static void splitLines(const string& text, std::vector<string>& lines)
         lines.pop_back();
 }
 
-/*
- * Call func for each segment of a line, with the segment X position in
- * units of the font size.  Runs of three or more spaces (and indents) align
- * to a column so that tables keep their layout.  Return the line width.
- */
-template<typename Func>
-static float layoutLine(const string& line, const TxfHeader* tf,
-                        const TxfHeader* runeTf,
-                        float columnEm, float spaceEm, Func func)
+static bool isBlank(const string& line)
 {
-    size_t len = line.size();
-    size_t i = 0;
-    float endX = 0.0f;
-
-    while (i < len) {
-        size_t sp = i;
-        while (i < len && line[i] == ' ')
-            ++i;
-        if (i == len)
-            break;
-        size_t start = i;
-        while (i < len && ! (line[i] == ' ' && i + 2 < len &&
-                             line[i+1] == ' ' && line[i+2] == ' '))
-            ++i;
-
-        size_t gap = start - sp;
-        float x = endX + gap * spaceEm;
-        if (sp == 0 || gap >= 3)
-            x = std::max(x, start * columnEm);
-
-        const uint8_t* seg = (const uint8_t*) line.data() + start;
-        size_t len = i - start;
-        if (*seg == RUNE_MARK) {
-            func(x, seg, len);
-            endX = x + txf_emWidth(runeTf, seg + 1, len - 1) * RUNE_SCALE;
-        } else {
-            func(x, seg, len);
-            endX = x + txf_emWidth(tf, seg, len);
-        }
-    }
-    return endX;
+    return line.find_first_not_of(' ') == string::npos;
 }
+
+static string trimmed(const string& line)
+{
+    size_t a = line.find_first_not_of(' ');
+    if (a == string::npos)
+        return string();
+    size_t b = line.find_last_not_of(' ');
+    return line.substr(a, b - a + 1);
+}
+
+/*
+ * Title case an upper case heading, mending the misspellings of the
+ * original documents.
+ */
+static string titleCase(const string& text)
+{
+    static const char* mend[][2] = {
+        { "POLITCAL", "POLITICAL" }, { "MERCENTILE", "MERCANTILE" },
+        { "LELEL", "LEVEL" }, { NULL, NULL }
+    };
+    static const char* small[] = {
+        "a", "an", "and", "at", "for", "in", "of", "on", "or", "our", "the",
+        "to", NULL
+    };
+    string out;
+    size_t i = 0;
+    bool first = true;
+    while (i < text.size()) {
+        if (text[i] == ' ') {
+            out.push_back(' ');
+            ++i;
+            continue;
+        }
+        size_t j = text.find(' ', i);
+        if (j == string::npos)
+            j = text.size();
+        string word = text.substr(i, j - i);
+        for (int m = 0; mend[m][0]; ++m)
+            if (word == mend[m][0])
+                word = mend[m][1];
+        for (char& ch : word)
+            ch = tolower((unsigned char) ch);
+        bool isSmall = false;
+        for (const char** it = small; *it; ++it)
+            if (word == *it)
+                isSmall = true;
+        if (first || ! isSmall)
+            word[0] = toupper((unsigned char) word[0]);
+        out += word;
+        first = false;
+        i = j;
+    }
+    return out;
+}
+
+// "CHAPTER IV" lines of the History.
+static bool chapterLine(const string& t)
+{
+    if (t.compare(0, 8, "CHAPTER ") != 0 || t.size() > 14)
+        return false;
+    return t.find_first_not_of("IVXL", 8) == string::npos;
+}
+
+// "Garlic - " or "Magic Missile - " entries of the Book of Mystic Wisdom.
+static bool entryLine(const string& line, string* name)
+{
+    if (line.empty() || ! isupper((unsigned char) line[0]))
+        return false;
+    size_t dash = line.find(" - ");
+    if (dash == string::npos || dash > 20)
+        return false;
+    for (size_t i = 0; i < dash; ++i) {
+        char ch = line[i];
+        if (! isalpha((unsigned char) ch) && ch != ' ')
+            return false;
+        if (i && line[i-1] == ' ' && ! isupper((unsigned char) ch))
+            return false;
+    }
+    *name = line.substr(0, dash);
+    return true;
+}
+
+// Upper case headings standing alone, like "HOW TO RAISE VIRTUES".  Table
+// rows (with runs of spaces) are not headings.
+static bool headingLine(const string& line)
+{
+    string t = trimmed(line);
+    if (t.size() < 4 || t.size() > 50 || t.find("   ") != string::npos)
+        return false;
+    if (t.find(' ') == string::npos)
+        return false;
+    bool letter = false;
+    for (char ch : t) {
+        if (islower((unsigned char) ch))
+            return false;
+        if (isalpha((unsigned char) ch))
+            letter = true;
+        else if (ch != ' ' && ch != '\'' && ch != '&' && ch != '-')
+            return false;
+    }
+    return letter;
+}
+
+/*
+ * Wrap a line to the page width.  Continued lines are indented to where
+ * the text of the line starts (after a "1)" or "A)" label).
+ */
+static void wrapLine(const string& src, size_t cols, std::vector<string>& out)
+{
+    string line(src);
+    while (! line.empty() && line.back() == ' ')
+        line.pop_back();
+    if (line.size() <= cols || line.find(RUNE_MARK) != string::npos) {
+        out.push_back(line);
+        return;
+    }
+
+    size_t indent = line.find_first_not_of(' ');
+    size_t gap = line.find("  ", indent);
+    if (gap != string::npos && gap - indent <= 4) {
+        size_t text = line.find_first_not_of(' ', gap);
+        if (text != string::npos && text < 20)
+            indent = text;
+    }
+    if (indent > cols / 2)
+        indent = 0;
+
+    while (line.size() > cols) {
+        size_t cut = line.rfind(' ', cols);
+        if (cut == string::npos || cut <= indent)
+            cut = cols;
+        out.push_back(line.substr(0, cut));
+        size_t next = line.find_first_not_of(' ', cut);
+        if (next == string::npos) {
+            line.clear();
+            break;
+        }
+        line = string(indent, ' ') + line.substr(next);
+    }
+    if (! line.empty())
+        out.push_back(line);
+}
+
+//----------------------------------------------------------------------------
 
 void DocReader::renderReader(ScreenState* ss, void* data)
 {
     DocReader* dr = (DocReader*) data;
     WorkBuffer* work = dr->work;
-    const GuiArea* area = dr->gbox + WI_TEXT;
 
-    // Animate scrolling.
-    if (dr->scroll != dr->scrollTarget) {
-        dr->scroll += (dr->scrollTarget - dr->scroll) * 0.3f;
-        if (fabsf(dr->scrollTarget - dr->scroll) < 0.5f)
-            dr->scroll = dr->scrollTarget;
+    dr->page.upload();
+    dr->page.draw(ss);
 
-        float areaH = area->y2 - area->y;
-        int first = int((dr->scroll - dr->textPad) / dr->lineSpacing);
-        int last  = int((dr->scroll + areaH) / dr->lineSpacing) + 1;
-        if (first < dr->firstLine || last > dr->firstLine + dr->lineCount)
-            dr->generateText();
-        dr->generateScrollBar();
+    if (dr->hasRunes) {
+        if (work->dirty)
+            gpu_updateWorkBuffer(xu4.gpu, GPU_DLIST_GUI, work);
+        gpu_enableGui(xu4.gpu, WID_NONE, 0);
+        gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region);
     }
-
-    if (work->dirty)
-        gpu_updateWorkBuffer(xu4.gpu, GPU_DLIST_GUI, work);
-
-    gpu_enableGui(xu4.gpu, WID_NONE, 0);
-    gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_FRAME);
-
-    int box[4];
-    box[0] = ss->aspectX + area->x;
-    box[1] = ss->aspectY + area->y;
-    box[2] = area->x2 - area->x;
-    box[3] = area->y2 - area->y;
-    gpu_setScissor(box);
-    gpu_guiSetOrigin(xu4.gpu, area->x + dr->textPad, area->y2 + dr->scroll);
-    gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_TEXT);
-    gpu_guiSetOrigin(xu4.gpu, 0.0f, 0.0f);
-    gpu_setScissor(NULL);
-
-    gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_BAR);
 }
 
 DocReader::DocReader()
 {
-    int rsize[3];
-    for (int i = 0; i < 3; ++i)
-        rsize[i] = regionQuads[i] * QUAD_ATTR;
-    work = gpu_allocWorkBuffer(rsize, 3);
-    doc = DOC_HISTORY;
-    firstLine = lineCount = 0;
-    buttonDown = WID_NONE;
-    scroll = scrollTarget = 0.0f;
+    // Region 0 holds the runes; the work buffer needs at least two.
+    int rsize[2] = { RUNE_QUADS * QUAD_ATTR, QUAD_ATTR };
+    work = gpu_allocWorkBuffer(rsize, 2);
+    book = DOC_HISTORY;
+    lastBook = -1;
+    chapter = top = 0;
+    listOpen = 0;
+    listSel = 0;
+    pressed = -1;
+    hasRunes = false;
 }
 
 DocReader::~DocReader()
@@ -291,46 +362,180 @@ DocReader::~DocReader()
     gpu_freeWorkBuffer(work);
 }
 
-void DocReader::openDocument(int n)
+void DocReader::openBook(int n, int chap)
 {
     string text;
 
-    doc = n;
-    if (n == DOC_RUNES) {
+    book = lastBook = n;
+    if (n == BOOK_RUNES) {
         text = runesText();
-    } else if (n == DOC_JOURNAL) {
+    } else if (n == BOOK_HELP) {
+        text = legacyHelpText();
+    } else if (n == BOOK_JOURNAL) {
         text = legacyJournalText();
     } else if (! docsLoad(GameDocument(n), text)) {
-        text = "\n\n"
-            "    This document was not found.\n\n"
-            "    The free GOG release of Ultima IV includes the printed\n"
-            "    documents as ULTIMA4.TXT.  Place it with the game files\n"
-            "    and xu4 will split it into separate documents.  Releases\n"
-            "    with separate History.txt, Wisdom.txt, Hints.txt and\n"
-            "    Keyboard.txt files are also found there, or in a docs\n"
-            "    folder beside the game files.\n\n"
-            "    The documents can also be put in the docs folder of\n"
-            "    ";
+        text = "\n"
+            "This document was not found.\n\n"
+            "The free GOG release of Ultima IV includes the printed\n"
+            "documents as ULTIMA4.TXT.  Place it with the game files and\n"
+            "xu4 will split it into separate documents.  Releases with\n"
+            "separate History.txt, Wisdom.txt, Hints.txt and Keyboard.txt\n"
+            "files are also found there, or in a docs folder beside the\n"
+            "game files.\n\n"
+            "The documents can also be put in the docs folder of\n";
         text += xu4.settings->getUserPath();
-        text += "\n    with the names History.txt, Wisdom.txt, Hints.txt\n"
-                "    and Keyboard.txt.\n";
+        text += "\nwith the names History.txt, Wisdom.txt, Hints.txt and\n"
+                "Keyboard.txt.\n";
     }
     splitLines(text, lines);
-    scroll = scrollTarget = 0.0f;
-    layout();
+    findChapters();
+    listOpen = 0;
+    openChapter(std::min(chap, int(chapters.size()) - 1));
 }
 
 /*
- * Show the quest journal the next time the reader is presented.
+ * Split the book into chapters.  The History has numbered chapters, the
+ * Book of Mystic Wisdom an entry for each reagent & spell, and the other
+ * books upper case headings.  Text before the first chapter is the
+ * Introduction.
  */
-void DocReader::showJournal()
+void DocReader::findChapters()
 {
-    doc = DOC_JOURNAL;
+    std::vector<Chapter> found;
+    Chapter ch;
+    string name;
+    size_t i;
+
+    // Numbered chapters.
+    for (i = 0; i < lines.size(); ++i) {
+        string t = trimmed(lines[i]);
+        if (chapterLine(t)) {
+            ch.title = "Chapter " + t.substr(8);
+            for (size_t j = i + 1; j < lines.size(); ++j) {
+                if (! isBlank(lines[j])) {
+                    ch.title += ": " + titleCase(trimmed(lines[j]));
+                    break;
+                }
+            }
+            ch.start = i;
+            found.push_back(ch);
+        }
+    }
+
+    // Entries.
+    if (found.empty()) {
+        for (i = 0; i < lines.size(); ++i) {
+            if ((i == 0 || isBlank(lines[i-1])) &&
+                entryLine(lines[i], &name)) {
+                ch.title = name;
+                ch.start = i;
+                found.push_back(ch);
+            }
+        }
+        if (found.size() < 5)
+            found.clear();
+    }
+
+    // Headings.
+    if (found.empty()) {
+        for (i = 0; i < lines.size(); ++i) {
+            if ((i == 0 || isBlank(lines[i-1])) && headingLine(lines[i])) {
+                ch.title = titleCase(trimmed(lines[i]));
+                ch.start = i;
+                found.push_back(ch);
+            }
+        }
+    }
+
+    // A heading with nothing under it (such as the title of the book)
+    // joins the next chapter.
+    chapters.clear();
+    for (i = 0; i < found.size(); ++i) {
+        int end = (i + 1 < found.size()) ? found[i+1].start : lines.size();
+        bool empty = true;
+        for (int n = found[i].start + 1; n < end; ++n) {
+            if (! isBlank(lines[n]) && ! headingLine(lines[n])) {
+                empty = false;
+                break;
+            }
+        }
+        if (empty && i + 1 < found.size()) {
+            found[i+1].start = found[i].start;
+            continue;
+        }
+        chapters.push_back(found[i]);
+    }
+
+    // Introduction.
+    int first = chapters.empty() ? lines.size() : chapters[0].start;
+    for (int n = 0; n < first; ++n) {
+        if (! isBlank(lines[n])) {
+            ch.title = chapters.empty() ? bookTitle(book) : "Introduction";
+            ch.start = 0;
+            chapters.insert(chapters.begin(), ch);
+            break;
+        }
+    }
+    if (chapters.empty()) {
+        ch.title = bookTitle(book);
+        ch.start = 0;
+        chapters.push_back(ch);
+    }
+
+    for (i = 0; i < chapters.size(); ++i)
+        chapters[i].end = (i + 1 < chapters.size()) ? chapters[i+1].start
+                                                     : lines.size();
+}
+
+void DocReader::openChapter(int n)
+{
+    if (n < 0)
+        n = 0;
+    chapter = n;
+    view.clear();
+
+    size_t cols = (page.width() - 2 * (EDGE + 8)) / page.cellWidth();
+    const Chapter& ch = chapters[n];
+    for (int i = ch.start; i < ch.end; ++i)
+        wrapLine(lines[i], cols, view);
+
+    while (! view.empty() && isBlank(view.back()))
+        view.pop_back();
+    size_t lead = 0;
+    while (lead < view.size() && isBlank(view[lead]))
+        ++lead;
+    view.erase(view.begin(), view.begin() + lead);
+
+    top = 0;
+    redraw();
+}
+
+int DocReader::bodyRows() const
+{
+    return (BODY_END - BODY_Y) / LINE_H;
+}
+
+void DocReader::scrollTo(int line)
+{
+    int end = int(view.size()) - bodyRows();
+    if (line > end)
+        line = end;
+    if (line < 0)
+        line = 0;
+    if (line != top) {
+        top = line;
+        redraw();
+    }
 }
 
 bool DocReader::present()
 {
-    openDocument(doc);
+    if (! page.begin())
+        return false;
+    // Reopen the chapter last read in the same book (the journal is
+    // remade each time, so it starts over).
+    int chap = (book == lastBook && book != BOOK_JOURNAL) ? chapter : 0;
+    openBook(book, chap);
     screenSetLayer(LAYER_TOP_MENU, renderReader, this);
     return true;
 }
@@ -338,250 +543,363 @@ bool DocReader::present()
 void DocReader::conclude()
 {
     screenSetLayer(LAYER_TOP_MENU, NULL, NULL);
+    page.release();
 }
 
-/*
- * Generate the frame, document tabs & footer.
- */
-void DocReader::layout()
+//----------------------------------------------------------------------------
+
+void DocReader::addHit(int x, int y, int w, int h, int id)
+{
+    HitArea a;
+    a.x = x;
+    a.y = y;
+    a.x2 = x + w;
+    a.y2 = y + h;
+    a.id = id;
+    hits.push_back(a);
+}
+
+int DocReader::hitAt(int x, int y) const
+{
+    // The last added is on top.
+    for (auto it = hits.rbegin(); it != hits.rend(); ++it) {
+        if (x >= it->x && x < it->x2 && y >= it->y && y < it->y2)
+            return it->id;
+    }
+    return -1;
+}
+
+void DocReader::redraw()
+{
+    hits.clear();
+    hasRunes = false;
+    gpu_endRegion(work, 0, gpu_beginRegion(work, 0));
+
+    page.clear();
+    page.frame(0, 0, page.width(), page.height(), 14);
+    drawTabs();
+    drawChapterBar();
+    page.fill(EDGE + 4, RULE1_Y, page.width() - 2 * EDGE - 8, 2,
+              TextPage::BLUE);
+    drawBody();
+    page.fill(EDGE + 4, RULE2_Y, page.width() - 2 * EDGE - 8, 2,
+              TextPage::BLUE);
+    drawFooter();
+    if (listOpen)
+        drawChapterList();
+}
+
+void DocReader::drawTabs()
+{
+    int cw = page.cellWidth();
+    int total = 0;
+    int i;
+    for (i = 0; i < BOOK_COUNT; ++i)
+        total += strlen(bookTabs[i]) + 3;
+    int x = (page.width() - (total - 1) * cw) / 2;
+
+    for (i = 0; i < BOOK_COUNT; ++i) {
+        int w = (strlen(bookTabs[i]) + 2) * cw;
+        bool cur = (i == book);
+        if (cur)
+            page.fill(x, TAB_Y - 3, w, 14, TextPage::DK_BLUE);
+        page.text(x + cw, TAB_Y, bookTabs[i],
+                  cur ? TextPage::WHITE : TextPage::GREY);
+        addHit(x, TAB_Y - 4, w, 16, HIT_TAB + i);
+        x += w + cw;
+    }
+}
+
+void DocReader::drawChapterBar()
+{
+    const string& title = chapters[chapter].title;
+    int cw = page.cellWidth();
+    int W = page.width();
+    int scale = (title.size() * 2 * cw <= size_t(W - 2 * (EDGE + 6 * cw)))
+                ? 2 : 1;
+    int y = (scale == 2) ? BAR_Y : BAR_Y + 4;
+    page.centered(y, title.c_str(), TextPage::WHITE, scale);
+    addHit(EDGE + 6 * cw, BAR_Y - 2, W - 2 * (EDGE + 6 * cw), 20, HIT_TITLE);
+
+    int n = chapters.size();
+    if (n > 1) {
+        char count[16];
+        snprintf(count, sizeof(count), "%d/%d", chapter + 1, n);
+        page.text(W - EDGE - 6 - page.textWidth(strlen(count)), BAR_Y + 4,
+                  count, TextPage::GREY);
+    }
+    if (chapter > 0) {
+        page.text(EDGE + 6, BAR_Y, "<", TextPage::BLUE, 2);
+        addHit(EDGE, BAR_Y - 4, 4 * cw, 24, HIT_PREV);
+    }
+    if (chapter + 1 < n) {
+        int x = W - EDGE - 6 - page.textWidth(strlen("00/00")) - 3 * cw;
+        page.text(x, BAR_Y, ">", TextPage::BLUE, 2);
+        addHit(x - cw, BAR_Y - 4, 4 * cw, 24, HIT_NEXT);
+    }
+}
+
+void DocReader::drawBody()
 {
     const ScreenState* ss = screenState();
+    int cw = page.cellWidth();
+    int x0 = EDGE + 8;
+    int rows = bodyRows();
+    float sx = float(ss->aspectW) / page.width();
+    float sy = float(ss->aspectH) / page.height();
     TxfDrawState ds;
-    float W = ss->aspectW;
-    float H = ss->aspectH;
-    float mx = W * 0.05f;
-    float my = H * 0.04f;
-    float pad = H * 0.02f;
-    float tabH = H * 0.075f;
-    float footH = H * 0.055f;
-    float panelX2 = W - mx;
-    float panelY2 = H - my;
-    float rect[4];
-    float* attr;
-    int i;
+    float* attr = NULL;
 
-    ds.fontTable = ss->fontTable;
+    for (int r = 0; r < rows; ++r) {
+        size_t n = top + r;
+        if (n >= view.size())
+            break;
+        const string& line = view[n];
+        int y = BODY_Y + r * LINE_H;
+        size_t mark = line.find(RUNE_MARK);
+        if (mark == string::npos) {
+            page.text(x0, y, line.c_str(), line.size(), TextPage::TEXT);
+            continue;
+        }
 
-    // Tabs across the top, Back button at the bottom right.
-    float tabY = panelY2 - pad - tabH;
-    float tabW = W * 0.13f;
-    float x = mx + pad;
-    for (i = 0; i < TAB_COUNT; ++i) {
-        setArea(gbox + WI_TAB + i, x, tabY, x + tabW, tabY + tabH, WI_TAB + i);
-        x += tabW + pad * 0.5f;
+        // Runes are drawn by the GPU with the runes font, two cells each.
+        if (! hasRunes) {
+            hasRunes = true;
+            ds.fontTable = ss->fontTable;
+            txf_begin(&ds, FONT_RUNES, 19.0f * sy, 0.0f, 0.0f);
+            ds.colorIndex = COL_WHITE;
+            attr = gpu_beginRegion(work, 0);
+        }
+        int col = 0;
+        size_t i = 0;
+        while (i < line.size()) {
+            if (line[i] == RUNE_MARK) {
+                // Runes run to the end of the line or to a double space.
+                size_t k = i + 1;
+                for (; k < line.size(); ++k) {
+                    if (line[k] == ' ') {
+                        if (k + 1 >= line.size() || line[k+1] == ' ')
+                            break;
+                        ++col;
+                        continue;
+                    }
+                    ds.x = ds.marginL = (x0 + col * cw) * sx;
+                    ds.y = ss->aspectH - (y + 13) * sy;
+                    ds.prev = NULL;
+                    attr = gui_emitText(&ds, attr, &line[k], 1);
+                    col += 2;
+                }
+                i = k;
+            } else {
+                // Keep the columns of the table after wide runes.
+                if (col < int(i))
+                    col = i;
+                page.text(x0 + col * cw, y, &line[i], 1, TextPage::TEXT);
+                ++col;
+                ++i;
+            }
+        }
     }
-    float backW = W * 0.14f;
-    setArea(gbox + WI_BACK, panelX2 - pad - backW, my + pad,
-            panelX2 - pad, my + pad + footH, WI_BACK);
-    setArea(gbox + WI_TEXT, mx + pad, my + pad + footH + pad,
-            panelX2 - pad, tabY - pad * 0.5f, WI_TEXT);
+    if (hasRunes)
+        gpu_endRegion(work, 0, attr);
 
-    // Size the text so that the widest line of the document fits.
-    const GuiArea* area = gbox + WI_TEXT;
-    const TxfHeader* tf = ss->fontTable[0];
-    const TxfHeader* runeTf = ss->fontTable[FONT_RUNES];
-    float barW = W * 0.012f;
-    textPad = pad;
-    float textW = (area->x2 - area->x) - textPad * 2.0f - barW;
-    float colEm = txf_emWidth(tf, (const uint8_t*) "n", 1);
-    float spaceEm = txf_emWidth(tf, (const uint8_t*) " ", 1);
-    float widest = MIN_COLUMNS * colEm;
-    for (const string& line : lines) {
-        float w = layoutLine(line, tf, runeTf, colEm, spaceEm,
-                             [](float, const uint8_t*, size_t) {});
-        if (widest < w)
-            widest = w;
+    // Scroll bar.
+    int total = view.size();
+    if (total > rows) {
+        int barH = BODY_END - BODY_Y;
+        int thumb = std::max(barH * rows / total, 8);
+        int pos = (barH - thumb) * top / (total - rows);
+        int bx = page.width() - EDGE - 6;
+        page.fill(bx, BODY_Y, 2, barH, TextPage::DIM);
+        page.fill(bx - 1, BODY_Y + pos, 4, thumb, TextPage::BLUE);
     }
-    psize = std::min(textW / widest, H * MAX_FONT_SIZE);
-    columnW = colEm * psize;
-    lineSpacing = tf->lineHeight * psize;
-    descender = tf->descender * psize;
+}
 
-    attr = gpu_beginRegion(work, REGION_FRAME);
-
-    rect[0] = 0.0f;
-    rect[1] = 0.0f;
-    rect[2] = W;
-    rect[3] = H;
-    attr = gui_emitQuadCi(attr, rect, COL_BLACK + 128);
-    rect[0] = mx;
-    rect[1] = my;
-    rect[2] = W - mx - mx;
-    rect[3] = H - my - my;
-    attr = gui_emitQuadCi(attr, rect, COL_BROWN);
-    attr = emitArea(attr, area, COL_DK_BROWN);
-
-    txf_begin(&ds, 1, tabH * 0.55f, 0.0f, 0.0f);
-    for (i = 0; i < TAB_COUNT; ++i) {
-        const GuiArea* tab = gbox + WI_TAB + i;
-        bool cur = (i == doc);
-        const char* title = (i == DOC_RUNES) ? "Runes" :
-                            (i == DOC_JOURNAL) ? "Journal" :
-                            docsTitle(GameDocument(i));
-        attr = emitArea(attr, tab, cur ? COL_LT_BLUE : COL_DK_BROWN);
-        attr = emitCentered(attr, &ds, tab, title,
-                            cur ? COL_TX_BLACK : COL_BEIGE);
-    }
-    attr = emitArea(attr, gbox + WI_BACK, COL_DK_BROWN);
-    attr = emitCentered(attr, &ds, gbox + WI_BACK, "Back", COL_BEIGE);
-
+void DocReader::drawFooter()
+{
+    int cw = page.cellWidth();
     const char* help = gamepad_inUse() ?
-        "Up/Down: Scroll    X: Page    Left/Right: Document    B: Back" :
-        "Up/Down, Space: Scroll    Left/Right: Document    Esc: Back";
-    float hsize = footH * 0.5f;
-    txf_begin(&ds, 0, hsize, mx + pad,
-              my + pad + (footH - hsize * 0.7f) * 0.5f);
-    ds.colorIndex = COL_BEIGE;
-    attr = gui_emitText(&ds, attr, help, strlen(help));
+        "Up/Down Scroll  Left/Right Chapter  A Contents  Y Book" :
+        "Up/Down Scroll  Left/Right Chapter  Enter Contents  Tab Book";
+    page.text(EDGE + 8, FOOT_Y, help, TextPage::GREY);
 
-    gpu_endRegion(work, REGION_FRAME, attr);
-
-    generateText();
-    generateScrollBar();
+    const char* back = gamepad_inUse() ? "B Back" : "Esc Back";
+    int w = (strlen(back) + 2) * cw;
+    int x = page.width() - EDGE - 6 - w;
+    page.fill(x, FOOT_Y - 3, w, 14, TextPage::DK_BLUE);
+    page.text(x + cw, FOOT_Y, back, TextPage::WHITE);
+    addHit(x, FOOT_Y - 4, w, 16, HIT_BACK);
 }
 
 /*
- * Generate the lines of text which are in view.  The top of the document is
- * at 0,0 to be placed with gpu_guiSetOrigin().
+ * The table of contents, over the page.
  */
-void DocReader::generateText()
+void DocReader::drawChapterList()
 {
-    const GuiArea* area = gbox + WI_TEXT;
-    float areaH = area->y2 - area->y;
-    int rows = int(areaH / lineSpacing) + 2;
-    TxfDrawState ds;
+    int cw = page.cellWidth();
+    int n = chapters.size();
+    size_t widest = 12;
+    for (const Chapter& ch : chapters)
+        widest = std::max(widest, ch.title.size());
+    int maxRows = (page.height() - 2 * EDGE - 48) / 9;
+    int rows = std::min(n, maxRows);
+    int w = (widest + 6) * cw + 2 * EDGE;
+    int h = rows * 9 + 2 * EDGE + 28;
+    int x = (page.width() - w) / 2;
+    int y = (page.height() - h) / 2;
 
-    ds.fontTable = screenState()->fontTable;
-    txf_begin(&ds, 0, psize, 0.0f, 0.0f);
-    const TxfHeader* textTf = ds.tf;
-    const TxfHeader* runeTf = ds.fontTable[FONT_RUNES];
-    float spaceEm = txf_emWidth(ds.tf, (const uint8_t*) " ", 1);
-    float columnEm = columnW / psize;
+    page.fill(x, y, w, h, TextPage::BLACK);
+    page.frame(x, y, w, h, 14);
+    addHit(0, 0, page.width(), page.height(), -2);  // Swallow other clicks.
+    page.centered(y + EDGE + 4, "Contents", TextPage::WHITE);
 
-    firstLine = std::max(0, int((scroll - textPad) / lineSpacing) - 2);
-    int end = std::min(int(lines.size()), firstLine + rows + 4);
-
-    float* attr = gpu_beginRegion(work, REGION_TEXT);
-    const WorkRegion* reg = work->region + REGION_TEXT;
-    const float* limit = work->attr + reg->start + reg->avail;
-    int n;
-
-    ds.colorIndex = COL_WHITE;
-    for (n = firstLine; n < end; ++n) {
-        const string& line = lines[n];
-        float y = -(n + 1) * lineSpacing - textPad - descender;
-
-        if (attr + line.size() * QUAD_ATTR > limit)
-            break;
-
-        layoutLine(line, textTf, runeTf, columnEm, spaceEm,
-            [&](float x, const uint8_t* seg, size_t len) {
-                ds.x = ds.marginL = x * psize;
-                ds.y = y;
-                ds.prev = NULL;
-                if (*seg == RUNE_MARK) {
-                    ds.tf = runeTf;
-                    txf_setFontSize(&ds, psize * RUNE_SCALE);
-                    attr = gui_emitText(&ds, attr, (const char*) seg + 1,
-                                        len - 1);
-                    ds.tf = textTf;
-                    txf_setFontSize(&ds, psize);
-                } else
-                    attr = gui_emitText(&ds, attr, (const char*) seg, len);
-            });
+    int first = 0;
+    if (listSel >= rows)
+        first = listSel - rows + 1;
+    int ty = y + EDGE + 20;
+    for (int r = 0; r < rows; ++r) {
+        int i = first + r;
+        bool sel = (i == listSel);
+        const string& title = chapters[i].title;
+        char mark = sel ? CHARSET_PROMPT : CHARSET_BULLET;
+        page.text(x + EDGE + cw, ty, &mark, 1,
+                  sel ? TextPage::BLUE : TextPage::GREY);
+        page.text(x + EDGE + 3 * cw, ty, title.c_str(), title.size(),
+                  sel ? TextPage::WHITE :
+                  (i == chapter) ? TextPage::CYAN : TextPage::TEXT);
+        addHit(x + EDGE, ty - 1, w - 2 * EDGE, 9, HIT_LIST + i);
+        ty += 9;
     }
-    lineCount = n - firstLine;
-    gpu_endRegion(work, REGION_TEXT, attr);
 }
 
-void DocReader::generateScrollBar()
-{
-    const GuiArea* area = gbox + WI_TEXT;
-    float areaH = area->y2 - area->y;
-    float total = maxScroll() + areaH;
-    float barW = screenState()->aspectW * 0.012f;
-    float rect[4];
+//----------------------------------------------------------------------------
 
-    float* attr = gpu_beginRegion(work, REGION_BAR);
-    if (maxScroll() > 0.0f) {
-        float thumbH = std::max(areaH * areaH / total, barW * 2.0f);
-        float travel = areaH - thumbH;
-        rect[0] = area->x2 - barW * 1.5f;
-        rect[1] = area->y + travel * (1.0f - scroll / maxScroll());
-        rect[2] = barW;
-        rect[3] = thumbH;
-        attr = gui_emitQuadCi(attr, rect, COL_LT_GRAY);
+void DocReader::activate(int id)
+{
+    if (id >= HIT_LIST) {
+        listOpen = 0;
+        openChapter(id - HIT_LIST);
+    } else if (id >= HIT_TAB && id < HIT_TAB + BOOK_COUNT) {
+        if (id - HIT_TAB != book)
+            openBook(id - HIT_TAB);
+    } else if (id == HIT_PREV) {
+        if (chapter > 0)
+            openChapter(chapter - 1);
+    } else if (id == HIT_NEXT) {
+        if (chapter + 1 < int(chapters.size()))
+            openChapter(chapter + 1);
+    } else if (id == HIT_TITLE) {
+        listOpen = 1;
+        listSel = chapter;
+        redraw();
+    } else if (id == HIT_BACK) {
+        xu4.eventHandler->setControllerDone(true);
     }
-    gpu_endRegion(work, REGION_BAR, attr);
-}
-
-float DocReader::maxScroll() const
-{
-    const GuiArea* area = gbox + WI_TEXT;
-    float areaH = area->y2 - area->y;
-    float h = lines.size() * lineSpacing + textPad * 2.0f;
-    return (h > areaH) ? h - areaH : 0.0f;
-}
-
-void DocReader::scrollTo(float y)
-{
-    float end = maxScroll();
-    if (y > end)
-        y = end;
-    if (y < 0.0f)
-        y = 0.0f;
-    scrollTarget = y;
-}
-
-void DocReader::scrollLines(int n)
-{
-    scrollTo(scrollTarget + n * lineSpacing);
 }
 
 bool DocReader::keyPressed(int key)
 {
-    const GuiArea* area = gbox + WI_TEXT;
-    int page = int((area->y2 - area->y) / lineSpacing) - 2;
+    int page = bodyRows() - 2;
+    int n = chapters.size();
+
+    if (listOpen) {
+        switch (key) {
+            case U4_UP:
+                if (listSel > 0) {
+                    --listSel;
+                    soundPlay(SOUND_UI_TICK);
+                    redraw();
+                }
+                return true;
+            case U4_DOWN:
+                if (listSel + 1 < n) {
+                    ++listSel;
+                    soundPlay(SOUND_UI_TICK);
+                    redraw();
+                }
+                return true;
+            case U4_PAGE_UP:
+                listSel = std::max(0, listSel - 10);
+                redraw();
+                return true;
+            case U4_PAGE_DOWN:
+                listSel = std::min(n - 1, listSel + 10);
+                redraw();
+                return true;
+            case U4_ENTER:
+            case U4_SPACE:
+            case U4_RIGHT:
+                soundPlay(SOUND_UI_CLICK);
+                activate(HIT_LIST + listSel);
+                return true;
+            case U4_ESC:
+            case U4_LEFT:
+            case 'c':
+                listOpen = 0;
+                redraw();
+                return true;
+        }
+        return true;
+    }
 
     switch (key) {
         case U4_UP:
-            scrollLines(-1);
+            scrollTo(top - 1);
             return true;
         case U4_DOWN:
-            scrollLines(1);
+            scrollTo(top + 1);
             return true;
         case U4_SPACE:
-        case U4_ENTER:
         case U4_PAGE_DOWN:
-            scrollLines(page);
+            // At the end of a chapter Space goes on to the next.
+            if (key == U4_SPACE && top + bodyRows() >= int(view.size()) &&
+                chapter + 1 < n) {
+                soundPlay(SOUND_UI_TICK);
+                openChapter(chapter + 1);
+            } else
+                scrollTo(top + page);
             return true;
         case U4_BACKSPACE:
         case U4_PAGE_UP:
-            scrollLines(-page);
+            scrollTo(top - page);
             return true;
         case U4_HOME:
-            scrollTo(0.0f);
+            scrollTo(0);
             return true;
         case U4_END:
-            scrollTo(maxScroll());
+            scrollTo(view.size());
             return true;
         case U4_LEFT:
-            soundPlay(SOUND_UI_TICK);
-            openDocument((doc + TAB_COUNT - 1) % TAB_COUNT);
+            if (chapter > 0) {
+                soundPlay(SOUND_UI_TICK);
+                openChapter(chapter - 1);
+            }
             return true;
         case U4_RIGHT:
+            if (chapter + 1 < n) {
+                soundPlay(SOUND_UI_TICK);
+                openChapter(chapter + 1);
+            }
+            return true;
+        case U4_ENTER:
+        case 'c':
+            if (n > 1) {
+                soundPlay(SOUND_UI_CLICK);
+                activate(HIT_TITLE);
+            }
+            return true;
         case U4_TAB:
         case 'z':
             soundPlay(SOUND_UI_TICK);
-            openDocument((doc + 1) % TAB_COUNT);
+            openBook((book + 1) % BOOK_COUNT);
             return true;
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);
             return true;
         default:
-            if (key >= '1' && key < '1' + TAB_COUNT) {
+            if (key >= '1' && key < '1' + BOOK_COUNT) {
                 soundPlay(SOUND_UI_TICK);
-                openDocument(key - '1');
+                openBook(key - '1');
                 return true;
             }
             break;
@@ -592,38 +910,38 @@ bool DocReader::keyPressed(int key)
 bool DocReader::inputEvent(const InputEvent* ev)
 {
     const ScreenState* ss = screenState();
-    int x = ev->x - ss->aspectX;
-    int y = (ss->displayH - ev->y) - ss->aspectY;
-    int i;
+    int x, y;
+    page.pagePos(ss, ev->x - ss->aspectX, (ss->displayH - ev->y) - ss->aspectY,
+                 &x, &y);
 
     switch (ev->type) {
         case IE_MOUSE_PRESS:
-            buttonDown = WID_NONE;
-            if (ev->n != CMOUSE_LEFT)
-                break;
-            for (i = WI_TAB; i < WI_COUNT; ++i) {
-                if (insideArea(gbox + i, x, y))
-                    buttonDown = i;
-            }
+            pressed = (ev->n == CMOUSE_LEFT) ? hitAt(x, y) : -1;
             break;
 
         case IE_MOUSE_RELEASE:
-            if (ev->n == CMOUSE_LEFT && buttonDown != WID_NONE &&
-                insideArea(gbox + buttonDown, x, y)) {
+            if (ev->n == CMOUSE_LEFT && pressed >= 0 &&
+                hitAt(x, y) == pressed) {
                 soundPlay(SOUND_UI_CLICK);
-                if (buttonDown == WI_BACK)
-                    xu4.eventHandler->setControllerDone(true);
-                else if (buttonDown - WI_TAB != doc)
-                    openDocument(buttonDown - WI_TAB);
+                activate(pressed);
+            } else if (ev->n == CMOUSE_LEFT && listOpen && pressed == -2 &&
+                       hitAt(x, y) == -2) {
+                listOpen = 0;       // Clicked outside the list.
+                redraw();
             }
-            buttonDown = WID_NONE;
+            pressed = -1;
             break;
 
         case IE_MOUSE_WHEEL:
-            if (ev->y < 0)
-                scrollLines(3);
+            if (listOpen) {
+                int n = chapters.size();
+                listSel += (ev->y < 0) ? 1 : -1;
+                listSel = std::max(0, std::min(n - 1, listSel));
+                redraw();
+            } else if (ev->y < 0)
+                scrollTo(top + 3);
             else if (ev->y > 0)
-                scrollLines(-3);
+                scrollTo(top - 3);
             break;
     }
     return true;

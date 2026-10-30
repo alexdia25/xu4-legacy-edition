@@ -12,15 +12,19 @@
 #include "event.h"
 #include "image32.h"
 #include "intro.h"
+#include "gamepad.h"
 #include "gpu.h"
 #include "module.h"
 #include "settings.h"
 #include "screen.h"
 #include "sound.h"
+#include "u4.h"
 #include "u4file.h"
 #include "xu4.h"
 
 #include "gamebrowser.h"
+
+using std::string;
 
 extern "C" {
 #include "processDir.c"
@@ -35,158 +39,57 @@ enum GuiBufferRegions {
     REGION_LIST
 };
 
-static inline bool insideArea(const GuiArea* area, int x, int y)
-{
-    return (x >= area->x && x < area->x2 &&
-            y >= area->y && y < area->y2);
-}
+// Page layout (in page pixels).
+#define EDGE        16
+#define TITLE_Y     24
+#define LIST_Y      58
+#define ROW_H       17
+#define LIST_ROWS   14
+#define RULE_Y      300
+#define ABOUT_Y     308
+#define BUTTON_Y    342
+#define FOOT_Y      370
+#define HIT_ROW     100
+
+static const char* buttonLabels[6] = {
+    "Play", "Docs", "Map", "Settings", "Quit", "Cancel"
+};
 
 void GameBrowser::renderBrowser(ScreenState* ss, void* data)
 {
     GameBrowser* gb = (GameBrowser*) data;
-    WorkBuffer* work = gb->work;
-
-    if (gb->tipTimer) {
-        if (--gb->tipTimer == 0)
-            gb->updateWidgetTip(ss);
-    }
-    if (work->dirty)
-        gpu_updateWorkBuffer(xu4.gpu, GPU_DLIST_GUI, work);
-
-    gpu_enableGui(xu4.gpu, gb->buttonDown, gb->buttonMode);
-    gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_PANEL);
-
-    if (gb->modFormat.used) {
-        const GuiArea* area = gb->gbox + WI_LIST;
-        int box[4];
-
-        gb->animateScroll();
-
-        // Draw list items.
-        box[0] = ss->aspectX + area->x;
-        box[1] = ss->aspectY + area->y;
-        box[2] = area->x2 - area->x;
-        box[3] = area->y2 - area->y;
-
-        gpu_setScissor(box);
-        gpu_guiSetOrigin(xu4.gpu, area->x, area->y2 + gb->listScroll);
-        gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_LIST);
-        gpu_guiSetOrigin(xu4.gpu, 0.0f, 0.0f);
-        gpu_setScissor(NULL);
-    }
-
-    if (gb->tipId >= 0)
-        gpu_drawTrisRegion(xu4.gpu, GPU_DLIST_GUI, work->region + REGION_POPUP);
+    gb->page.upload();
+    gb->page.draw(ss);
 }
 
 GameBrowser::GameBrowser()
 {
-    int rsize[3];
-
     sel = selGame = selMusic = 0;
-    buttonMode = 0;
-    buttonDown = WID_NONE;
-    tipId      = WID_NONE;
-    tipTimer   = 0;
-    tipX = tipY = 0;
-    listScroll = listScrollTarget = 0.0f;
-    dragScroll = 0.0f;
-    dragY = 0;
+    listTop = 0;
+    pressed = -1;
     openSettings = false;
-    dragged = false;
-    psizeList = 20.0f;
-    atree = NULL;
     reader = NULL;
-
-    rsize[REGION_PANEL] = ATTR_COUNT * 6 * 100;
-    rsize[REGION_POPUP] = ATTR_COUNT * 6 * 300;
-    rsize[REGION_LIST]  = ATTR_COUNT * 6 * 400;
-    work = gpu_allocWorkBuffer(rsize, 3);
 }
 
 GameBrowser::~GameBrowser()
 {
     delete reader;
-    gpu_freeWorkBuffer(work);
 }
 
-void GameBrowser::animateScroll()
+/*
+ * Scroll the list so that the cursor row is in view.
+ */
+void GameBrowser::keepVisible()
 {
-    if (listScrollTarget != listScroll) {
-        listScroll += (listScrollTarget - listScroll) * 0.2f;
-        if (fabs(listScrollTarget - listScroll) < 0.5f)
-            listScroll = listScrollTarget;
-    }
-}
-
-float GameBrowser::calcScrollTarget()
-{
-    const GuiArea* area = gbox + WI_LIST;
-    float areaH = area->y2 - area->y;
-    float targ = (itemHeightP * sel) - (areaH * 0.5f);
-    if (targ < 0.0f) {
-        targ = 0.0f;
-    } else {
-        float endY = (itemHeightP * modFormat.used) - descenderList;
-        if (endY < areaH) {
-            targ = 0.0f;    // All items fit in view; don't scroll.
-        } else {
-            endY -= areaH;
-            if (targ > endY)
-                targ = endY;
-        }
-    }
-    return listScrollTarget = targ;
-}
-
-void GameBrowser::updateWidgetTip(const ScreenState* ss)
-{
-    // Similar to screenMousePos().
-    int x = tipX - ss->aspectX;
-    int y = (ss->displayH - tipY) - ss->aspectY;
-
-    tipId = WID_NONE;
-    const GuiArea* area = gbox + WI_LIST;
-    if (insideArea(area, x, y)) {
-        int n = listRowAt(area, y);
-        if (n >= 0 && n < (int) modFormat.used) {
-            int len;
-            const char* about = sst_stringL(&infoList[n].modi, MI_ABOUT, &len);
-            //printf("about: %s\n", about);
-            if (len > 290)
-                len = 290;
-            if (len && about[len-1] == '\n')
-                --len;
-
-            n = ss->displayW / 3;
-            if (x > n)
-                x = n;
-
-            {
-            float rect[4];
-            TxfDrawState ds;
-            ds.fontTable = ss->fontTable;
-            float ox = float(x);
-            float oy = float(y) - (itemHeightP * 1.3f);
-            txf_begin(&ds, 0, psizeList * 0.66f, ox, oy);
-            ds.colorIndex = COL_WHITE;
-
-            float pad = psizeList * 0.3f;
-            float* attr = gpu_beginRegion(work, REGION_POPUP);
-            float* astart = attr;
-            attr += 6 * ATTR_COUNT;
-            attr = gui_emitText(&ds, attr, about, len);
-            rect[0] = ox - pad;
-            rect[1] = ds.y - pad;
-            rect[2] = (ds.xMax - ox) + pad + pad;
-            rect[3] = (oy + ds.lineSpacing - ds.y) + pad;
-            gui_emitQuadCi(astart, rect, COL_SD_BROWN);
-            gpu_endRegion(work, REGION_POPUP, attr);
-            }
-
-            tipId = WI_LIST;
-        }
-    }
+    int count = infoList.size();
+    if (sel < listTop)
+        listTop = sel;
+    else if (sel >= listTop + LIST_ROWS)
+        listTop = sel - LIST_ROWS + 1;
+    if (listTop > count - LIST_ROWS)
+        listTop = count - LIST_ROWS;
+    if (listTop < 0)
+        listTop = 0;
 }
 
 #define NO_PARENT   255
@@ -551,122 +454,150 @@ static void readModuleList(StringTable* modFiles, StringTable* modFormat,
     }
 }
 
-void GameBrowser::layout()
+void GameBrowser::addHit(int x, int y, int w, int h, int id)
 {
-    static uint8_t browserGui[] = {
-        LAYOUT_V, BG_COLOR_CI, COL_BLACK + 128,
-        MARGIN_V_PER, 10, MARGIN_H_PER, 5, SPACING_PER, 6,
-        BG_COLOR_CI, COL_BROWN,
-        ARRAY_DT_AREA, WI_LIST,
-        MARGIN_V_PER, 6,
-            LAYOUT_H,
-                FONT_COLOR, COL_BEIGE,
-                FONT_VSIZE, 38, LABEL_DT_S,
-                FONT_N, 1,      LABEL_DT_S,
-            LAYOUT_END,
-            FONT_N, 0, FONT_VSIZE, 20, LIST_DIM, 32, 9, STORE_AREA,
-            FROM_BOTTOM,
-            FONT_N, 1, FONT_VSIZE, 22,
-            LAYOUT_H, SPACING_PER, 3, FIX_WIDTH_EM, 42,
-                BUTTON_DT_S, STORE_AREA,
-                BUTTON_DT_S, STORE_AREA,
-                BUTTON_DT_S, STORE_AREA,
-                BUTTON_DT_S, STORE_AREA,
-                BUTTON_DT_S, STORE_AREA,
-                BUTTON_DT_S, STORE_AREA,
-            LAYOUT_END,
-        LAYOUT_END
-    };
-    const void* guiData[9];
-    const void** data = guiData;
-    const ScreenState* ss = screenState();
+    HitArea a;
+    a.x = x;
+    a.y = y;
+    a.x2 = x + w;
+    a.y2 = y + h;
+    a.id = id;
+    hits.push_back(a);
+}
 
-    // Set psizeList to match list FONT_VSIZE.
-    psizeList = 20.0f * ss->aspectH / 480.0f;
-    descenderList = ss->fontTable[0]->descender * psizeList;
-    itemHeightP = lineHeight * psizeList;
-
-    *data++ = gbox;
-    *data++ = "xu4 | ";
-    *data++ = "Game Modules";
-    *data++ = "Play";
-    *data++ = "Docs";
-    *data++ = "Map";
-    *data++ = "Settings";
-    *data++ = "Quit";
-    *data   = "Cancel";
-
-    TxfDrawState ds;
-    ds.fontTable = ss->fontTable;
-    float* attr = gpu_beginRegion(work, REGION_PANEL);
-    attr = gui_layout(attr, NULL, &ds, browserGui, guiData);
-    gpu_endRegion(work, REGION_PANEL, attr);
-
-    free(atree);
-    atree = gui_areaTree(gbox, WI_COUNT);
-
-    generateListItems();
+int GameBrowser::hitAt(int x, int y) const
+{
+    for (const HitArea& a : hits) {
+        if (x >= a.x && x < a.x2 && y >= a.y && y < a.y2)
+            return a.id;
+    }
+    return -1;
 }
 
 /*
- * Generate primitives for items in the module list.
- * The top of the list is at 0,0 to be placed with gpu_guiSetOrigin().
+ * Draw the module list like the title menus: the cursor beside the current
+ * row, a green mark on the graphics & music being used.
  */
-void GameBrowser::generateListItems()
+void GameBrowser::redraw()
 {
-    ListDrawState ds;
-    const GuiArea* area = gbox + WI_LIST;
-    float* attr;
-    float rect[4];
+    int W = page.width();
+    int cw = page.cellWidth();
+    int big = cw * 2;
+    char mark;
+    int i;
 
-    ds.fontTable = screenState()->fontTable;
-    txf_begin(&ds, 0, psizeList, 0.0f, 0.0f);
+    hits.clear();
+    page.clear();
+    page.frame(0, 0, W, page.height(), 14);
+    page.centered(TITLE_Y, "Graphics & Music", TextPage::WHITE, 2);
+    page.fill(EDGE + 4, LIST_Y - 10, W - 2 * EDGE - 8, 2, TextPage::BLUE);
 
-    // Highlight for selected item background.
-    rect[0] = 0.0f;
-    rect[1] = ds.lineSpacing * -(sel + 1) + descenderList;
-    rect[2] = area->x2 - area->x;
-    rect[3] = ds.lineSpacing;
+    int count = infoList.size();
+    for (int r = 0; r < LIST_ROWS; ++r) {
+        int n = listTop + r;
+        if (n >= count)
+            break;
+        const ModuleInfo& mi = infoList[n];
+        int y = LIST_Y + r * ROW_H;
+        int x = EDGE + 8;
 
-    ListCellStyle* cell = ds.cell;
-    cell->tabStop   = 0.0f;
-    cell->fontScale = 1.0f;
-    cell->color     = COL_WHITE;
-    cell->selColor  = COL_TX_BLACK;
-    ++cell;
-    cell->tabStop   = rect[2] - (psizeList * 2.0f);
-    cell->fontScale = 0.66f;
-    cell->color     = COL_LT_GRAY;
-    cell->selColor  = COL_TX_BLACK;
+        if (n == sel) {
+            mark = CHARSET_PROMPT;
+            page.text(x, y, &mark, 1, TextPage::BLUE, 2);
+        }
+        addHit(EDGE, y - 1, W - 2 * EDGE, ROW_H, HIT_ROW + n);
 
-    ds.psizeList = psizeList;
+        if (mi.modFileI == NO_PARENT && mi.resPathI != ROW_GAME_MUSIC) {
+            const char* label = (mi.resPathI == ROW_MUSIC) ? "Music"
+                                                           : "Graphics";
+            page.text(x + 2 * big, y, label, TextPage::WHITE, 2);
+            continue;
+        }
 
-    attr = gpu_beginRegion(work, REGION_LIST);
-    attr = gui_emitQuadCi(attr, rect, COL_LT_BLUE);
-    attr = gui_emitListItems(attr, &ds, &modFormat, sel);
+        string name;
+        if (mi.modFileI == NO_PARENT) {
+            name = "Game music";
+        } else {
+            int len;
+            const char* file = sst_stringL(&modFiles, mi.modFileI, &len);
+            name.assign(file, len - 4);     // Without .mod
+        }
+        int nx = x + 4 * big;
+        if (mi.category == MOD_EXTENSION)
+            nx += 2 * big;
 
-    // Draw checkmarks on the chosen graphics & music.
-    float rowH = ds.lineSpacing;
-    ds.tf = ds.fontTable[2];
-    txf_setFontSize(&ds, psizeList);
-    if (selGame) {
-        ds.x = 0.0f;
-        ds.y = rowH * -(selGame + 1.0f);
-        ds.colorIndex = (sel == selGame) ? COL_TX_BLACK : COL_WHITE;
-        attr = gui_emitText(&ds, attr, "c", 1);
+        bool chosen = (n == selGame || n == selMusic);
+        mark = chosen ? CHARSET_ORB : CHARSET_BULLET;
+        page.text(nx - 2 * big, y, &mark, 1,
+                  chosen ? TextPage::GREEN : TextPage::GREY, 2);
+        page.text(nx, y, name.c_str(), name.size(),
+                  (n == sel) ? TextPage::WHITE : TextPage::TEXT, 2);
+
+        if (mi.modFileI != NO_PARENT) {
+            int vlen;
+            const char* version = sst_stringL(&mi.modi, MI_VERSION, &vlen);
+            string v = "v" + string(version, vlen);
+            page.text(W - EDGE - 12 - page.textWidth(v.size()), y + 6,
+                      v.c_str(), v.size(), TextPage::GREY);
+        }
     }
-    if (selMusic) {
-        ds.x = 0.0f;
-        ds.y = rowH * -(selMusic + 1.0f);
-        ds.colorIndex = COL_LT_GREEN;
-        attr = gui_emitText(&ds, attr, "c", 1);
+
+    // Scroll marks.
+    if (listTop > 0)
+        page.text(W - EDGE - 20, LIST_Y - 2, "^", TextPage::BLUE);
+    if (listTop + LIST_ROWS < count)
+        page.text(W - EDGE - 20, LIST_Y + LIST_ROWS * ROW_H - 10, "v",
+                  TextPage::BLUE);
+
+    page.fill(EDGE + 4, RULE_Y, W - 2 * EDGE - 8, 2, TextPage::BLUE);
+
+    // About the module under the cursor, in up to three lines.
+    if (sel < infoList.size()) {
+        int len;
+        const char* about = sst_stringL(&infoList[sel].modi, MI_ABOUT, &len);
+        string text(about, len);
+        for (char& ch : text)
+            if (ch == '\n' || ch == '\t')
+                ch = ' ';
+        size_t cols = (W - 2 * (EDGE + 8)) / cw;
+        size_t pos = 0;
+        for (int line = 0; line < 3 && pos < text.size(); ++line) {
+            while (pos < text.size() && text[pos] == ' ')
+                ++pos;
+            size_t end = pos + cols;
+            if (end < text.size()) {
+                size_t sp = text.rfind(' ', end);
+                if (sp != string::npos && sp > pos)
+                    end = sp;
+            } else
+                end = text.size();
+            page.text(EDGE + 8, ABOUT_Y + line * 10, text.c_str() + pos,
+                      end - pos, TextPage::TEXT);
+            pos = end;
+        }
     }
-    gpu_endRegion(work, REGION_LIST, attr);
+
+    // Buttons.
+    int total = 0;
+    for (i = 0; i < 6; ++i)
+        total += strlen(buttonLabels[i]) + 4;
+    int x = (W - (total - 2) * cw) / 2;
+    for (i = 0; i < 6; ++i) {
+        int w = (strlen(buttonLabels[i]) + 2) * cw;
+        page.fill(x, BUTTON_Y - 3, w, 14, TextPage::DK_BLUE);
+        page.text(x + cw, BUTTON_Y, buttonLabels[i], TextPage::WHITE);
+        addHit(x, BUTTON_Y - 4, w, 16, WI_OK + i);
+        x += w + 2 * cw;
+    }
+
+    const char* help = gamepad_inUse() ?
+        "Up/Down Choose  X Select  A Use  Y Docs  L Map  B Cancel" :
+        "Up/Down Choose  Space Select  Enter Use  Esc Cancel";
+    page.centered(FOOT_Y, help, TextPage::GREY);
 }
 
 bool GameBrowser::present()
 {
-    lineHeight = screenState()->fontTable[0]->lineHeight;
     screenSetMouseCursor(MC_DEFAULT);
     screenShowMouseCursor(true);
 
@@ -697,18 +628,19 @@ bool GameBrowser::present()
     sel = selGame;
     }
 
-    layout();
-    listScroll = calcScrollTarget();
+    if (! page.begin())
+        return false;
+    listTop = 0;
+    keepVisible();
+    redraw();
     screenSetLayer(LAYER_TOP_MENU, renderBrowser, this);
     return true;
 }
 
 void GameBrowser::conclude()
 {
-    free(atree);
-    atree = NULL;
-
     screenSetLayer(LAYER_TOP_MENU, NULL, NULL);
+    page.release();
     sst_free(&modFiles);
     sst_free(&modFormat);
 
@@ -771,7 +703,7 @@ bool GameBrowser::keyPressed(int key)
             if (pickable(sel)) {
                 pick(sel);
                 soundPlay(SOUND_UI_CLICK);
-                generateListItems();
+                redraw();
             }
             return true;
 
@@ -818,10 +750,9 @@ void GameBrowser::readDocuments()
         reader = new DocReader;
     xu4.eventHandler->runController(reader);
 
-    // The reader replaced the GUI vertex data & layer.
-    buttonDown = WID_NONE;
-    tipId = WID_NONE;
-    work->dirty = (1 << work->regionCount) - 1;
+    // The reader replaced the layer.
+    pressed = -1;
+    redraw();
     screenSetLayer(LAYER_TOP_MENU, renderBrowser, this);
 }
 
@@ -832,39 +763,19 @@ void GameBrowser::showWorldMap()
 {
     worldMapShow();
 
-    // The map replaced the GUI vertex data & layer.
-    buttonDown = WID_NONE;
-    tipId = WID_NONE;
-    work->dirty = (1 << work->regionCount) - 1;
+    // The map replaced the layer.
+    pressed = -1;
+    redraw();
     screenSetLayer(LAYER_TOP_MENU, renderBrowser, this);
 }
 
-int GameBrowser::listRowAt(const GuiArea* area, int screenY)
+void GameBrowser::selectRow(int n)
 {
-    float y = screenY - listScroll - descenderList;
-    float row = (float) (area->y2 - y) / itemHeightP;
-    return (int) row;
-}
-
-/*
- * Return the largest listScroll value (the end of the list in view).
- */
-float GameBrowser::maxScroll() const
-{
-    const GuiArea* area = gbox + WI_LIST;
-    float areaH = area->y2 - area->y;
-    float endY = (itemHeightP * modFormat.used) - descenderList - areaH;
-    return (endY > 0.0f) ? endY : 0.0f;
-}
-
-void GameBrowser::selectModule(const GuiArea* area, int screenY)
-{
-    int n = listRowAt(area, screenY);
-    if (n >= 0 && n < (int) modFormat.used && pickable(n)) {
+    if (n >= 0 && n < (int) infoList.size() && pickable(n)) {
         sel = n;
         pick(n);
         soundPlay(SOUND_UI_CLICK);
-        generateListItems();
+        redraw();
     }
 }
 
@@ -898,119 +809,67 @@ void GameBrowser::moveCursor(int dir)
     if (n >= 0 && n < (int) modFormat.used) {
         sel = n;
         soundPlay(SOUND_UI_TICK);
-        calcScrollTarget();
-        generateListItems();
+        keepVisible();
+        redraw();
     }
-}
-
-// Translate event mouse position to used area of screen.
-static void screenMousePos(const InputEvent* ev, int& x, int& y)
-{
-    const ScreenState* ss = screenState();
-    x = ev->x - ss->aspectX;
-    y = (ss->displayH - ev->y) - ss->aspectY;
 }
 
 bool GameBrowser::inputEvent(const InputEvent* ev)
 {
+    const ScreenState* ss = screenState();
     int x, y;
+    page.pagePos(ss, ev->x - ss->aspectX, (ss->displayH - ev->y) - ss->aspectY,
+                 &x, &y);
 
     switch (ev->type) {
         case IE_MOUSE_PRESS:
-        case IE_MOUSE_RELEASE:
-            if (ev->n == CMOUSE_LEFT) {
-                screenMousePos(ev, x, y);
-                const GuiArea* hit = gui_pick(atree, gbox, x, y);
-                if (hit) {
-                    if (ev->type == IE_MOUSE_PRESS) {
-                        buttonDown = hit->wid;
-                        buttonMode = 1;
-
-                        // The list is picked from on release so that
-                        // it can be dragged to scroll it.
-                        if (hit->wid == WI_LIST) {
-                            dragY = y;
-                            dragScroll = listScrollTarget;
-                            dragged = false;
-                        }
-                    } else {
-                        if (buttonDown == hit->wid) {
-                            // NOTE: Sound is only played on Cancel to avoid
-                            //       abrupt cutoff during reset/quit.
-                            switch (hit->wid) {
-                            case WI_LIST:
-                                if (! dragged)
-                                    selectModule((const GuiArea*) hit, y);
-                                break;
-                            case WI_OK:
-                                keyPressed(U4_ENTER);
-                                break;
-                            case WI_DOCS:
-                                keyPressed('d');
-                                break;
-                            case WI_MAP:
-                                keyPressed('m');
-                                break;
-                            case WI_SETTINGS:
-                                keyPressed('s');
-                                break;
-                            case WI_CANCEL:
-                                soundPlay(SOUND_UI_CLICK);
-                                keyPressed(U4_ESC);
-                                break;
-                            case WI_QUIT:
-                                xu4.eventHandler->quitGame();
-                                break;
-                            }
-                        }
-                        buttonDown = WID_NONE;
-                    }
-                } else {
-                    buttonDown = WID_NONE;
-                }
-            }
+            pressed = (ev->n == CMOUSE_LEFT) ? hitAt(x, y) : -1;
             break;
 
-        case IE_MOUSE_MOVE:
-            if (buttonDown == WI_LIST) {
-                // Drag the list (y is up in screenMousePos).
-                screenMousePos(ev, x, y);
-                int dy = y - dragY;
-                if (dragged || dy > 4 || dy < -4) {
-                    float s = dragScroll + dy;
-                    float end = maxScroll();
-                    if (s > end)
-                        s = end;
-                    if (s < 0.0f)
-                        s = 0.0f;
-                    listScroll = listScrollTarget = s;
-                    dragged = true;
+        case IE_MOUSE_RELEASE:
+            if (ev->n == CMOUSE_LEFT && pressed >= 0 &&
+                hitAt(x, y) == pressed) {
+                // NOTE: Sound is only played on Cancel to avoid
+                //       abrupt cutoff during reset/quit.
+                switch (pressed) {
+                case WI_OK:
+                    keyPressed(U4_ENTER);
+                    break;
+                case WI_DOCS:
+                    keyPressed('d');
+                    break;
+                case WI_MAP:
+                    keyPressed('m');
+                    break;
+                case WI_SETTINGS:
+                    keyPressed('s');
+                    break;
+                case WI_CANCEL:
+                    soundPlay(SOUND_UI_CLICK);
+                    keyPressed(U4_ESC);
+                    break;
+                case WI_QUIT:
+                    xu4.eventHandler->quitGame();
+                    break;
+                default:
+                    if (pressed >= HIT_ROW)
+                        selectRow(pressed - HIT_ROW);
+                    break;
                 }
-            } else if (buttonDown >= WI_OK) {
-                screenMousePos(ev, x, y);
-                if (insideArea(gbox + buttonDown, x, y))
-                    buttonMode = 1;
-                else
-                    buttonMode = 0;
-            } else {
-                tipId = WID_NONE;
-                tipTimer = 24+5;   // ~1.2 seconds
-                tipX = ev->x;
-                tipY = ev->y;
             }
+            pressed = -1;
             break;
 
         case IE_MOUSE_WHEEL:
-            if (ev->y < 0) {
-                float endY = maxScroll();
-                listScrollTarget += itemHeightP * 2.0f;     // Scroll down.
-                if (listScrollTarget > endY)
-                    listScrollTarget = endY;
-            } else if (ev->y > 0) {
-                listScrollTarget -= itemHeightP * 2.0f;     // Scroll up.
-                if (listScrollTarget < 0.0f)
-                    listScrollTarget = 0.0f;
-            }
+        {
+            int count = infoList.size();
+            listTop += (ev->y < 0) ? 2 : -2;
+            if (listTop > count - LIST_ROWS)
+                listTop = count - LIST_ROWS;
+            if (listTop < 0)
+                listTop = 0;
+            redraw();
+        }
             break;
     }
     return true;

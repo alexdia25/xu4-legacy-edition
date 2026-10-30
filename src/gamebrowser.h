@@ -1,5 +1,8 @@
+#include <vector>
+#include "stringTable.h"
 #include "controller.h"
 #include "gui.h"
+#include "textpage.h"
 
 struct ModuleInfo {
     StringTable modi;
@@ -39,49 +42,35 @@ public:
     };
 
 private:
+    struct HitArea {
+        int16_t x, y, x2, y2;
+        int16_t id;
+    };
+
+    TextPage page;
     StringTable modFiles;
     StringTable modFormat;
     std::vector<ModuleInfo> infoList;
+    std::vector<HitArea> hits;
     uint16_t sel;               // Cursor row.
     uint16_t selGame;           // Chosen graphics (game) module row.
     uint16_t selMusic;          // Chosen music row.
-    uint16_t buttonMode;
-    int16_t  buttonDown;
-    int16_t  tipId;
-    uint16_t tipTimer;
-    uint16_t tipX;
-    uint16_t tipY;
-    GuiArea gbox[ WI_COUNT ];
-    void* atree;
+    int listTop;                // First row in view.
+    int pressed;                // HitArea id pressed by the pointer.
     DocReader* reader;
-    WorkBuffer* work;
-    float listScroll;
-    float listScrollTarget;
-    float dragScroll;           // listScrollTarget when the list was pressed.
-    int   dragY;                // Where the list was pressed.
-    bool  dragged;              // The list was dragged since it was pressed.
 public:
     bool  openSettings;         // Settings was picked.
 private:
-    float lineHeight;
-    float psizeList;            // List font point size.
-    float descenderList;        // List font descender * point size.
-    float itemHeightP;
-
     bool pickable(int row) const;
     void pick(int row);
     void moveCursor(int dir);
     void readDocuments();
     void showWorldMap();
-    void selectModule(const GuiArea* area, int y);
-    float maxScroll() const;
-    void layout();
-    void generateListItems();
-    void animateScroll();
-    float calcScrollTarget();
-    void updateWidgetTip(const ScreenState*);
-    int listRowAt(const GuiArea*, int screenY);
+    void selectRow(int n);
+    void keepVisible();
+    void redraw();
+    void addHit(int x, int y, int w, int h, int id);
+    int  hitAt(int x, int y) const;
 
     static void renderBrowser(ScreenState* ss, void* data);
-    static void displayReset(int, void*, void*);
 };

@@ -8,6 +8,7 @@
 #include <list>
 
 #include "event.h"
+#include "intro.h"
 #include "worldmap.h"
 
 #include "config.h"
@@ -1505,6 +1506,9 @@ bool EventHandler::globalKeyHandler(int key) {
     case U4_PAD_SELECT:
         // Same menu as Escape on the keyboard.  Pressed again it closes
         // the menu (or the document reader opened from it).
+        if (xu4.intro && xu4.intro->gameMenuOpen() &&
+            ! screenLayerUsed(LAYER_TOP_MENU))
+            return false;   // The game menu closes itself.
         if (screenLayerUsed(LAYER_TOP_MENU))
             xu4.eventHandler->setControllerDone(true);
         else

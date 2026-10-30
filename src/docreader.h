@@ -10,16 +10,25 @@
 #include <vector>
 #include "controller.h"
 #include "docs.h"
-#include "gui.h"
+#include "textpage.h"
 
 struct ScreenState;
 struct WorkBuffer;
 
 /*
- * Scrolling viewer for the printed game documents.
+ * Viewer for the printed game documents, the rune table, the How to Play
+ * guide & the quest journal.  Each is split into chapters which are read
+ * one at a time.
  */
 class DocReader : public Controller {
 public:
+    enum Book {
+        BOOK_RUNES = DOC_COUNT,
+        BOOK_HELP,
+        BOOK_JOURNAL,
+        BOOK_COUNT
+    };
+
     DocReader();
     ~DocReader();
 
@@ -29,38 +38,50 @@ public:
     virtual bool keyPressed(int key);
     virtual bool inputEvent(const InputEvent*);
 
-    void showJournal();
-
-    enum Widgets {
-        WI_TEXT,
-        WI_TAB,
-        WI_BACK = WI_TAB + DOC_COUNT + 2,     // Then the runes & journal.
-        WI_COUNT
-    };
+    void showJournal() { book = BOOK_JOURNAL; }
+    void showBook(int n) { book = n; }
 
 private:
-    std::vector<std::string> lines;
-    GuiArea gbox[ WI_COUNT ];
-    WorkBuffer* work;
-    int doc;
-    int firstLine;              // First line in the text region.
-    int lineCount;              // Lines in the text region.
-    int buttonDown;
-    float scroll;
-    float scrollTarget;
-    float psize;
-    float lineSpacing;
-    float descender;
-    float columnW;
-    float textPad;
+    struct Chapter {
+        std::string title;
+        int start;              // First line in lines.
+        int end;                // One past the last line.
+    };
 
-    void openDocument(int n);
-    void layout();
-    void generateText();
-    void generateScrollBar();
-    float maxScroll() const;
-    void scrollTo(float y);
-    void scrollLines(int n);
+    struct HitArea {
+        int16_t x, y, x2, y2;
+        int16_t id;
+    };
+
+    TextPage page;
+    std::vector<std::string> lines;     // The whole book.
+    std::vector<Chapter> chapters;
+    std::vector<std::string> view;      // The chapter, wrapped to the page.
+    std::vector<HitArea> hits;
+    WorkBuffer* work;
+    int book;
+    int lastBook;               // Book & chapter to return to.
+    int chapter;
+    int top;                    // First line of view on the page.
+    int listOpen;               // Chapter list showing.
+    int listSel;
+    int pressed;                // HitArea id pressed by the pointer.
+    bool hasRunes;
+
+    void openBook(int n, int chap = 0);
+    void openChapter(int n);
+    void findChapters();
+    void redraw();
+    void drawTabs();
+    void drawChapterBar();
+    void drawBody();
+    void drawFooter();
+    void drawChapterList();
+    void addHit(int x, int y, int w, int h, int id);
+    int  hitAt(int x, int y) const;
+    int  bodyRows() const;
+    void scrollTo(int line);
+    void activate(int id);
 
     static void renderReader(ScreenState* ss, void* data);
 };

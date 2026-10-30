@@ -1015,12 +1015,20 @@ static void smsQuitMenu() {
 /*
  * Show the quest journal in the document reader.
  */
-void gameShowJournal() {
+/*
+ * Show a book of the document reader, or the book last read if book is -1.
+ */
+void gameShowBook(int book) {
     static DocReader* reader = NULL;
     if (! reader)
         reader = new DocReader;
-    reader->showJournal();
+    if (book >= 0)
+        reader->showBook(book);
     xu4.eventHandler->runController(reader);
+}
+
+void gameShowJournal() {
+    gameShowBook(DocReader::BOOK_JOURNAL);
 }
 
 /*

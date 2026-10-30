@@ -97,7 +97,9 @@ public:
     void updateScreen();
     void timerFired();
     void configureInGame();
+    void gameMenuInGame();
     void openConfigure();
+    bool gameMenuOpen() const { return inGameMenu; }
 
     void updateConfMenu(MenuEvent &event);
     void updateVideoMenu(MenuEvent &event);
@@ -110,6 +112,11 @@ public:
     void updateLegacyMenu(MenuEvent &event);
     void updateRulesMenu(MenuEvent &event);
     void updateCheatsMenu(MenuEvent &event);
+    void updateGameMenu(MenuEvent &event);
+    void updateQuitMenu(MenuEvent &event);
+    void beginInGame();
+    void endInGame();
+    void settingsFromGameMenu();
 
 private:
     static void introNotice(int, void*, void*);
@@ -239,6 +246,16 @@ private:
         MI_CHEAT_VIRTUE,
         MI_CHEAT_ITEMS,
         MI_CHEAT_EQUIP,
+        MI_HUB_JOURNAL,
+        MI_HUB_HELP,
+        MI_HUB_BOOKS,
+        MI_HUB_MAP,
+        MI_HUB_SAVE,
+        MI_HUB_SETTINGS,
+        MI_HUB_MODULES,
+        MI_HUB_QUIT,
+        MI_QUIT_SAVE,
+        MI_QUIT_NOSAVE,
         USE_SETTINGS = 0xFE,
         CANCEL = 0xFF
     };
@@ -262,6 +279,8 @@ private:
     Menu legacyMenu;
     Menu rulesMenu;
     Menu cheatsMenu;
+    Menu gameMenu;
+    Menu quitMenu;
 
     // data loaded in from title.exe
     IntroBinData *binData;
@@ -342,6 +361,18 @@ private:
     bool c64Title;          // Titles use C64 colors.
     bool smsTitle;          // Titles drawn from the SMS title image.
     bool inGame;            // Configuring during play (configureInGame).
+    bool inGameMenu;        // The game menu is showing (gameMenuInGame).
+    const char* hubStatus;  // Message under the game menu.
+
+    // Game screen state put back by endInGame().
+    struct InGameState {
+        Image* saved;
+        int cursorX, cursorY;
+        uint16_t resGroup;
+        bool cursor;
+        bool cutScene;
+        bool loadBin;
+    } igs;
 };
 
 #endif

@@ -8,7 +8,12 @@
 #include "u4.h"
 
 #include "intro.h"
+#include "context.h"
+#include "location.h"
 #include "discourse.h"
+#include "docreader.h"
+#include "gamebrowser.h"
+#include "worldmap.h"
 #include "game.h"
 #include "image.h"
 
@@ -182,7 +187,9 @@ IntroController::IntroController() :
     apple2Title(false),
     c64Title(false),
     smsTitle(false),
-    inGame(false)
+    inGame(false),
+    inGameMenu(false),
+    hubStatus("")
 {
     // initialize menus
     confMenu.setTitle("XU4 Configuration:", 0, 0);
@@ -196,6 +203,7 @@ IntroController::IntroController() :
     confMenu.add(MI_CONF_LEGACY,              "\010 Legacy Edition Options",     2, 11,/*'l'*/  2);
     confMenu.add(CANCEL,                      "\017 Main Menu",                  2, 12,/*'m'*/  2);
     confMenu.addShortcutKey(CANCEL, ' ');
+    confMenu.addShortcutKey(CANCEL, U4_ESC);
     confMenu.setClosesMenu(CANCEL);
 
     /* set the default visibility of the two enhancement menus */
@@ -211,6 +219,7 @@ IntroController::IntroController() :
     videoMenu.add(USE_SETTINGS,                   "\010 Use These Settings",  2, 11,/*'u'*/  2);
     videoMenu.add(CANCEL,                         "\010 Cancel",              2, 12,/*'c'*/  2);
     videoMenu.addShortcutKey(CANCEL, ' ');
+    videoMenu.addShortcutKey(CANCEL, U4_ESC);
     videoMenu.setClosesMenu(USE_SETTINGS);
     videoMenu.setClosesMenu(CANCEL);
 
@@ -224,6 +233,7 @@ IntroController::IntroController() :
     gfxMenu.add(MI_GFX_SCANLINES,                       new BoolMenuItem("Scanlines          %s", 2,  9,/*'c'*/ 1, &settingsChanged.legacy.scanlines));
     gfxMenu.add(MI_GFX_BATTERY,                         new BoolMenuItem("Battery Saver      %s", 2, 10,/*'b'*/ 0, &settingsChanged.legacy.batterySaver));
     gfxMenu.add(MI_GFX_RETURN,               "\010 Return to Video Options",              2,  12,/*'r'*/  2);
+    gfxMenu.addShortcutKey(MI_GFX_RETURN, U4_ESC);
     gfxMenu.setClosesMenu(MI_GFX_RETURN);
 
 
@@ -234,6 +244,7 @@ IntroController::IntroController() :
     soundMenu.add(USE_SETTINGS,                 "\010 Use These Settings", 2, 11,/*'u'*/  2);
     soundMenu.add(CANCEL,                       "\010 Cancel",             2, 12,/*'c'*/  2);
     soundMenu.addShortcutKey(CANCEL, ' ');
+    soundMenu.addShortcutKey(CANCEL, U4_ESC);
     soundMenu.setClosesMenu(USE_SETTINGS);
     soundMenu.setClosesMenu(CANCEL);
 
@@ -245,6 +256,7 @@ IntroController::IntroController() :
     inputMenu.add(USE_SETTINGS,                 "\010 Use These Settings",      2, 11,/*'u'*/  2);
     inputMenu.add(CANCEL,                       "\010 Cancel",                  2, 12,/*'c'*/  2);
     inputMenu.addShortcutKey(CANCEL, ' ');
+    inputMenu.addShortcutKey(CANCEL, U4_ESC);
     inputMenu.setClosesMenu(USE_SETTINGS);
     inputMenu.setClosesMenu(CANCEL);
 
@@ -259,6 +271,7 @@ IntroController::IntroController() :
     speedMenu.add(USE_SETTINGS,                "\010 Use These Settings",            2, 11,/*'u'*/  2);
     speedMenu.add(CANCEL,                      "\010 Cancel",                        2, 12,/*'c'*/  2);
     speedMenu.addShortcutKey(CANCEL, ' ');
+    speedMenu.addShortcutKey(CANCEL, U4_ESC);
     speedMenu.setClosesMenu(USE_SETTINGS);
     speedMenu.setClosesMenu(CANCEL);
 
@@ -273,6 +286,7 @@ IntroController::IntroController() :
     gameplayMenu.add(USE_SETTINGS,                      "\010 Use These Settings",       2, 11,/*'u'*/  2);
     gameplayMenu.add(CANCEL,                            "\010 Cancel",                   2, 12,/*'c'*/  2);
     gameplayMenu.addShortcutKey(CANCEL, ' ');
+    gameplayMenu.addShortcutKey(CANCEL, U4_ESC);
     gameplayMenu.setClosesMenu(USE_SETTINGS);
     gameplayMenu.setClosesMenu(CANCEL);
 
@@ -288,6 +302,7 @@ IntroController::IntroController() :
     interfaceMenu.add(USE_SETTINGS,                     "\010 Use These Settings",       2, 11,/*'u'*/  2);
     interfaceMenu.add(CANCEL,                           "\010 Cancel",                   2, 12,/*'c'*/  2);
     interfaceMenu.addShortcutKey(CANCEL, ' ');
+    interfaceMenu.addShortcutKey(CANCEL, U4_ESC);
 
     LegacyOptions& lo = settingsChanged.legacy;
     legacyMenu.setTitle("Legacy Edition Options:", 0, 0);
@@ -304,6 +319,7 @@ IntroController::IntroController() :
     legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     legacyMenu.addShortcutKey(CANCEL, ' ');
+    legacyMenu.addShortcutKey(CANCEL, U4_ESC);
     legacyMenu.setClosesMenu(USE_SETTINGS);
     legacyMenu.setClosesMenu(CANCEL);
 
@@ -321,9 +337,36 @@ IntroController::IntroController() :
     rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu.addShortcutKey(CANCEL, ' ');
+    rulesMenu.addShortcutKey(CANCEL, U4_ESC);
     rulesMenu.setClosesMenu(USE_SETTINGS);
     rulesMenu.setClosesMenu(CANCEL);
     ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
+
+    gameMenu.setTitle("Game Menu:", 0, 0);
+    gameMenu.add(CANCEL,          "\017 Return to Game",       2,  2,/*'r'*/  2);
+    gameMenu.add(MI_HUB_JOURNAL,  "\010 Journal",              2,  3,/*'j'*/  2);
+    gameMenu.add(MI_HUB_HELP,     "\010 How to Play",          2,  4,/*'h'*/  2);
+    gameMenu.add(MI_HUB_BOOKS,    "\010 Books of Britannia",   2,  5,/*'b'*/  2);
+    gameMenu.add(MI_HUB_MAP,      "\010 World Map",            2,  6,/*'w'*/  2);
+    gameMenu.add(MI_HUB_SAVE,     "\010 Save Game",            2,  7,/*'s'*/  2);
+    gameMenu.add(MI_HUB_SETTINGS, "\010 Settings",             2,  8,/*'e'*/  3);
+    gameMenu.add(MI_HUB_MODULES,  "\010 Graphics & Music",     2,  9,/*'g'*/  2);
+    gameMenu.add(MI_HUB_QUIT,     "\010 Quit Game",            2, 10,/*'q'*/  2);
+    gameMenu.addShortcutKey(MI_HUB_MAP, 'm');
+    gameMenu.addShortcutKey(MI_HUB_BOOKS, 'd');
+    gameMenu.addShortcutKey(CANCEL, U4_ESC);
+    gameMenu.addShortcutKey(CANCEL, U4_PAD_SELECT);
+    gameMenu.setClosesMenu(CANCEL);
+
+    quitMenu.setTitle("Quit Game:", 0, 0);
+    quitMenu.add(MI_QUIT_SAVE,    "\010 Save and Quit",        2,  2,/*'s'*/  2);
+    quitMenu.add(MI_QUIT_NOSAVE,  "\010 Quit Without Saving",  2,  3,/*'q'*/  2);
+    quitMenu.add(CANCEL,          "\017 Cancel",               2,  5,/*'c'*/  2);
+    quitMenu.addShortcutKey(CANCEL, U4_ESC);
+    quitMenu.addShortcutKey(CANCEL, ' ');
+    quitMenu.setClosesMenu(MI_QUIT_SAVE);
+    quitMenu.setClosesMenu(MI_QUIT_NOSAVE);
+    quitMenu.setClosesMenu(CANCEL);
 
     cheatsMenu.setTitle("Cheats:", 0, 0);
     cheatsMenu.add(MI_CHEAT_HEAL,     "Heal & Cure The Party",     2,  1,/*'h'*/  0);
@@ -337,6 +380,7 @@ IntroController::IntroController() :
     cheatsMenu.add(MI_CHEAT_EQUIP,    "Best Arms & Armour",        2,  9,/*'b'*/  0);
     cheatsMenu.add(CANCEL,            "\010 Done",                 2, 12,/*'d'*/  2);
     cheatsMenu.addShortcutKey(CANCEL, ' ');
+    cheatsMenu.addShortcutKey(CANCEL, U4_ESC);
     cheatsMenu.setClosesMenu(CANCEL);
     interfaceMenu.setClosesMenu(USE_SETTINGS);
     interfaceMenu.setClosesMenu(CANCEL);
@@ -1518,14 +1562,19 @@ void IntroController::openConfigure() {
  * put back afterwards.  This is how the settings are reached from the xu4
  * menu without going back to the title screen.
  */
-void IntroController::configureInGame() {
+/*
+ * Take over the game screen for the title menus: the game stops drawing the
+ * map & stats, and the screen is put back by endInGame().
+ */
+void IntroController::beginInGame() {
     GameController* game = xu4.game;
-    bool wasCutScene = game->cutScene;
     const ScreenState* ss = screenState();
-    bool cursor = ss->cursorVisible;
-    int cursorX = ss->cursorX;
-    int cursorY = ss->cursorY;
-    Image* saved = Image::duplicate(xu4.screenImage);
+
+    igs.cutScene = game->cutScene;
+    igs.cursor   = ss->cursorVisible;
+    igs.cursorX  = ss->cursorX;
+    igs.cursorY  = ss->cursorY;
+    igs.saved    = Image::duplicate(xu4.screenImage);
 
     // Stop the game from drawing the map & stats over the menus.
     game->cutScene = true;
@@ -1537,9 +1586,9 @@ void IntroController::configureInGame() {
     screenSetLayer(LAYER_HUD, NULL, NULL);
 
     // The option backgrounds are fixed up with data from title.exe.
-    uint16_t saveGroup = xu4_setResourceGroup(StageIntro);
-    bool loadBin = (binData == NULL);
-    if (loadBin) {
+    igs.resGroup = xu4_setResourceGroup(StageIntro);
+    igs.loadBin = (binData == NULL);
+    if (igs.loadBin) {
         binData = new IntroBinData();
         binData->load();
     }
@@ -1547,12 +1596,42 @@ void IntroController::configureInGame() {
     settingsChanged = *xu4.settings;
     listenerId = gs_listen(1<<SENDER_MENU, introNotice, this);
 
-    // The video settings need the graphics to be reloaded, which can only
-    // be done from the title screen.
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+}
+
+void IntroController::endInGame() {
+    GameController* game = xu4.game;
+
+    gs_unplug(listenerId);
+    inGame = false;
+    if (igs.loadBin) {
+        delete binData;
+        binData = NULL;
+    }
+    xu4_freeResourceGroup(StageIntro);
+    xu4_setResourceGroup(igs.resGroup);
+
+    igs.saved->draw(0, 0);
+    delete igs.saved;
+    igs.saved = NULL;
+    game->cutScene = igs.cutScene;
+    xu4.eventHandler->setScreenUpdate(&gameUpdateScreen);
+    game->redrawScreen();
+    screenSetCursorPixel(igs.cursorX, igs.cursorY);
+    screenShowCursor(igs.cursor);
+}
+
+/*
+ * Run the configuration menus.  The video settings need the graphics to be
+ * reloaded, which can only be done from the title screen.
+ */
+void IntroController::settingsFromGameMenu() {
     MenuItem* videoItem = confMenu.getItemById(MI_CONF_VIDEO);
     MenuItem* backItem  = confMenu.getItemById(CANCEL);
     videoItem->setVisible(false);
-    backItem->setText("\017 Return to Game");
+    backItem->setText(inGameMenu ? "\017 Return to Menu"
+                                 : "\017 Return to Game");
 
     backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
@@ -1560,22 +1639,31 @@ void IntroController::configureInGame() {
 
     videoItem->setVisible(true);
     backItem->setText("\017 Main Menu");
-    gs_unplug(listenerId);
-    inGame = false;
-    if (loadBin) {
-        delete binData;
-        binData = NULL;
-    }
-    xu4_freeResourceGroup(StageIntro);
-    xu4_setResourceGroup(saveGroup);
+}
 
-    saved->draw(0, 0);
-    delete saved;
-    game->cutScene = wasCutScene;
-    xu4.eventHandler->setScreenUpdate(&gameUpdateScreen);
-    game->redrawScreen();
-    screenSetCursorPixel(cursorX, cursorY);
-    screenShowCursor(cursor);
+/*
+ * Run the configuration menus during play, over the game screen, which is
+ * put back afterwards.
+ */
+void IntroController::configureInGame() {
+    beginInGame();
+    settingsFromGameMenu();
+    endInGame();
+}
+
+/*
+ * The game menu (Escape during play): the journal, books, map, saving,
+ * settings & quitting, drawn like the title menus.
+ */
+void IntroController::gameMenuInGame() {
+    if (inGameMenu)
+        return;
+    beginInGame();
+    inGameMenu = true;
+    hubStatus = "";
+    runMenu(&gameMenu, &extendedMenuArea, false);
+    inGameMenu = false;
+    endInGame();
 }
 
 /**
@@ -1643,6 +1731,10 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateRulesMenu(event);
     else if (menu == &cheatsMenu)
         updateCheatsMenu(event);
+    else if (menu == &gameMenu)
+        updateGameMenu(event);
+    else if (menu == &quitMenu)
+        updateQuitMenu(event);
 
     // beasties are always visible on the menus
     drawBeasties();
@@ -1991,6 +2083,74 @@ void IntroController::updateCheatsMenu(MenuEvent &event) {
     backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
     extendedMenuArea.textAt(2, 11, done);
+}
+
+void IntroController::updateGameMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE) {
+        hubStatus = "";
+        switch (event.item->getId()) {
+        case MI_HUB_JOURNAL:
+            gameShowBook(DocReader::BOOK_JOURNAL);
+            break;
+        case MI_HUB_HELP:
+            gameShowBook(DocReader::BOOK_HELP);
+            break;
+        case MI_HUB_BOOKS:
+            gameShowBook(-1);
+            break;
+        case MI_HUB_MAP:
+            worldMapShow();
+            break;
+        case MI_HUB_SAVE:
+            if (! (c->location->context & CTX_CAN_SAVE_GAME))
+                hubStatus = "Not here!  Save outdoors.";
+            else if (gameSave(xu4.settings->getUserPath().c_str()))
+                hubStatus = "Game saved.";
+            else
+                hubStatus = "The game could not be saved!";
+            break;
+        case MI_HUB_SETTINGS:
+            settingsFromGameMenu();
+            break;
+        case MI_HUB_MODULES:
+            if (! xu4.gameBrowser)
+                xu4.gameBrowser = new GameBrowser;
+            xu4.gameBrowser->openSettings = false;
+            xu4.eventHandler->runController(xu4.gameBrowser);
+            if (xu4.gameBrowser->openSettings) {
+                xu4.gameBrowser->openSettings = false;
+                settingsFromGameMenu();
+            }
+            break;
+        case MI_HUB_QUIT:
+            quitMenu.getItemById(MI_QUIT_SAVE)->setVisible(
+                    (c->location->context & CTX_CAN_SAVE_GAME) != 0);
+            backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+            backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+            runMenu(&quitMenu, &extendedMenuArea, false);
+            break;
+        default: break;
+        }
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    extendedMenuArea.textAt(2, 12, hubStatus);
+}
+
+void IntroController::updateQuitMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE) {
+        int id = event.item->getId();
+        if (id == MI_QUIT_SAVE || id == MI_QUIT_NOSAVE) {
+            if (id == MI_QUIT_SAVE)
+                gameSave(xu4.settings->getUserPath().c_str());
+            musicFadeOut(500);
+            gameMenu.setClosed(true);
+            xu4.eventHandler->quitGame();
+        }
+    }
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
 /**

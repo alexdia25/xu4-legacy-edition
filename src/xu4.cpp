@@ -456,6 +456,14 @@ begin_game:
 }
 
 void xu4_selectGame() {
+    // During play the game menu holds the module list & everything else.
+    if (xu4.stage == StagePlay && xu4.game) {
+        if (! xu4.intro)
+            xu4.intro = new IntroController;
+        xu4.intro->gameMenuInGame();
+        return;
+    }
+
     if (! xu4.gameBrowser)
         xu4.gameBrowser = new GameBrowser;
     xu4.gameBrowser->openSettings = false;

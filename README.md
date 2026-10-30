@@ -13,7 +13,12 @@ especially for someone who has just downloaded the free release from
 
  - **Controller support.**  A platform independent gamepad layer on
    SDL3, which is now the only platform backend.  The Select (Back, −)
-   button opens and closes the xu4 menu, and Start pauses.
+   button opens and closes the game menu, and Start pauses.
+ - **Game menu.**  Escape during play opens a menu drawn like the title
+   menus: Journal, How to Play, the Books of Britannia, the World Map,
+   Save Game, Settings, Graphics & Music (the module list) and Quit
+   Game.  The document reader, module list and world map share the look
+   of the title menus too, drawn with the game's own font.
  - **Console style menus.**  An optional interface modelled on the Sega
    Master System version: an action menu instead of one key per command,
    conversation topics that are discovered and listed rather than typed,
@@ -29,21 +34,21 @@ especially for someone who has just downloaded the free release from
    them (tap outside a list to cancel).  Direction prompts take a tap
    toward the target and the gypsy's questions a tap on a card.  No right
    button or hovering is needed.  The first tap switches the console
-   menus on.  The menu icon in the top left corner opens the xu4 menu,
-   whose module list can be dragged and whose Settings button opens the
-   configuration menus, also during play.
+   menus on.  The menu icon in the top left corner opens the game menu.
  - **Documents in the game.**  Bringing the out-of-game material (the
    History of Britannia, the Book of Mystic Wisdom, the cloth map) into
    the flow of play, so the game can be played without leaving XU4.
    The ULTIMA4.TXT file of the GOG release is split into separate
-   documents, which can be read from the Docs button of the Escape
-   menu (D key, or Y on a gamepad).  A Runes tab shows the rune for
-   each letter, and some words written in runes.  Planned: the Book of Mystic Wisdom
+   documents, which can be read from Books of Britannia in the game menu.
+   Each book is read a chapter at a time (Left/Right, or Enter for the
+   contents).  A Runes book shows the rune for each letter and some words
+   written in runes, How to Play is a short guide for new players, and
+   the Journal keeps the virtues, quest items and clues heard.  Planned: the Book of Mystic Wisdom
    opening automatically at the right page during play (spells,
    reagents, virtues), and the History of Britannia offered when the
    game prompts for it.
- - **World map.**  The Map button of the Escape menu (M key, or the left
-   shoulder button on a gamepad) shows all of Britannia drawn with the
+ - **World map.**  World Map in the game menu (or the left shoulder
+   button on a gamepad) shows all of Britannia drawn with the
    tiles of the chosen module, like the cloth map that came with the game.
    It can also be opened with View Map in the console action menu, and
    the party's position is framed in yellow.  The moongates are marked with the moon phase which opens them, and the
@@ -70,7 +75,7 @@ freeware from [GOG].  No game data is stored in this repository.
 
 ### Game Modules
 
-The Game Module Browser, opened with the Escape key, lists the modules
+The module list (Graphics & Music in the game menu) lists the modules
 in two sections: Graphics, where one game module is chosen, and Music, where
 one soundtrack module (or the game's own music) is chosen.  Space or a click
 picks a module and Enter or Play starts with the checked pair.

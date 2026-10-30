@@ -8,6 +8,7 @@
 
 #include "controller.h"
 #include "gui.h"
+#include "textpage.h"
 
 struct ScreenState;
 struct WorkBuffer;
@@ -38,6 +39,7 @@ public:
 
 private:
     GuiArea gbox[ WI_COUNT ];
+    TextPage page;
     WorkBuffer* work;
     uint32_t mapTex;            // The whole world (256 x 256 tiles).
     uint32_t partyTex;          // The party tile.
