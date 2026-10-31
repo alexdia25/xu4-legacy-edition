@@ -255,9 +255,10 @@ void TextView::setCursorPos(int x, int y) {
  */
 void TextView::mouseTextPos(int mouseX, int mouseY, int& cx, int& cy) {
     const ScreenState* ss = screenState();
-    int scale = ss->aspectH / U4_SCREEN_H;
-    cx = (((mouseX - ss->aspectX) / scale) - x) / _charW;
-    cy = (((mouseY - ss->aspectY) / scale) - y) / CHAR_HEIGHT;
+    int px = (mouseX - ss->aspectX) * U4_SCREEN_W / ss->aspectW;
+    int py = (mouseY - ss->aspectY) * U4_SCREEN_H / ss->aspectH;
+    cx = (px - x) / _charW;
+    cy = (py - y) / CHAR_HEIGHT;
 }
 
 void TextView::showCursor() {

@@ -95,6 +95,7 @@ public:
     bool inputEvent(const InputEvent*);
     uint8_t *getSigData();
     void updateScreen();
+    void reinitViews();
     void timerFired();
     void configureInGame();
     void gameMenuInGame();

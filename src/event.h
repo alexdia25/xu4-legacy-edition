@@ -49,6 +49,7 @@
 
 #define U4_ACTIONS      0x1F6   // X, Tab or a tap on the party: action menu.
 #define U4_PAD_Y        0x1F7   // Y: open the world map.
+#define U4_SMART        0x1F8   // A tap on the party (Android & web): smart Enter.
 
 // Sent by setPointerRepeat when the pointer is held down (press & hold).
 #define U4_HOLD         0x1F5

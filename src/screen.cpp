@@ -18,6 +18,7 @@
 #include "event.h"
 #include "game.h"
 #include "imagemgr.h"
+#include "intro.h"
 #include "settings.h"
 #include "stats.h"
 #include "textview.h"
@@ -307,6 +308,10 @@ void screenReInit() {
     //gs_emitMessage(SENDER_DISPLAY, &screen->state);
 }
 
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+void screenFitDisplay(ScreenState* state, const Settings* settings);
+#endif
+
 // Private to screenInit_sys().
 int screenInitState(ScreenState* state, const Settings* settings, int dw, int dh)
 {
@@ -337,9 +342,43 @@ int screenInitState(ScreenState* state, const Settings* settings, int dw, int dh
     state->aspectH = dh;
     state->aspectX = (state->displayW - dw) / 2;
     state->aspectY = (state->displayH - dh) / 2;
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    screenFitDisplay(state, settings);
+#endif
 
     return scale;
 }
+
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+/*
+ * Draw the game as large as the screen (or page) allows, keeping the shape
+ * of the picture.  The views are placed again when the size changes (the
+ * device turned or the browser window was resized).
+ */
+void screenFitDisplay(ScreenState* state, const Settings* settings)
+{
+    int baseH = (settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H;
+    int dw = state->displayW;
+    int dh = dw * baseH / U4_SCREEN_W;
+    if (dh > state->displayH) {
+        dh = state->displayH;
+        dw = dh * U4_SCREEN_W / baseH;
+    }
+    bool changed = state->aspectW && (dw != state->aspectW ||
+                                      dh != state->aspectH);
+    state->aspectW = dw;
+    state->aspectH = dh;
+    state->aspectX = (state->displayW - dw) / 2;
+    state->aspectY = (state->displayH - dh) / 2;
+
+    if (changed) {
+        if (xu4.stage == StagePlay && xu4.game)
+            xu4.game->redrawScreen();
+        else if (xu4.intro)
+            xu4.intro->reinitViews();
+    }
+}
+#endif
 
 void screenSetLayer(int layer, void (*renderFunc)(ScreenState*, void*),
                     void* data) {
@@ -1550,9 +1589,8 @@ static int pointInTriangle(int x, int y, int tx1, int ty1, int tx2, int ty2, int
  */
 void screenPointToMouseArea(int* x, int* y) {
     const Screen* sp = XU4_SCREEN;
-    unsigned int scale = sp->state.aspectH / U4_SCREEN_H;
-    *x = (*x - sp->state.aspectX) / scale;
-    *y = (*y - sp->state.aspectY) / scale;
+    *x = (*x - sp->state.aspectX) * U4_SCREEN_W / sp->state.aspectW;
+    *y = (*y - sp->state.aspectY) * U4_SCREEN_H / sp->state.aspectH;
 }
 
 /**
@@ -1605,7 +1643,7 @@ void screenEraseTextArea(int x, int y, int width, int height) {
 void screenShake(int iterations) {
     if (xu4.settings->screenShakes) {
         Screen* scr = XU4_SCREEN;
-        int shakeOffset = scr->state.aspectH / U4_SCREEN_H;
+        int shakeOffset = (scr->state.aspectH + U4_SCREEN_H - 1) / U4_SCREEN_H;
 
         for (int i = 0; i < iterations; i++) {
             // shift the screen down and make the top row black

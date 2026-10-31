@@ -16,11 +16,18 @@ View::View(int x, int y, int width, int height) :
  */
 void View::reinit() {
 #ifdef GPU_RENDER
-    int scale = screenState()->aspectH / U4_SCREEN_H;
-    screenRect[0] = x * scale;
-    screenRect[1] = (xu4.screenImage->height() - (y + height)) * scale;
-    screenRect[2] = width  * scale;
-    screenRect[3] = height * scale;
+    // The game screen can be drawn at any size (filling a phone screen),
+    // so scale each side by its own factor.
+    const ScreenState* ss = screenState();
+    float sx = ss->aspectW / float(U4_SCREEN_W);
+    float sy = ss->aspectH / float(U4_SCREEN_H);
+    int x2 = int((x + width) * sx + 0.5f);
+    int y1 = int((xu4.screenImage->height() - (y + height)) * sy + 0.5f);
+    int y2 = int((xu4.screenImage->height() - y) * sy + 0.5f);
+    screenRect[0] = int(x * sx + 0.5f);
+    screenRect[1] = y1;
+    screenRect[2] = x2 - screenRect[0];
+    screenRect[3] = y2 - y1;
 #endif
 }
 

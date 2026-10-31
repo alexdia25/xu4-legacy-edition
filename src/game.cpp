@@ -1314,7 +1314,7 @@ bool GameController::keyPressed(int key) {
             return true;
     }
     /* Translate context-sensitive action key into a useful command */
-    else if (key == U4_ENTER && smartEnter)
+    else if ((key == U4_ENTER && smartEnter) || key == U4_SMART)
         key = smartEnterKey();
 
     if ((c->location->context & CTX_DUNGEON) && strchr("abefjlotxy", key))
@@ -1870,7 +1870,8 @@ bool GameController::keyPressed(int key) {
 /*
  * Turn a tap on the map at screen pixel x,y into a key: the direction from
  * the party (or the current fighter in combat) toward the tap, or
- * U4_ACTIONS when the party itself is tapped.  In the dungeon the directions are
+ * U4_ACTIONS (U4_SMART on Android & web outside combat) when the party
+ * itself is tapped.  In the dungeon the directions are
  * forward, back and turn.  Returns 0 if x,y is not on the map or its
  * border.
  */
@@ -1902,8 +1903,15 @@ int gameTapKey(int x, int y) {
     // Tile column & row, rounding down for the border (negative x, y).
     int dx = (x + TILE_WIDTH) / TILE_WIDTH - 1 - ox;
     int dy = (y + TILE_HEIGHT) / TILE_HEIGHT - 1 - oy;
-    if (dx == 0 && dy == 0)
+    if (dx == 0 && dy == 0) {
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+        // On a touch screen the party does the obvious thing, like the
+        // smart Enter key (the message area opens the action menu).
+        if (! (loc && (loc->context & CTX_COMBAT)))
+            return U4_SMART;
+#endif
         return U4_ACTIONS;
+    }
     if (abs(dx) > abs(dy))
         return (dx < 0) ? U4_LEFT : U4_RIGHT;
     return (dy < 0) ? U4_UP : U4_DOWN;

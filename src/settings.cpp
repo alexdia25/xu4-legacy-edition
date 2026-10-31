@@ -288,6 +288,12 @@ bool Settings::read() {
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
     legacy.dungeonMap   = 1;    // Mini Map
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    // Phones, tablets & browsers are mostly played by touch: walking into
+    // someone talks, into a door opens it, and so on.
+    legacy.bumpToAct    = true;
+    shortcutCommands    = true;
+#endif
 
     /* mouse defaults to on */
     mouseOptions.enabled = 1;

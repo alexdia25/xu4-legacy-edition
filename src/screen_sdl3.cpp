@@ -314,6 +314,9 @@ static void readGamepad(SDL_Gamepad* gp)
 //----------------------------------------------------------------------------
 
 extern int screenInitState(ScreenState*, const Settings*, int dw, int dh);
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+extern void screenFitDisplay(ScreenState*, const Settings*);
+#endif
 
 void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 {
@@ -602,13 +605,12 @@ void EventHandler::handleInputEvents(Controller* waitCon,
 #if defined(ANDROID) || defined(__EMSCRIPTEN__)
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             {
-                // The screen turned or the page was resized: keep the
-                // scale and centre the game in the new size.
+                // The screen turned or the page was resized: fit the game
+                // to the new size.
                 ScreenState* st = (ScreenState*) screenState();
                 st->displayW = event.window.data1;
                 st->displayH = event.window.data2;
-                st->aspectX = (st->displayW - st->aspectW) / 2;
-                st->aspectY = (st->displayH - st->aspectH) / 2;
+                screenFitDisplay(st, xu4.settings);
                 pointerScale = SDL_GetWindowPixelDensity(ss->view);
             }
                 break;

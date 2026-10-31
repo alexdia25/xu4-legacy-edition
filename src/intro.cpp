@@ -430,6 +430,17 @@ void IntroController::enableMap() {
  * Initializes intro state and loads in introduction graphics, text
  * and map data from title.exe.
  */
+/*
+ * Place the views again after the screen size changed.
+ */
+void IntroController::reinitViews() {
+    backgroundArea.reinit();
+    menuArea.reinit();
+    extendedMenuArea.reinit();
+    questionArea.reinit();
+    mapArea.reinit();
+}
+
 bool IntroController::init() {
 
     justInitiatedNewGame = false;
@@ -524,11 +535,7 @@ bool IntroController::init() {
     questionArea.setCharWidth(cw);
     }
 
-    backgroundArea.reinit();
-    menuArea.reinit();
-    extendedMenuArea.reinit();
-    questionArea.reinit();
-    mapArea.reinit();
+    reinitViews();
 
     // only update the screen if we are returning from game mode
     if (bSkipTitles)
@@ -2881,10 +2888,10 @@ bool IntroController::updateTitle()
             if (step >= mapArea.columns)
                 mapArea.scissor = NULL;
             else {
-                int scale = screenState()->aspectH / U4_SCREEN_H;
-                mapScissor[0] = scale * (160 - step * 8);   // Left
-                mapScissor[1] = mapArea.screenRect[1];      // Bottom
-                mapScissor[2] = scale * (step * 2 * 8);     // Width
+                float scale = screenState()->aspectW / float(U4_SCREEN_W);
+                mapScissor[0] = int(scale * (160 - step * 8));  // Left
+                mapScissor[1] = mapArea.screenRect[1];          // Bottom
+                mapScissor[2] = int(scale * (step * 2 * 8));    // Width
                 mapScissor[3] = mapArea.screenRect[3];      // Height
                 mapArea.scissor = mapScissor;
 
