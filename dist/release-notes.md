@@ -7,12 +7,30 @@ makes Ultima IV easier to play on modern systems, especially with the free
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
 - **Android**: an APK for phones, tablets and handhelds (Android 7 or
-  later), played with touch or a gamepad.  See Getting started (Android).
+  later), played with touch or a gamepad.  It takes the GOG game's
+  folder (copied from a PC), its files, a zip of them or `ultima4.zip`,
+  and the Files button of Graphics & Music lists, adds and removes game
+  files.  See Getting started (Android).
 - **Web, iPhone and iPad**: the game runs in the browser at
   <https://alexdia25.github.io/xu4-legacy-edition/play/>; on iOS use
   Safari's Share > Add to Home Screen to install it.  It takes the
   files of the installed GOG game (a folder, the files or a zip of
-  them) or `ultima4.zip`, and more files can be added later.
+  them) or `ultima4.zip`.  The Files button lists the game files kept
+  in the browser, adds more (the VGA upgrade, disk images, the SMS ROM,
+  the documents; loose or zipped) and removes them, and exports the
+  saves.
+- **Android and web play fill the screen** (stretched to fit, refitted
+  when the device turns or the window is resized).  Walk Into To Act
+  is on by default there, and tapping the party does the obvious
+  action, like the smart Enter key (the message area still opens the
+  action menu).
+- With touch, Male or Female and the History's Yes or No are picked
+  from short lists, so a tap picks them.
+- The runes of the world map and Runes tab now show in the browser.
+- The books scroll by dragging the text, and Graphics & Music is also
+  in Configure; during play its first button is Apply.
+- About and Graphics & Music show the Legacy Edition version
+  (XU4LE1.2).
 - **Steam Deck**: the Flatpak can be installed with one click from the
   [Flatpak repository](https://alexdia25.github.io/xu4-legacy-edition/)
   and then updates with your other Flatpaks; the README has the steps
@@ -52,6 +70,9 @@ makes Ultima IV easier to play on modern systems, especially with the free
   U4-Upgrade font is drawn with its shading on the menu pages.
 - A fatal error (such as missing game files) is shown in a message box
   on macOS and Linux too.
+- The Book of Mystic Wisdom is split into its reagent and spell entries
+  from the separate `Wisdom.txt` of other releases too ("Garlic: ..."),
+  not only from GOG's `ULTIMA4.TXT`.
 
 ## New in 1.1.5
 
@@ -110,8 +131,13 @@ the Avatar`.  Otherwise put them (or `ultima4.zip`) next to `xu4.exe`, or in
 
 1. Download `xu4-legacy-*-android.apk` on the device and open it (Android
    asks once to allow installs from the browser or file manager).
-2. On the first run, choose `ultima4.zip` in the file picker (u4upgrad.zip,
-   disk images and the SMS ROM can be chosen at the same time).
+2. GOG's Ultima IV is a Windows installer: install it on a PC and copy
+   the folder it made (`C:\GOG Games\Ultima 4 - Quest of the Avatar`),
+   or a zip of it, to the device.
+3. On the first run, choose Choose Folder and pick that folder, or Choose
+   Files and pick the zip (or `ultima4.zip`).  u4upgrad.zip, disk images,
+   the SMS ROM and the documents can be added then or later with the
+   Files button of Graphics & Music.
 
 ## Getting started (Linux)
 
