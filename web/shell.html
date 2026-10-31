@@ -27,6 +27,12 @@
   .box h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
   .box p, .box li { margin: .5rem 0; color: var(--dim); }
   .box ul { margin: .5rem 0; padding-left: 1.2rem; }
+  #stored table { width: 100%; border-collapse: collapse; margin: .25rem 0 .5rem; }
+  #stored td { padding: .3rem 0; border-top: 1px solid #2a3570; color: var(--text); vertical-align: middle; }
+  #stored td.files { color: var(--dim); font-size: .85rem; overflow-wrap: anywhere; }
+  #stored td:last-child { text-align: right; }
+  #stored button { margin: 0; padding: .3rem .7rem; font-size: .85rem; }
+  #stored h2 { font-size: 1rem; margin: .75rem 0 0; }
   .box { max-height: calc(100% - 32px); overflow-y: auto; }
   .box code { color: var(--text); }
   button, label.button { display: inline-block; margin: .5rem .5rem 0 0; padding: .55rem 1.1rem;
@@ -64,6 +70,7 @@
   <div class="box">
     <h1 id="filesTitle">Game files</h1>
     <div id="filesText"></div>
+    <div id="stored"></div>
     <label class="button" for="fileInput">Choose Files</label>
     <label class="button" for="folderInput" id="folderButton">Choose Folder</label>
     <button id="restartButton" hidden>Restart</button>
@@ -112,8 +119,61 @@ const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
 if (IOS || !('webkitdirectory' in $('folderInput'))) $('folderButton').hidden = true;
 
 let running = false;
+// The game files saved in this browser, in groups that can be removed.
+function storedGroups() {
+  const ls = (dir) => { try { return FS.readdir(dir).filter((n) => n !== '.' && n !== '..'); }
+                        catch (e) { return []; } };
+  const groups = [
+    { label: 'Ultima IV for DOS', files: [] },
+    { label: 'Documents', files: [] },
+    { label: 'VGA upgrade', files: [] },
+    { label: 'Disk images & ROMs', files: [] },
+  ];
+  for (const n of ls(DATA + '/u4')) {
+    if (DOC_FILE.test(n)) groups[1].files.push('u4/' + n);
+    else groups[0].files.push('u4/' + n);
+  }
+  for (const n of ls(DATA + '/docs')) groups[1].files.push('docs/' + n);
+  for (const n of ls(DATA)) {
+    if (/^u4upgrad\.zip$/i.test(n)) groups[2].files.push(n);
+    else if (/\.zip$/i.test(n)) groups[0].files.push(n);   // ultima4.zip
+    else if (IMAGE_FILE.test(n)) groups[3].files.push(n);
+  }
+  return groups.filter((g) => g.files.length);
+}
+
+function showStored() {
+  const groups = storedGroups();
+  const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  let html = '<h2>In this browser</h2>';
+  if (!groups.length) html += '<p>No game files yet.</p>';
+  else {
+    html += '<table>';
+    groups.forEach((g, i) => {
+      const names = g.files.map((f) => f.replace(/^(u4|docs)\//, ''));
+      const list = names.length > 6 ? names.length + ' files' : names.join(', ');
+      html += '<tr><td>' + g.label + '</td><td class="files">' + esc(list) + '</td>' +
+              '<td><button class="quiet" data-group="' + i + '">Remove</button></td></tr>';
+    });
+    html += '</table>';
+  }
+  $('stored').innerHTML = html;
+  for (const b of $('stored').querySelectorAll('button')) {
+    b.onclick = () => {
+      const g = groups[+b.dataset.group];
+      if (!confirm('Remove ' + g.label + ' from this browser? Saved games are kept.')) return;
+      for (const f of g.files) { try { FS.unlink(DATA + '/' + f); } catch (e) {} }
+      FS.syncfs(false, () => {
+        showFiles('<p>Removed ' + g.label + '.' + (running ? ' Restart to stop using them.' : '') +
+                  '</p>' + LATER, true, running);
+      });
+    };
+  }
+}
+
 function showFiles(text, canClose, restart) {
   $('filesText').innerHTML = text;
+  if (canClose) showStored(); else $('stored').innerHTML = '';
   $('closeFiles').hidden = !canClose;
   $('exportButton').hidden = !canClose;
   $('restartButton').hidden = !restart;
@@ -124,6 +184,9 @@ function showFiles(text, canClose, restart) {
 const DOS_FILE = /^(avatar\.exe|title\.exe|.*\.(cga|com|con|dng|drv|ega|egz|map|new|old|pal|pic|tlk|ult))$/i;
 // Other platforms' data, which the modules look for in DATA.
 const IMAGE_FILE = /\.(dsk|do|d64|d81|sms)$/i;
+// The printed documents (ULTIMA4.TXT from GOG, or separate files), which go
+// with the DOS files.
+const DOC_FILE = /^(ultima4|history|wisdom|hints|keyboard)\.txt$/i;
 const baseName = (path) => path.slice(path.lastIndexOf('/') + 1);
 
 // List the entries of a zip archive.
@@ -174,7 +237,7 @@ function saveFile(path, data) { mkdirs(path); FS.writeFile(path, data); }
 // in a zip such as ultima4.zip), the VGA upgrade zip, and disk images & ROMs
 // (loose or zipped).  Returns what was found.
 async function saveChosen(files) {
-  const got = { dos: 0, avatar: false, upgrade: false, images: [], installer: false };
+  const got = { dos: 0, avatar: false, upgrade: false, docs: false, images: [], installer: false };
   const saveDos = (name, data) => {
     saveFile(DATA + '/u4/' + name.toUpperCase(), data);
     ++got.dos;
@@ -184,10 +247,13 @@ async function saveChosen(files) {
     const name = f.name;
     if (DOS_FILE.test(name)) {
       saveDos(name, new Uint8Array(await f.arrayBuffer()));
+    } else if (DOC_FILE.test(name)) {
+      saveFile(DATA + '/u4/' + name, new Uint8Array(await f.arrayBuffer()));
+      got.docs = true;
     } else if (IMAGE_FILE.test(name)) {
       saveFile(DATA + '/' + name, new Uint8Array(await f.arrayBuffer()));
       got.images.push(name);
-    } else if (/\.exe$/i.test(name) && f.size > 1000000) {
+    } else if (/^setup.*\.exe$/i.test(name)) {
       got.installer = true;
     } else if (/\.zip$/i.test(name)) {
       const buf = new Uint8Array(await f.arrayBuffer());
@@ -205,6 +271,10 @@ async function saveChosen(files) {
         const base = baseName(e.name);
         if (exe && e.name === dir + base && DOS_FILE.test(base))
           saveDos(base, await zipRead(buf, e));
+        else if (DOC_FILE.test(base)) {
+          saveFile(DATA + '/u4/' + base, await zipRead(buf, e));
+          got.docs = true;
+        }
         else if (IMAGE_FILE.test(base)) {
           saveFile(DATA + '/' + base, await zipRead(buf, e));
           got.images.push(base);
@@ -220,6 +290,7 @@ function describe(got) {
   const parts = [];
   if (got.avatar) parts.push('the Ultima IV for DOS files');
   else if (got.dos) parts.push(got.dos + ' Ultima IV file(s)');
+  if (got.docs) parts.push('the documents');
   if (got.upgrade) parts.push('the VGA upgrade');
   if (got.images.length) parts.push(got.images.join(', '));
   let text = parts.length ? '<p>Added ' + parts.join(', ') + '.</p>' : '<p>Nothing XU4 uses was found in the chosen files.</p>';

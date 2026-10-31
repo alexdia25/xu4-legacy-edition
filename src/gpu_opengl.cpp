@@ -978,20 +978,9 @@ void gpu_setScissor(int* box)
 void gpu_updateWorkBuffer(void* res, int list, WorkBuffer* work)
 {
     WorkRegion* reg;
-    float* data;
-    int32_t offset = -1;
-    int32_t attrEnd = 0;
     uint32_t mod;
 
-    mod = work->dirty;
-    for (reg = work->region; mod; ++reg, mod >>= 1) {
-        if (mod & 1) {
-            if (offset < 0)
-                offset = reg->start;
-            attrEnd = reg->start + reg->used;
-        }
-    }
-    if (offset < 0)
+    if (! work->dirty)
         return;
 
     {
@@ -1000,20 +989,15 @@ void gpu_updateWorkBuffer(void* res, int list, WorkBuffer* work)
     glBindBuffer(GL_ARRAY_BUFFER, gr->vbo[ dl->bufI ]);
     }
 
-    data = (float*) glMapBufferRange(GL_ARRAY_BUFFER,
-                                     sizeof(float) * offset,
-                                     sizeof(float) * (attrEnd - offset),
-                                     GL_MAP_WRITE_BIT);
-    if (data) {
-        mod = work->dirty;
-        for (reg = work->region; mod; ++reg, mod >>= 1) {
-            if (mod & 1) {
-                memcpy(data + (reg->start - offset),
-                       work->attr + reg->start,
-                       sizeof(float) * reg->used);
-            }
+    // Each dirty region is copied on its own, so the regions between them
+    // are kept.  (WebGL can only map a range that is wholly replaced.)
+    mod = work->dirty;
+    for (reg = work->region; mod; ++reg, mod >>= 1) {
+        if ((mod & 1) && reg->used) {
+            glBufferSubData(GL_ARRAY_BUFFER, sizeof(float) * reg->start,
+                            sizeof(float) * reg->used,
+                            work->attr + reg->start);
         }
-        glUnmapBuffer(GL_ARRAY_BUFFER);
     }
     work->dirty = 0;
 }
@@ -1037,7 +1021,8 @@ float* gpu_beginTris(void* res, int list)
         dl->bufI ^= 1;
     glBindBuffer(GL_ARRAY_BUFFER, gr->vbo[ dl->bufI ]);
     gr->dptr = (GLfloat*) glMapBufferRange(GL_ARRAY_BUFFER, 0, dl->byteSize,
-                                           GL_MAP_WRITE_BIT);
+                                           GL_MAP_WRITE_BIT |
+                                           GL_MAP_INVALIDATE_BUFFER_BIT);
     return gr->dptr;
 }
 
@@ -1454,7 +1439,8 @@ static void _buildChunkGeo(ChunkInfo* ci, int i, const TileId* chunk)
     glBindBuffer(GL_ARRAY_BUFFER, gr->vbo[GLOB_MAP_CHUNK0 + i]);
     attr = (float*) glMapBufferRange(GL_ARRAY_BUFFER, 0,
                                      gr->mapChunkVertCount * ATTR_STRIDE,
-                                     GL_MAP_WRITE_BIT);
+                                     GL_MAP_WRITE_BIT |
+                                     GL_MAP_INVALIDATE_BUFFER_BIT);
     if (! attr) {
         fprintf(stderr, "buildChunkGeo: glMapBufferRange failed\n");
         return;
