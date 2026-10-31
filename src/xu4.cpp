@@ -35,6 +35,10 @@ extern "C" const char* androidInternalData();
 extern const char* androidModuleDir();
 extern void androidCopyModules();
 extern void androidImportGameData();
+extern bool androidTakeDataAdded();
+#include "a2disk.h"
+#include "c64disk.h"
+#include "smsrom.h"
 #endif
 
 #if defined(MACOSX)
@@ -386,6 +390,19 @@ static void servicesFree(XU4GameServices* gs) {
 static void servicesReset(XU4GameServices* gs) {
     servicesFreeGame(gs);
 
+#ifdef ANDROID
+    // Files were added or removed from the module list: look for the data
+    // again.
+    if (androidTakeDataAdded()) {
+        u4fcleanup();
+        if (! u4fsetup())
+            androidImportGameData();    // The DOS files were removed.
+        a2_close();
+        c64_close();
+        sms_close();
+    }
+#endif
+
     const Settings* settings = gs->settings;
     gs->config = configInit(settings->game, settings->soundtrack);
 
@@ -486,6 +503,30 @@ begin_game:
 
     servicesFree(&xu4);
     return 0;
+}
+
+/*
+ * Return the Legacy Edition version for display, such as "XU4LE1.2" from a
+ * VERSION of "legacy-1.2" or "1.2-pre1-14-gf188e23" (git describe).
+ */
+const char* xu4_versionLE() {
+    static char buf[40];
+    if (! buf[0]) {
+        const char* v = VERSION;
+        if (strncmp(v, "legacy-", 7) == 0)
+            v += 7;
+        std::string s(v);
+        // Drop the commit count & hash that git describe adds.
+        size_t g = s.rfind("-g");
+        if (g != std::string::npos && g > 0) {
+            size_t d = s.rfind('-', g - 1);
+            if (d != std::string::npos &&
+                s.find_first_not_of("0123456789", d + 1) == g)
+                s.erase(d);
+        }
+        snprintf(buf, sizeof(buf), "XU4LE%s", s.c_str());
+    }
+    return buf;
 }
 
 void xu4_selectGame() {

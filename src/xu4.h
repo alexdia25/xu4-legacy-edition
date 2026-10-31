@@ -70,6 +70,7 @@ extern XU4GameServices xu4;
 #define gs_emitMessage(sid,data)    notify_emit(&xu4.notifyBus,sid,data);
 
 void xu4_selectGame();
+const char* xu4_versionLE();
 uint16_t xu4_setResourceGroup(uint16_t group);
 void     xu4_freeResourceGroup(uint16_t group);
 extern "C" int xu4_random(int upperval);
