@@ -434,6 +434,7 @@ DocReader::DocReader()
     listOpen = 0;
     listSel = 0;
     pressed = -1;
+    dragState = 0;
     hasRunes = false;
     padHelp = false;
 }
@@ -1180,9 +1181,43 @@ bool DocReader::inputEvent(const InputEvent* ev)
     switch (ev->type) {
         case IE_MOUSE_PRESS:
             pressed = (ev->n == CMOUSE_LEFT) ? hitAt(x, y) : -1;
+            if (ev->n == CMOUSE_LEFT) {
+                dragY = y;
+                dragTop = listOpen ? listSel : top;
+                dragState = 1;
+            }
+            break;
+
+        case IE_MOUSE_MOVE:
+            // Dragging the text (or the chapter list) scrolls it, so books
+            // can be read with touch alone.
+            if (dragState) {
+                int dy = y - dragY;
+                if (dragState == 1 && dy > -5 && dy < 5)
+                    break;
+                dragState = 2;
+                pressed = -1;           // Not a tap.
+                if (listOpen) {
+                    int n = chapters.size();
+                    int sel = std::max(0, std::min(n - 1, dragTop - dy / 9));
+                    if (sel != listSel) {
+                        listSel = sel;
+                        redraw();
+                    }
+                } else {
+                    // Body lines are LINE_H pixels of the body, which is
+                    // drawn scaled to BODY_W on the page.
+                    int lineH = std::max(1, LINE_H * BODY_W / body.width());
+                    int line = dragTop - dy / lineH;
+                    if (line != top)
+                        scrollTo(line);
+                }
+            }
             break;
 
         case IE_MOUSE_RELEASE:
+            if (ev->n == CMOUSE_LEFT)
+                dragState = 0;
             if (ev->n == CMOUSE_LEFT && pressed >= 0 &&
                 hitAt(x, y) == pressed) {
                 soundPlay(SOUND_UI_CLICK);

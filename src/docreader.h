@@ -69,6 +69,9 @@ private:
     int listOpen;               // Chapter list showing.
     int listSel;
     int pressed;                // HitArea id pressed by the pointer.
+    int dragY;                  // Page y where the pointer went down.
+    int dragTop;                // top (or listSel) when it went down.
+    int8_t dragState;           // 0 up, 1 down, 2 dragging.
     bool hasRunes;
     bool padHelp;               // Footer names gamepad buttons.
 
