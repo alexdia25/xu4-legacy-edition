@@ -198,6 +198,7 @@ IntroController::IntroController() :
     confMenu.add(MI_CONF_SOUND,               "\010 Sound Options",              2,  3,/*'s'*/  2);
     confMenu.add(MI_CONF_INPUT,               "\010 Input Options",              2,  4,/*'i'*/  2);
     confMenu.add(MI_CONF_SPEED,               "\010 Speed Options",              2,  5,/*'p'*/  3);
+    confMenu.add(MI_CONF_MODULES,             "\010 Graphics & Music",           2,  6,/*'r'*/  3);
     confMenu.add(MI_CONF_01, new BoolMenuItem("Game Enhancements         %s",    2,  7,/*'e'*/  5, &settingsChanged.enhancements));
     confMenu.add(MI_CONF_GAMEPLAY,            "\010 Enhanced Gameplay Options",  2,  9,/*'g'*/ 11);
     confMenu.add(MI_CONF_INTERFACE,           "\010 Enhanced Interface Options", 2, 10,/*'n'*/ 12);
@@ -1539,7 +1540,7 @@ void IntroController::about() {
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 
     screenHideCursor();
-    menuArea.textAtFmt(14, 1, "XU4 %s", VERSION);
+    menuArea.textAtFmt(14, 1, "%s", xu4_versionLE());
     menuArea.textAt(1, 3, "xu4 is free software; you can redist-");
     menuArea.textAt(1, 4, "ribute it and/or modify it under the");
     menuArea.textAt(1, 5, "terms of the GNU GPL as published by");
@@ -1829,6 +1830,15 @@ void IntroController::updateConfMenu(MenuEvent &event) {
             break;
         case MI_CONF_LEGACY:
             runMenu(&legacyMenu, &extendedMenuArea, true);
+            break;
+        case MI_CONF_MODULES:
+            // The module list, so a first time player with no keyboard or
+            // corner menu icon in mind can find it.
+            if (! xu4.gameBrowser)
+                xu4.gameBrowser = new GameBrowser;
+            xu4.gameBrowser->openSettings = false;
+            xu4.eventHandler->runController(xu4.gameBrowser);
+            xu4.gameBrowser->openSettings = false;  // Already here.
             break;
         case CANCEL:
             // discard settings

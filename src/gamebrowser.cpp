@@ -52,9 +52,22 @@ enum GuiBufferRegions {
 #define FOOT_Y      370
 #define HIT_ROW     100
 
-static const char* buttonLabels[6] = {
-    "Play", "Docs", "Map", "Settings", "Quit", "Cancel"
+#define BUTTON_COUNT    7
+static const char* buttonLabels[BUTTON_COUNT] = {
+    "Play", "Docs", "Map", "Settings", "Files", "Quit", "Cancel"
 };
+
+#ifdef ANDROID
+extern bool androidAddGameFiles();
+#define HAVE_FILES  true    // Files adds game data from the device.
+#else
+#define HAVE_FILES  false
+#endif
+
+static bool showButton(int i)
+{
+    return HAVE_FILES || i != GameBrowser::WI_FILES - GameBrowser::WI_OK;
+}
 
 void GameBrowser::renderBrowser(ScreenState* ss, void* data)
 {
@@ -548,6 +561,10 @@ void GameBrowser::redraw()
             int vlen;
             const char* version = sst_stringL(&mi.modi, MI_VERSION, &vlen);
             string v = "v" + string(version, vlen);
+            // The base module keeps the version extensions require
+            // (Ultima-IV/1.4); show which Legacy Edition it came with.
+            if (name == "Ultima-IV")
+                v = xu4_versionLE();
             page.text(W - EDGE - 12 - page.textWidth(v.size()), y + 6,
                       v.c_str(), (int) v.size(), TextPage::GREY);
         }
@@ -590,13 +607,21 @@ void GameBrowser::redraw()
 
     // Buttons.
     int total = 0;
-    for (i = 0; i < 6; ++i)
-        total += strlen(buttonLabels[i]) + 4;
+    for (i = 0; i < BUTTON_COUNT; ++i)
+        if (showButton(i))
+            total += strlen(buttonLabels[i]) + 4;
+    if (xu4.stage == StagePlay)
+        ++total;                // "Apply" is one longer than "Play".
     int x = (W - (total - 2) * cw) / 2;
-    for (i = 0; i < 6; ++i) {
-        int w = (strlen(buttonLabels[i]) + 2) * cw;
+    for (i = 0; i < BUTTON_COUNT; ++i) {
+        if (! showButton(i))
+            continue;
+        // During play the first button applies the choice to the game.
+        const char* label = (i == 0 && xu4.stage == StagePlay) ? "Apply" :
+                            buttonLabels[i];
+        int w = (strlen(label) + 2) * cw;
         page.fill(x, BUTTON_Y - 3, w, 14, TextPage::DK_BLUE);
-        page.text(x + cw, BUTTON_Y, buttonLabels[i], TextPage::WHITE);
+        page.text(x + cw, BUTTON_Y, label, TextPage::WHITE);
         addHit(x, BUTTON_Y - 4, w, 16, WI_OK + i);
         x += w + 2 * cw;
     }
@@ -756,6 +781,26 @@ bool GameBrowser::keyPressed(int key)
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);
             return true;
+
+#ifdef ANDROID
+        case 'f':
+            soundPlay(SOUND_UI_CLICK);
+            if (androidAddGameFiles()) {
+                // Read the data again: keep playing as when the graphics
+                // change, or start over at the title.
+                xu4.eventHandler->setControllerDone(true);
+                if (xu4.stage == StagePlay)
+                    gameSwitchModules();
+                else {
+                    xu4.eventHandler->quitGame();
+                    xu4.gameReset = 1;
+                }
+            } else {
+                pressed = -1;
+                redraw();
+            }
+            return true;
+#endif
     }
     return false;
 }
@@ -862,6 +907,9 @@ bool GameBrowser::inputEvent(const InputEvent* ev)
                     break;
                 case WI_SETTINGS:
                     keyPressed('s');
+                    break;
+                case WI_FILES:
+                    keyPressed('f');
                     break;
                 case WI_CANCEL:
                     soundPlay(SOUND_UI_CLICK);

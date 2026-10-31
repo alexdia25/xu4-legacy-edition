@@ -219,6 +219,7 @@ private:
         MI_INTERFACE_06,
         MI_INTERFACE_07,
         MI_CONF_LEGACY,
+        MI_CONF_MODULES,
         MI_LEGACY_01,
         MI_LEGACY_02,
         MI_LEGACY_03,
