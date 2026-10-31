@@ -310,6 +310,9 @@ async function chosen(files) {
     pendingChoose = null;
     lastChosen = got;
     $('filesBox').hidden = true;
+    // Give the keyboard back to the game (the file input had it).
+    if (document.activeElement) document.activeElement.blur();
+    $('canvas').focus();
     resolve(got.dos + got.images.length + (got.upgrade ? 1 : 0));
   } else if (running) {
     showFiles(describe(got) + '<p>The game reads new files when it starts: save your game, then ' +
@@ -336,7 +339,7 @@ new MutationObserver(() => {
 $('restartButton').onclick = () => {
   FS.syncfs(false, () => location.reload());
 };
-$('closeFiles').onclick = () => { $('filesBox').hidden = true; };
+$('closeFiles').onclick = () => { $('filesBox').hidden = true; $('canvas').focus(); };
 $('menuButton').onclick = () => showFiles(LATER, true);
 $('startFiles').onclick = () => showFiles(INTRO + '<p>Export Saves downloads your settings and ' +
   'saved games as a zip.</p>', true);

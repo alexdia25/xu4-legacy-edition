@@ -2060,6 +2060,18 @@ public:
             doneWaiting();
             return true;
         default:
+            // In a short list (such as Yes/No) the first letter of an item
+            // picks it.
+            if (count <= 3 && key < 0x80 && isalpha(key)) {
+                for (int i = 0; i < count; ++i) {
+                    if (tolower(items[i][0]) == tolower(key)) {
+                        sel = value = i;
+                        draw();
+                        doneWaiting();
+                        return true;
+                    }
+                }
+            }
             return EventHandler::globalKeyHandler(key);
         }
         draw();

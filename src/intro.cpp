@@ -1077,8 +1077,14 @@ void IntroController::initiateNewGame() {
     SexType sex;
     int sexChoice;
     if (EventHandler::smsMenus()) {
+        // A list on lines of their own, so a tap picks either one.
         static const char* sexes[2] = { "Male", "Female" };
-        sexChoice = EventHandler::chooseInline(&menuArea, sexes, 2) ? 'f' : 'm';
+        menuArea.hideCursor();
+        int n = EventHandler::chooseList(&menuArea, 12, 5, 8, 2, sexes, 2);
+        sexChoice = (n == 1) ? 'f' : 'm';
+        menuArea.textAt(12, 5, "        ");
+        menuArea.textAt(12, 6, "        ");
+        menuArea.textAt(28, 3, sexes[n == 1]);
     } else
         sexChoice = EventHandler::readChoice("mf");
     if (sexChoice == 'm')
@@ -1257,6 +1263,16 @@ void IntroController::offerHistory() {
 
     questionArea.clear();
     questionArea.textAt(0, 1, "Wilt thou read the History of");
+    if (EventHandler::smsMenus()) {
+        // Yes & No on lines of their own, to be tapped or picked.
+        static const char* yesNo[2] = { "Yes", "No" };
+        questionArea.textAt(0, 2, "Britannia now?");
+        int n = EventHandler::chooseList(&questionArea, 2, 3, 5, 2, yesNo, 2);
+        questionArea.clear();
+        if (n == 0)
+            gameShowBook(DOC_HISTORY);
+        return;
+    }
     questionArea.textAt(0, 2, "Britannia now? (Y/N)");
     questionArea.setCursorPos(21, 2);
     questionArea.showCursor();
