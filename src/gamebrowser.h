@@ -36,6 +36,7 @@ public:
         WI_DOCS,
         WI_MAP,
         WI_SETTINGS,
+        WI_FILES,       // Android only.
         WI_QUIT,
         WI_CANCEL,
         WI_COUNT

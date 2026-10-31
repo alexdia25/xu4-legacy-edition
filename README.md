@@ -241,9 +241,12 @@ Every download is on the [releases page].  The game data
    or AYN Odin; Android 7 or later): download the `.apk` on the device
    and open it (Android asks once to allow installs from the browser or
    file manager), or let [Obtainium] install it and keep it updated from
-   the releases.  On the first run the game asks for `ultima4.zip`, and
-   u4upgrad.zip, Apple II or C64 disk images and the SMS ROM can be
-   picked at the same time.  Files can also be copied over USB to
+   the releases.  On the first run the game asks for the game files: the
+   folder the GOG installer made on a PC (copied to the device), its
+   files, a zip of it, or `ultima4.zip`.  The Files button of Graphics &
+   Music lists the game files, adds more (u4upgrad.zip, Apple II or C64
+   disk images, the SMS ROM, the documents; loose or zipped) and removes
+   them.  Files can also be copied over USB to
    `Android/data/io.github.alexdia25.xu4_legacy_edition/files`.  The game
    is played with touch or a gamepad; Back opens the game menu.
  - **Web browser, iPhone and iPad**: [play in the browser], on a
