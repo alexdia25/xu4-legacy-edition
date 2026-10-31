@@ -265,17 +265,37 @@ static bool entryLine(const string& line, string* name)
 {
     if (line.empty() || ! isupper((unsigned char) line[0]))
         return false;
+    // "Name - text" (ULTIMA4.TXT), or "Name: text" (Wisdom.txt of other
+    // releases), where the name is capitalized words but not all upper
+    // case like the History's "MAGE:".
     size_t dash = line.find(" - ");
+    size_t colon = line.find(':');
+    bool byColon = colon < dash;
+    if (byColon)
+        dash = colon;
     if (dash == string::npos || dash > 20)
         return false;
+    bool lower = false;
     for (size_t i = 0; i < dash; ++i) {
         char ch = line[i];
         if (! isalpha((unsigned char) ch) && ch != ' ')
             return false;
-        if (i && line[i-1] == ' ' && ! isupper((unsigned char) ch))
+        if (i && line[i-1] == ' ' && ch != ' ' && ! isupper((unsigned char) ch))
             return false;
+        if (islower((unsigned char) ch))
+            lower = true;
     }
-    *name = line.substr(0, dash);
+    if (byColon && ! lower)
+        return false;
+
+    // The name, with the runs of spaces of justified text made single.
+    name->clear();
+    for (size_t i = 0; i < dash; ++i) {
+        if (line[i] != ' ' || (i + 1 < dash && line[i+1] != ' '))
+            *name += line[i];
+    }
+    while (! name->empty() && name->back() == ' ')
+        name->pop_back();
     return true;
 }
 
