@@ -296,6 +296,10 @@ void Menu::activateItem(int id, MenuEvent::Type action) {
  */
 bool Menu::activateItemByShortcut(int key, MenuEvent::Type action) {
     for (MenuItemList::iterator i = items.begin(); i != items.end(); i++) {
+        // A hidden item (such as Video Options during play) has no
+        // shortcut.
+        if (! (*i)->isVisible())
+            continue;
         const set<int> &shortcuts = (*i)->getShortcutKeys();
         if (shortcuts.find(key) != shortcuts.end()) {
             activateItem((*i)->getId(), action);
