@@ -116,11 +116,11 @@ class TimedEventMgr {
 public:
     typedef std::list<TimedEvent*> List;
 
-    TimedEventMgr() : locked(false) {}
+    TimedEventMgr() : locked(0) {}
     ~TimedEventMgr();
 
     /** Returns true if the event list is locked (in use) */
-    bool isLocked() const { return locked; }
+    bool isLocked() const { return locked > 0; }
 
     void add(TimedEvent::Callback callback, int interval, void *data = NULL);
     List::iterator remove(List::iterator i);
@@ -129,8 +129,10 @@ public:
     void tick();
 
 private:
+    bool isDeferred(const TimedEvent* event) const;
+
     /* Properties */
-    bool locked;
+    int locked;
     List events;
     List deferredRemovals;
 };

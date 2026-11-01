@@ -74,5 +74,6 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey);
 bool gamepad_inUse();
 bool gamepad_prompts();
 void gamepad_keyboardUsed();
+void gamepad_markUsed();
 
 #endif

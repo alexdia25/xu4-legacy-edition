@@ -207,6 +207,10 @@ static bool testKey(int key)
             screenRequestSnapshot(xu4_testDir);
         return true;
     }
+    // Recorded gamepad buttons count as gamepad use, as when pressed.
+    if (key >= U4_PAD_START && key <= U4_WORLD_MAP && key != U4_HOLD &&
+        key != U4_ACTIONS && key != U4_SMART)
+        gamepad_markUsed();
     return false;
 }
 
@@ -553,7 +557,8 @@ void TimedEventMgr::add(TimedEvent::Callback callback, int interval, void *data)
  */
 TimedEventMgr::List::iterator TimedEventMgr::remove(List::iterator i) {
     if (isLocked()) {
-        deferredRemovals.push_back(*i);
+        if (! isDeferred(*i))
+            deferredRemovals.push_back(*i);
         return i;
     }
     else {
@@ -572,10 +577,20 @@ void TimedEventMgr::remove(TimedEvent* event) {
     }
 }
 
+bool TimedEventMgr::isDeferred(const TimedEvent* event) const {
+    List::const_iterator d;
+    for (d = deferredRemovals.begin(); d != deferredRemovals.end(); ++d) {
+        if (*d == event)
+            return true;
+    }
+    return false;
+}
+
 void TimedEventMgr::remove(TimedEvent::Callback callback, void *data) {
     List::iterator i;
     for (i = events.begin(); i != events.end(); i++) {
-        if ((*i)->getCallback() == callback && (*i)->getData() == data) {
+        if ((*i)->getCallback() == callback && (*i)->getData() == data &&
+            ! isDeferred(*i)) {
             remove(i);
             break;
         }
@@ -588,17 +603,25 @@ void TimedEventMgr::remove(TimedEvent::Callback callback, void *data) {
 void TimedEventMgr::tick() {
     List::iterator i;
 
-    // Lock the event list so it cannot be modified during iteration.
-    locked = true;
+    // Lock the event list so it cannot be modified during iteration.  A
+    // timer callback may run a nested event loop which ticks again, so the
+    // lock is a count and only the outermost tick removes events.
+    ++locked;
 
     for (i = events.begin(); i != events.end(); i++)
         (*i)->tick();
 
-    locked = false;
+    if (--locked)
+        return;
 
-    // Remove events that have been deferred for removal
-    for (i = deferredRemovals.begin(); i != deferredRemovals.end(); i++)
+    // Remove events that have been deferred for removal.  The list must be
+    // emptied, or a later event allocated at the same address would be
+    // removed as soon as it was added.
+    for (i = deferredRemovals.begin(); i != deferredRemovals.end(); i++) {
         events.remove(*i);
+        delete *i;
+    }
+    deferredRemovals.clear();
 }
 
 void EventHandler::pushMouseAreaSet(const MouseArea *mouseAreas) {
@@ -1945,7 +1968,9 @@ bool EventHandler::smsMenus()
         padActions = true;
         xu4.settings->shortcutCommands = true;
     }
-    return xu4.settings->enhancementsOptions.smsInterface;
+    // A gamepad can't type, so it always gets the lists & letter grid.
+    return xu4.settings->enhancementsOptions.smsInterface ||
+           gamepad_prompts();
 }
 
 //----------------------------------------------------------------------------

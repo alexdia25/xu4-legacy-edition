@@ -628,7 +628,10 @@ bool IntroController::keyPressed(int key) {
             MAP_ENABLE;
             break;
         case 'c': {
-            // Make a copy of our settings so we can change them
+            // Make a copy of our settings so we can change them.  Apply
+            // what using a gamepad switches on first, or the copy would
+            // switch it off again when the menus save it.
+            EventHandler::smsMenus();
             settingsChanged = *xu4.settings;
             screenHideCursor();
             runMenu(&confMenu, &extendedMenuArea, true);
@@ -1647,6 +1650,7 @@ void IntroController::beginInGame() {
         binData->load();
     }
     inGame = true;
+    EventHandler::smsMenus();   // See the 'c' case of keyPressed.
     settingsChanged = *xu4.settings;
     listenerId = gs_listen(1<<SENDER_MENU, introNotice, this);
 

@@ -40,6 +40,10 @@ bool gamepad_prompts() {
     return padLast;
 }
 
+void gamepad_markUsed() {
+    padInUse = padLast = true;
+}
+
 void gamepad_keyboardUsed() {
     padLast = false;
 }
