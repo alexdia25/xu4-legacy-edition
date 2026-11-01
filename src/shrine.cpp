@@ -63,7 +63,17 @@ void Shrine::enter() {
         screenMessage("You enter the ancient shrine and sit before the altar...");
 
     screenMessage("\nUpon which virtue dost thou meditate?\n");
-    input = EventHandler::readString(32);
+    if (EventHandler::smsMenus()) {
+        // As in the Master System version, the virtue is picked from a
+        // list of all eight (the right one must still be chosen).
+        const char* names[8];
+        for (int i = 0; i < 8; ++i)
+            names[i] = getVirtueName(Virtue(i));
+        int n = EventHandler::chooseItem(names, 8);
+        input = (n < 0) ? "" : names[n];
+        screenMessage("%s\n", input);
+    } else
+        input = EventHandler::readString(32);
 
     screenMessage("\n\nFor how many Cycles (0-3)? ");
     choice = EventHandler::readChoice("0123\015\033");
