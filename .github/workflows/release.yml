@@ -14,6 +14,9 @@ on:
       tag:
         description: 'Release tag, e.g. legacy-1.1 (leave empty to only build)'
         required: false
+      replaces:
+        description: 'Older release to delete (with its tag) once this one is published, e.g. legacy-1.1-pre1'
+        required: false
 
 permissions:
   contents: write
@@ -178,6 +181,11 @@ jobs:
             gh release create "$TAG" out/* --target "$GITHUB_SHA" \
               --title "XU4 Legacy Edition ${TAG#legacy-}" \
               --notes-file dist/release-notes.md $PRE
+          fi
+          # A release that replaces an older one (e.g. pre2 over pre1).
+          REPLACES="${{ inputs.replaces }}"
+          if [ -n "$REPLACES" ] && [ "$REPLACES" != "$TAG" ]; then
+            gh release delete "$REPLACES" --cleanup-tag -y || true
           fi
           # Update the GitHub Pages site: the web version and the Flatpak
           # repository, so installed copies update (not for pre-releases).
