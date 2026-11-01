@@ -98,7 +98,7 @@ jobs:
 
   macos:
     # A universal (Apple Silicon & Intel) app in a disk image.
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
