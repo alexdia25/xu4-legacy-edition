@@ -26,6 +26,8 @@ Changed in 1.2-pre2, from players' feedback:
   could show only a cursor, because opening Configure could switch the
   console menus back off.  A gamepad now always gets the lists and the
   letter grid.
+- Fixed: pressing V in Settings during play opened the hidden Video
+  Options, and changing them there crashed the game.
 - **Moon Speed** (Settings > Speed Options) slows the moons and their
   moongates to a half, a quarter or an eighth of the original speed.
   Normal keeps the DOS pace, where the moons turn in real time, a
