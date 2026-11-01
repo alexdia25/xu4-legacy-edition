@@ -18,6 +18,7 @@
 #include <algorithm>
 
 #include "docreader.h"
+#include "worldmap.h"
 #include "event.h"
 #include "gamepad.h"
 #include "gpu.h"
@@ -64,12 +65,12 @@ enum HitIds {
 };
 
 static const char* bookTabs[DocReader::BOOK_COUNT] = {
-    "History", "Wisdom", "Hints", "Keyboard", "Runes", "How to Play",
+    "History", "Wisdom", "Hints", "Keyboard", "Runes", "Map", "How to Play",
     "Journal"
 };
 
 static const char* shortTabs[DocReader::BOOK_COUNT] = {
-    "History", "Wisdom", "Hints", "Keys", "Runes", "Help", "Journal"
+    "History", "Wisdom", "Hints", "Keys", "Runes", "Map", "Help", "Journal"
 };
 
 // Columns of text for each text size.  The text is drawn on a page of its
@@ -447,6 +448,15 @@ DocReader::~DocReader()
 void DocReader::openBook(int n, int chap)
 {
     string text;
+
+    if (n == BOOK_MAP) {
+        // The cloth map: all of Britannia, without the party & moongates.
+        worldMapShow(true);
+        screenSetLayer(LAYER_TOP_MENU, renderReader, this);
+        pressed = -1;
+        redraw();
+        return;
+    }
 
     book = lastBook = n;
     if (n == BOOK_RUNES) {
@@ -910,7 +920,7 @@ void DocReader::drawFooter()
         "Enter Contents", ""
     };
     static const char* keyHelp2[] = {
-        "Tab or 1-7 Book  +/- Size", "Tab Book  +/- Size", "Tab Book", ""
+        "Tab or 1-8 Book  +/- Size", "Tab Book  +/- Size", "Tab Book", ""
     };
     static const char* padHelp1[] = {
         "Up/Down Scroll  Left/Right Chapter  A Contents",
@@ -1155,7 +1165,12 @@ bool DocReader::keyPressed(int key)
         case 'z':
         case U4_PAD_Y:
             soundPlay(SOUND_UI_TICK);
-            openBook((book + 1) % BOOK_COUNT);
+        {
+            int next = (book + 1) % BOOK_COUNT;
+            if (next == BOOK_MAP)
+                ++next;         // Only opened by its tab or number.
+            openBook(next);
+        }
             return true;
         case U4_ESC:
             xu4.eventHandler->setControllerDone(true);

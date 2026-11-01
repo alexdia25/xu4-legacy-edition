@@ -28,6 +28,10 @@ public:
     virtual bool keyPressed(int key);
     virtual bool inputEvent(const InputEvent*);
 
+    bool wholeMap;              // All of the map without the party & gates
+                                // (the cloth map of the books), not only
+                                // what the party has explored.
+
     enum Widgets {
         WI_MAP,
         WI_ZOOM_OUT,
@@ -62,6 +66,7 @@ private:
     float labelScale;           // scale & center when labels were made.
     float labelX, labelY;
 
+    bool explored(int x, int y) const;
     bool buildTextures();
     void freeTextures();
     void layout();
@@ -78,6 +83,6 @@ private:
     static void renderMap(ScreenState* ss, void* data);
 };
 
-void worldMapShow();
+void worldMapShow(bool wholeMap = false);
 
 #endif

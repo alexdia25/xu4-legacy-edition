@@ -380,6 +380,7 @@ IntroController::IntroController() :
     cheatsMenu.add(MI_CHEAT_VIRTUE,   "Advance Every Virtue",      2,  7,/*'v'*/  8);
     cheatsMenu.add(MI_CHEAT_ITEMS,    "All Quest Items",           2,  8,/*'q'*/  4);
     cheatsMenu.add(MI_CHEAT_EQUIP,    "Best Arms & Armour",        2,  9,/*'b'*/  0);
+    cheatsMenu.add(MI_CHEAT_MAP,      "Map All Of Britannia",      2, 10,/*'m'*/  0);
     cheatsMenu.add(CANCEL,            "\010 Done",                 2, 12,/*'d'*/  2);
     cheatsMenu.addShortcutKey(CANCEL, ' ');
     cheatsMenu.addShortcutKey(CANCEL, U4_ESC);
@@ -2136,7 +2137,7 @@ void IntroController::updateCheatsMenu(MenuEvent &event) {
 
     if (event.type == MenuEvent::ACTIVATE) {
         int id = event.item->getId();
-        if (id >= MI_CHEAT_HEAL && id <= MI_CHEAT_EQUIP)
+        if (id >= MI_CHEAT_HEAL && id <= MI_CHEAT_MAP)
             done = legacyCheat(CHEAT_HEAL + (id - MI_CHEAT_HEAL));
         else if (id == CANCEL)
             done = "";

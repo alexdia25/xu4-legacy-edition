@@ -540,7 +540,7 @@ int gameSave(const char* userPath) {
     }
 
     if (! legacyDungeonWrite(userPath)) {
-        screenMessage("Error writing to %s\n", "dngseen.sav");
+        screenMessage("Error writing to %s\n", "dngseen.sav/worldseen.sav");
         return 0;
     }
 

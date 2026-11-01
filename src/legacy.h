@@ -17,7 +17,8 @@ enum LegacyCheat {
     CHEAT_LEVEL,
     CHEAT_VIRTUE,
     CHEAT_ITEMS,
-    CHEAT_EQUIP
+    CHEAT_EQUIP,
+    CHEAT_MAP
 };
 
 const char* legacyCheat(int cheat);
@@ -60,5 +61,10 @@ void legacyDungeonLoad();
 bool legacyDungeonWrite(const char* userPath);
 void legacyDungeonSee(int mapId, int level, int x, int y);
 bool legacyDungeonSeen(int mapId, int level, int x, int y);
+
+// World map: the tiles of Britannia the party has been near.  Loaded &
+// written with the dungeon map.
+void legacyWorldSee(int x, int y, int radius);
+bool legacyWorldSeen(int x, int y);
 
 #endif

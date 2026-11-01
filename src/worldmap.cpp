@@ -6,6 +6,9 @@
  * moongates with the moon phase characters of the module font, and places
  * the names written on the cloth map that came with Ultima IV, in runes or
  * in English.
+ *
+ * In play only the parts of Britannia the party has explored are shown;
+ * the books show the whole cloth map without the party & moongates.
  */
 
 #include <math.h>
@@ -17,6 +20,7 @@
 #include "event.h"
 #include "gamepad.h"
 #include "image.h"
+#include "legacy.h"
 #include "gpu.h"
 #include "imagemgr.h"
 #include "location.h"
@@ -220,6 +224,7 @@ WorldMapView::WorldMapView()
     buttonDown = WID_NONE;
     mouseX = mouseY = 0;
     english = false;
+    wholeMap = false;
     padHelp = false;
     zoomLevel = zoomMax = 0;
     fitScale = scale = 1.0f;
@@ -231,6 +236,11 @@ WorldMapView::~WorldMapView()
 {
     freeTextures();
     gpu_freeWorkBuffer(work);
+}
+
+bool WorldMapView::explored(int x, int y) const
+{
+    return wholeMap || legacyWorldSeen(x, y);
 }
 
 /*
@@ -257,6 +267,8 @@ bool WorldMapView::buildTextures()
 
     for (int y = 0; y < MAP_DIM; ++y) {
         for (int x = 0; x < MAP_DIM; ++x) {
+            if (! explored(x, y))
+                continue;
             const Tile* tile = ts->get(world->getTileFromData(Coords(x, y)));
             const Image* timg = tile ? tile->getImage() : NULL;
             if (timg)
@@ -284,7 +296,7 @@ bool WorldMapView::buildTextures()
     // The party (on foot, horse, ship or balloon) or the avatar if the
     // party is in a town or dungeon.
     partyX = partyY = -1;
-    const Location* loc = worldLocation();
+    const Location* loc = wholeMap ? NULL : worldLocation();
     if (loc) {
         partyX = loc->coords.x;
         partyY = loc->coords.y;
@@ -336,6 +348,14 @@ bool WorldMapView::present()
     zoomLevel = 0;
     scale = fitScale;
     targetX = targetY = MAP_DIM * 0.5f;
+    if (! wholeMap && partyX >= 0) {
+        // Little may be explored yet, so start closer, on the party.
+        zoomLevel = (zoomMax < 2) ? zoomMax : 2;
+        scale = targetScale();
+        targetX = partyX + 0.5f;
+        targetY = partyY + 0.5f;
+        clampCenter(scale, targetX, targetY);
+    }
     centerX = targetX;
     centerY = targetY;
     labelScale = 0.0f;
@@ -478,6 +498,8 @@ void WorldMapView::generateLabels()
     float* attr = gpu_beginRegion(work, REGION_LABELS);
     for (size_t n = 0; n < LABEL_COUNT; ++n) {
         const MapLabel* lab = labels + n;
+        if (! explored(lab->x, lab->y))
+            continue;
         const char* text = english ? lab->english : lab->runes;
         float cx = rect[0] + (lab->x + 0.5f) * scale;
         float cy = rect[1] + (MAP_DIM - lab->y - 0.5f) * scale;
@@ -576,7 +598,8 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
     float mrect[4];
     for (int phase = 0; phase < 8; ++phase) {
         const Coords* gate = xu4.config->moongateCoords(phase);
-        if (gate && wm->moonTex[phase]) {
+        if (gate && wm->moonTex[phase] && ! wm->wholeMap &&
+            wm->explored(gate->x, gate->y)) {
             wm->markRect(gate->x, gate->y, size, mrect);
             gpu_drawImage(xu4.gpu, wm->moonTex[phase], mrect,
                           ss->aspectW, ss->aspectH);
@@ -832,10 +855,12 @@ bool WorldMapView::inputEvent(const InputEvent* ev)
 /*
  * Show the world map until it is closed.
  */
-void worldMapShow()
+void worldMapShow(bool wholeMap)
 {
     static WorldMapView* view = NULL;
     if (! view)
         view = new WorldMapView;
+    // Without a game in progress there is nothing explored to show.
+    view->wholeMap = wholeMap || ! worldLocation();
     xu4.eventHandler->runController(view);
 }

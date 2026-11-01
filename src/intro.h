@@ -249,6 +249,7 @@ private:
         MI_CHEAT_VIRTUE,
         MI_CHEAT_ITEMS,
         MI_CHEAT_EQUIP,
+        MI_CHEAT_MAP,
         MI_HUB_JOURNAL,
         MI_HUB_HELP,
         MI_HUB_BOOKS,

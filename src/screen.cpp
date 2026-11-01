@@ -19,6 +19,8 @@
 #include "game.h"
 #include "imagemgr.h"
 #include "intro.h"
+#include "legacy.h"
+#include "mapmgr.h"
 #include "settings.h"
 #include "stats.h"
 #include "textview.h"
@@ -833,6 +835,10 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
 #endif
     }
     else if (showmap) {
+        // Note what the party sees of Britannia for the world map.
+        if (c->location->map->id == MAP_WORLD)
+            legacyWorldSee(c->location->coords.x, c->location->coords.y,
+                           VIEWPORT_W / 2);
 #ifdef GPU_RENDER
         screenUpdateMap(view, c->location->map, c->location->coords);
 #else

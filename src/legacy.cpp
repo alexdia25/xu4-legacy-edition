@@ -121,6 +121,10 @@ const char* legacyCheat(int cheat) {
                 sg->weapons[i] = n;
         }
         return "Arms & armour!";
+
+    case CHEAT_MAP:
+        legacyWorldSee(128, 128, 128);
+        return "All of Britannia is mapped!";
     }
     return "";
 }
@@ -232,11 +236,16 @@ bool legacyReloadPending = false;
 
 #define HISTORY_COUNT   8
 #define DNGSEEN_SAV     "dngseen.sav"
+#define WORLDSEEN_SAV   "worldseen.sav"
 
 static const char* saveFiles[] = {
     PARTY_SAV, MONSTERS_SAV, OUTMONST_SAV, DNGMAP_SAV, TALKWORDS_SAV,
-    "journal.sav", DNGSEEN_SAV, NULL
+    "journal.sav", DNGSEEN_SAV, WORLDSEEN_SAV, NULL
 };
+
+// Bit x&7 of worldSeen[y][x>>3] is set once the party has been near world
+// tile x,y (kept in worldseen.sav).
+static uint8_t worldSeen[256][32];
 
 static fs::path userDir() {
     return fs::u8path(xu4.settings->getUserPath());
@@ -692,6 +701,10 @@ void legacyJournalReset() {
     fs::remove(userDir() / JOURNAL_SAV, ec);
     fs::remove(userDir() / DNGSEEN_SAV, ec);
     legacyDungeonLoad();
+    // A new game has explored nothing (a game saved without the file is
+    // from before the world map was explored, and shows all of it).
+    memset(worldSeen, 0, sizeof(worldSeen));
+    legacyDungeonWrite(xu4.settings->getUserPath().c_str());
 }
 
 static void wrapText(std::string& out, const std::string& text,
@@ -859,6 +872,15 @@ void legacyDungeonLoad() {
             memset(dngSeen, 0, sizeof(dngSeen));
         fclose(fp);
     }
+
+    // Games saved before the world map was explored show all of it.
+    memset(worldSeen, 0xff, sizeof(worldSeen));
+    fp = fopen((userDir() / WORLDSEEN_SAV).string().c_str(), "rb");
+    if (fp) {
+        if (fread(worldSeen, 1, sizeof(worldSeen), fp) != sizeof(worldSeen))
+            memset(worldSeen, 0xff, sizeof(worldSeen));
+        fclose(fp);
+    }
 }
 
 bool legacyDungeonWrite(const char* userPath) {
@@ -869,7 +891,34 @@ bool legacyDungeonWrite(const char* userPath) {
         return false;
     bool ok = fwrite(dngSeen, 1, sizeof(dngSeen), fp) == sizeof(dngSeen);
     fclose(fp);
+    if (! ok)
+        return false;
+
+    fn = userPath;
+    fn += WORLDSEEN_SAV;
+    fp = fopen(fn.c_str(), "wb");
+    if (! fp)
+        return false;
+    ok = fwrite(worldSeen, 1, sizeof(worldSeen), fp) == sizeof(worldSeen);
+    fclose(fp);
     return ok;
+}
+
+/*
+ * Note the world tiles within radius of x,y as explored.  The map wraps.
+ */
+void legacyWorldSee(int x, int y, int radius) {
+    for (int dy = -radius; dy <= radius; ++dy) {
+        uint8_t* row = worldSeen[(y + dy) & 255];
+        for (int dx = -radius; dx <= radius; ++dx) {
+            int wx = (x + dx) & 255;
+            row[wx >> 3] |= 1 << (wx & 7);
+        }
+    }
+}
+
+bool legacyWorldSeen(int x, int y) {
+    return worldSeen[y & 255][(x & 255) >> 3] & (1 << (x & 7));
 }
 
 void legacyDungeonSee(int mapId, int level, int x, int y) {

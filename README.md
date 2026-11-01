@@ -118,11 +118,14 @@ Book of Mystic Wisdom.
 
 ### World Map
 
-World Map in the game menu (or L on a gamepad) shows all of Britannia
-drawn with the tiles of the chosen module, like the cloth map that came
-with the game.  The party is framed in yellow, the moongates are marked
-with the moon phase that opens them, and the names written on the cloth
-map are shown in runes, or in English with R (Y on a gamepad).  Zoom with
+World Map in the game menu (or L on a gamepad) shows the parts of
+Britannia the party has explored, drawn with the tiles of the chosen
+module, so a Gem still has its use.  The party is framed in yellow, the
+moongates found are marked with the moon phase that opens them, and the
+names written on the cloth map are shown in runes, or in English with R
+(Y on a gamepad).  The Map tab of the Books of Britannia shows the whole
+cloth map, without the party or the moongates, and the Cheats menu has
+Map All Of Britannia.  Games saved before 1.2-pre2 show the whole map.  Zoom with
 +/- (A, the shoulder buttons, the mouse wheel or a tap) and pan with the
 arrows or by dragging.
 

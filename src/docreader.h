@@ -16,7 +16,8 @@ struct ScreenState;
 struct WorkBuffer;
 
 /*
- * Viewer for the printed game documents, the rune table, the How to Play
+ * Viewer for the printed game documents, the rune table, the cloth map,
+ * the How to Play
  * guide & the quest journal.  Each is split into chapters which are read
  * one at a time.
  */
@@ -24,6 +25,7 @@ class DocReader : public Controller {
 public:
     enum Book {
         BOOK_RUNES = DOC_COUNT,
+        BOOK_MAP,               // Opens the whole world map (cloth map).
         BOOK_HELP,
         BOOK_JOURNAL,
         BOOK_COUNT
