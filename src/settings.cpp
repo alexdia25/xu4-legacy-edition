@@ -289,6 +289,7 @@ bool Settings::read() {
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
     legacy.dungeonMap   = 1;    // Mini Map
+    legacy.moonSpeed    = MoonSpeed_Normal;
     gamepad_defaultMap(legacy.padMap);
 #if defined(ANDROID) || defined(__EMSCRIPTEN__)
     // Phones, tablets & browsers are mostly played by touch: Automatic
@@ -452,7 +453,13 @@ bool Settings::read() {
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
         else if (VALUE("moonSpeed="))
-            legacy.moonSpeed = settingEnum(moonSpeedStrings(), val);
+        {
+            const char** names = moonSpeedStrings();
+            for (int i = 0; names[i]; ++i) {
+                if (strcasecmp(names[i], val) == 0)
+                    legacy.moonSpeed = i;
+            }
+        }
         else if (VALUE("dungeonMap="))
             legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
         else if (VALUE("rules="))
@@ -686,7 +693,8 @@ const char** Settings::autoCombatStrings() {
 }
 
 const char** Settings::moonSpeedStrings() {
-    static const char* names[] = {"Normal", "Slow", "Slower", "Slowest", NULL};
+    static const char* names[] = {"Slowest", "Slower", "Slow", "Normal",
+                                  "Fast", "Faster", "Fastest", NULL};
     return names;
 }
 

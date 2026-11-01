@@ -123,10 +123,13 @@ enum LegacyDungeonMap {
 };
 
 enum LegacyMoonSpeed {
-    MoonSpeed_Normal,       // As DOS: a Felucca phase every 4 seconds.
-    MoonSpeed_Slow,         // Half as fast.
+    MoonSpeed_Slowest,      // An eighth of Normal.
     MoonSpeed_Slower,       // A quarter.
-    MoonSpeed_Slowest       // An eighth.
+    MoonSpeed_Slow,         // Half.
+    MoonSpeed_Normal,       // As DOS: a Felucca phase every 4 seconds.
+    MoonSpeed_Fast,         // Twice as fast.
+    MoonSpeed_Faster,       // Three times, about the pace of the SMS.
+    MoonSpeed_Fastest       // Four times.
 };
 
 struct LegacyOptions {

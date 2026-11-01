@@ -3702,10 +3702,18 @@ void GameController::timerFired() {
         }
 
         // Moon Speed: Slow, Slower & Slowest move the moons on every 2nd,
-        // 4th or 8th tick.
+        // 4th or 8th tick; Fast, Faster & Fastest move them 2, 3 or 4
+        // steps each tick.
         static unsigned moonTick = 0;
-        if ((++moonTick & ((1 << xu4.settings->legacy.moonSpeed) - 1)) == 0)
-            updateMoons(true);
+        int speed = xu4.settings->legacy.moonSpeed;
+        if (speed < MoonSpeed_Normal) {
+            int skip = 1 << (MoonSpeed_Normal - speed);
+            if (++moonTick % skip == 0)
+                updateMoons(true);
+        } else {
+            for (int n = speed - MoonSpeed_Normal; n >= 0; --n)
+                updateMoons(true);
+        }
         screenCycle();
         gameUpdateScreen();
 

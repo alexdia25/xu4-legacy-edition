@@ -29,9 +29,10 @@ Changed in 1.2-pre2, from players' feedback:
 - Fixed: pressing V in Settings during play opened the hidden Video
   Options, and changing them there crashed the game.
 - **Moon Speed** (Settings > Speed Options) slows the moons and their
-  moongates to a half, a quarter or an eighth of the original speed.
-  Normal keeps the DOS pace, where the moons turn in real time, a
-  phase of Felucca every 4 seconds on the world map.
+  moongates to a half, a quarter or an eighth of the original speed,
+  or speeds them up two, three (about the Master System's pace) or four
+  times.  Normal keeps the DOS pace, where the moons turn in real
+  time, a phase of Felucca every 4 seconds on the world map.
 
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
