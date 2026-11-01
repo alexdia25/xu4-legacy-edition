@@ -1295,15 +1295,13 @@ bool GameController::keyPressed(int key) {
     bool valid = true;
     int endTurn = 1;
 
-    if (key == U4_PAD_B)
-        key = ' ';              // Gamepad B passes a turn.
     EventHandler::smsMenus();   // Notice a gamepad being used.
 
     // Note prompts backed out of, for the Cancel Spends No Turn option.
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
 
-    // The action menu: gamepad X, a tap on the party, or Tab when
+    // The action menu: gamepad A, a tap on the party, or Tab when
     // Enter is the smart Enter key (otherwise Enter, with console menus).
     bool smartEnter = settings.enhancements &&
                       settings.enhancementsOptions.smartEnterKey;

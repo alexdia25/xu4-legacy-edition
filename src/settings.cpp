@@ -9,6 +9,7 @@
 
 #include "error.h"
 #include "filesystem.h"
+#include "gamepad.h"
 #include "screen.h"
 #include "xu4.h"
 
@@ -280,18 +281,18 @@ bool Settings::read() {
 
     memset(&legacy, 0, sizeof(legacy));
     applyLegacyPreset(*this, LegacyPreset_Classic);
-    // The conveniences of this edition are on by default.  Walk Into To
-    // Act starts off (it is switched on by the gamepad, see smsMenus).
+    // The conveniences of this edition are on by default, except Walk
+    // Into To Act (walking into people starting a talk annoys some).
     legacy.foldMoves    = true;
     legacy.freeCancel   = true;
     legacy.shopCompare  = true;
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
     legacy.dungeonMap   = 1;    // Mini Map
+    gamepad_defaultMap(legacy.padMap);
 #if defined(ANDROID) || defined(__EMSCRIPTEN__)
-    // Phones, tablets & browsers are mostly played by touch: walking into
-    // someone talks, into a door opens it, and so on.
-    legacy.bumpToAct    = true;
+    // Phones, tablets & browsers are mostly played by touch: Automatic
+    // Actions picks what to open or jimmy.
     shortcutCommands    = true;
 #endif
 
@@ -317,6 +318,21 @@ bool Settings::read() {
         // Skip empty and comment lines.
         if (cp[0] == '\n' || cp[0] == '#' || cp[0] == ';')
             continue;
+
+        if (strncmp(cp, "pad", 3) == 0) {
+            // Gamepad Buttons: padA=Action Menu, etc.
+            int b;
+            for (b = 0; b < PadMap_Count; ++b) {
+                char name[8];
+                snprintf(name, sizeof(name), "pad%s=", padButtonNames[b]);
+                if (VALUE(name)) {
+                    legacy.padMap[b] = settingEnum(padActionNames, val);
+                    break;
+                }
+            }
+            if (b < PadMap_Count)
+                continue;
+        }
 
         if (VALUE("scale="))
             scale = (unsigned int) toInt(val);
@@ -628,6 +644,10 @@ bool Settings::write() {
             legacy.poisonKills,
             legacy.sharedXp,
             legacy.wipeChoice);
+
+    for (int i = 0; i < PadMap_Count; ++i)
+        fprintf(settingsFile, "pad%s=%s\n", padButtonNames[i],
+                padActionNames[ legacy.padMap[i] ]);
 
     fclose(settingsFile);
 

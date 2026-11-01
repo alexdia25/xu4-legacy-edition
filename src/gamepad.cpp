@@ -47,9 +47,9 @@ void gamepad_keyboardUsed() {
 // Key sent when each button is pressed.
 static int buttonKey(int b) {
     switch (b) {
-        case PAD_A:     return U4_ENTER;
+        case PAD_A:     return U4_PAD_A;
         case PAD_B:     return U4_PAD_B;
-        case PAD_X:     return U4_ACTIONS;
+        case PAD_X:     return U4_PAD_X;
         case PAD_Y:     return U4_PAD_Y;
         case PAD_BACK:  return U4_PAD_SELECT;
         case PAD_START: return U4_PAD_START;
@@ -59,6 +59,56 @@ static int buttonKey(int b) {
         case PAD_DOWN:  return U4_DOWN;
         case PAD_LEFT:  return U4_LEFT;
         case PAD_RIGHT: return U4_RIGHT;
+    }
+    return 0;
+}
+
+const char* padActionNames[PadAct_Count + 1] = {
+    "Nothing", "Action Menu", "Smart Enter", "Pass Turn", "Ztats",
+    "World Map", "Journal", NULL
+};
+
+const char* padButtonNames[PadMap_Count] = {
+    "A", "B", "X", "Y", "L", "R"
+};
+
+/*
+ * Set the classic button layout: A the action menu, B nothing (it backs
+ * out of questions), X pass, Y Ztats, L the world map, R Smart Enter.
+ */
+void gamepad_defaultMap(uint8_t* map) {
+    map[PadMap_A] = PadAct_Actions;
+    map[PadMap_B] = PadAct_None;
+    map[PadMap_X] = PadAct_Pass;
+    map[PadMap_Y] = PadAct_Ztats;
+    map[PadMap_L] = PadAct_WorldMap;
+    map[PadMap_R] = PadAct_Smart;
+}
+
+/*
+ * Turn a gamepad button key into the key of its action in play.
+ * Returns 0 for a button with nothing to do, or -1 if key is not one of
+ * the mapped buttons.
+ */
+int gamepad_playKey(int key, const uint8_t* map) {
+    int b;
+    switch (key) {
+        case U4_PAD_A: b = PadMap_A; break;
+        case U4_PAD_B: b = PadMap_B; break;
+        case U4_PAD_X: b = PadMap_X; break;
+        case U4_PAD_Y: b = PadMap_Y; break;
+        case U4_PAD_L: b = PadMap_L; break;
+        case U4_PAD_R: b = PadMap_R; break;
+        default:
+            return -1;
+    }
+    switch (map[b]) {
+        case PadAct_Actions:  return U4_ACTIONS;
+        case PadAct_Smart:    return U4_SMART;
+        case PadAct_Pass:     return U4_SPACE;
+        case PadAct_Ztats:    return 'z';
+        case PadAct_WorldMap: return U4_WORLD_MAP;
+        case PadAct_Journal:  return 'j' + U4_ALT;
     }
     return 0;
 }

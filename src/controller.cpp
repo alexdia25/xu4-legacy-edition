@@ -6,6 +6,8 @@
 
 #include "controller.h"
 #include "event.h"
+#include "gamepad.h"
+#include "settings.h"
 #include "xu4.h"
 
 /**
@@ -25,11 +27,19 @@ Controller::~Controller() {
  * to the virtual keyPressed method.
  */
 bool Controller::notifyKeyPressed(int key) {
-    if (! handlesPadB()) {
+    if (handlesPadB()) {
+        // On the map and in combat each button does what the Gamepad
+        // Buttons settings give it.
+        int pk = gamepad_playKey(key, xu4.settings->legacy.padMap);
+        if (pk == 0)
+            return true;
+        if (pk > 0)
+            key = pk;
+    } else {
         if (key == U4_PAD_B)
             key = U4_ESC;
-        else if (key == U4_ACTIONS)
-            key = U4_ENTER;     // Gamepad X confirms, like A.
+        else if (key == U4_ACTIONS || key == U4_PAD_A || key == U4_PAD_X)
+            key = U4_ENTER;     // Gamepad A & X confirm.
     }
     bool processed = EventHandler::globalKeyHandler(key);
     if (!processed)

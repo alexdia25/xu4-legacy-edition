@@ -44,12 +44,16 @@
 #define U4_PAD_START    0x1F0   // Pause, like the SMS console button.
 #define U4_PAD_B        0x1F1   // Escape, except on the map or in combat.
 #define U4_PAD_SELECT   0x1F2   // Open or close the xu4 (Escape) menu.
-#define U4_PAD_L        0x1F3   // Left shoulder: open the world map.
+#define U4_PAD_L        0x1F3   // Left shoulder.
 #define U4_PAD_R        0x1F4   // Right shoulder.
+#define U4_PAD_A        0x1F9   // Enter, except on the map or in combat.
+#define U4_PAD_X        0x1FA   // Enter, except on the map or in combat.
+#define U4_WORLD_MAP    0x1FB   // Open the world map.
 
-#define U4_ACTIONS      0x1F6   // X, Tab or a tap on the party: action menu.
-#define U4_PAD_Y        0x1F7   // Y: open the world map.
-#define U4_SMART        0x1F8   // A tap on the party (Android & web): smart Enter.
+#define U4_ACTIONS      0x1F6   // Tab or a tap on the party: action menu.
+#define U4_PAD_Y        0x1F7   // Y.
+#define U4_SMART        0x1F8   // Smart Enter (a tap on the party on Android &
+                                // web, gamepad R).
 
 // Sent by setPointerRepeat when the pointer is held down (press & hold).
 #define U4_HOLD         0x1F5

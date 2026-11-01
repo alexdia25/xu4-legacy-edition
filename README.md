@@ -53,11 +53,12 @@ from other people are saved with the game.
 | In play                | Keyboard            | Gamepad      | Mouse & touch               |
 |------------------------|---------------------|--------------|-----------------------------|
 | Walk                   | Arrow keys          | Stick, D-pad | Tap beside the party (hold to keep walking, drag to steer) |
-| The obvious action (board, klimb, descend...) | Enter | A | |
-| Action menu            | Tab                 | X            | Tap the party or the messages |
-| Pass a turn            | Space               | B            |                             |
-| Party status (Ztats)   | Z                   |              | Tap the party list          |
-| World map              | Escape, M           | Y or L       |                             |
+| Action menu            | Tab                 | A            | Tap the party or the messages |
+| Back out, cancel       | Escape              | B            | Tap outside the list        |
+| Pass a turn            | Space               | X            |                             |
+| Party status (Ztats)   | Z                   | Y            | Tap the party list          |
+| World map              | Escape, M           | L            |                             |
+| The obvious action (board, klimb, descend...) | Enter | R | |
 | Game menu              | Escape              | Select (View) | The icon in the top left corner |
 | Pause                  | Pause               | Start        |                             |
 
@@ -67,11 +68,12 @@ toward the target, and the gypsy's questions a tap on a card.  The
 obvious action is XU4's Smart 'Enter' Key; with that option off, Enter
 opens the action menu instead.
 
-The letter commands of the original game all still work, and Enter
-keeps XU4's behaviour when the console menus are on.  The first time a
-gamepad is used, Walk Into To Act and Automatic Actions are switched on
-as well, so walking into a door opens it and walking into someone
-talks.
+The gamepad buttons used in play can be changed in Settings > Gamepad
+Buttons.  The letter commands of the original game all still work, and
+Enter keeps XU4's behaviour when the console menus are on.  The first
+time a gamepad is used, Automatic Actions is switched on as well, so
+Open and Jimmy pick the door by themselves.  Walk Into To Act (walking
+into someone talks, into a door opens it) starts off.
 
 ### The Game Menu
 
@@ -116,7 +118,7 @@ Book of Mystic Wisdom.
 
 ### World Map
 
-World Map in the game menu (or Y on a gamepad) shows all of Britannia
+World Map in the game menu (or L on a gamepad) shows all of Britannia
 drawn with the tiles of the chosen module, like the cloth map that came
 with the game.  The party is framed in yellow, the moongates are marked
 with the moon phase that opens them, and the names written on the cloth
@@ -146,7 +148,7 @@ edition.  Each can be switched off for the game as it was.
 | Option                 | What it does                                       | Starts |
 |------------------------|----------------------------------------------------|--------|
 | Console (SMS) Menus    | The action menu and pickers described above        | On with a gamepad or a tap |
-| Walk Into To Act       | Walking into someone talks, into a foe attacks, into a locked door opens it | On with a gamepad |
+| Walk Into To Act       | Walking into someone talks, into a foe attacks, into a locked door opens it | Off |
 | Fold Repeated Moves    | "North (x5)" instead of five lines                 | On     |
 | Cancel Spends No Turn  | Backing out of a command costs nothing             | On     |
 | Shops Compare Arms     | Shops show how gear compares with what each member has, and offer to equip it | On |

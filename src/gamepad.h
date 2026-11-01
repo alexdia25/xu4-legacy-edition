@@ -40,6 +40,35 @@ struct PadState {
 
 typedef void (*PadKeyFunc)(int key);
 
+// What a button does in play (on the map and in combat).  Outside of play
+// the buttons keep fixed uses: A & X confirm, B backs out.
+enum PadAction {
+    PadAct_None,
+    PadAct_Actions,     // The action menu.
+    PadAct_Smart,       // The obvious action (Smart Enter).
+    PadAct_Pass,        // Pass a turn.
+    PadAct_Ztats,
+    PadAct_WorldMap,
+    PadAct_Journal,
+    PadAct_Count
+};
+
+// The buttons which can be given a PadAction.
+enum PadMapButton {
+    PadMap_A,
+    PadMap_B,
+    PadMap_X,
+    PadMap_Y,
+    PadMap_L,
+    PadMap_R,
+    PadMap_Count
+};
+
+extern const char* padActionNames[PadAct_Count + 1];
+extern const char* padButtonNames[PadMap_Count];
+void gamepad_defaultMap(uint8_t* map);
+int  gamepad_playKey(int key, const uint8_t* map);
+
 void gamepad_reset();
 void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey);
 bool gamepad_inUse();

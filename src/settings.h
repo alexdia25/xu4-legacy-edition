@@ -139,6 +139,7 @@ struct LegacyOptions {
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).
+    uint8_t padMap[6];      // PadAction of each PadMapButton in play.
     // Rules
     uint8_t preset;         // LegacyPreset
     uint8_t starvation;     // LegacyStarvation

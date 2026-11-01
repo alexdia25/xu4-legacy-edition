@@ -9,7 +9,7 @@ Script lines (# starts a comment):
     key NAME...     Press keys: a single character, or one of
                     up down left right enter esc space tab backspace,
                     f1-f12, alt-X, ctrl-X, pad-start pad-b pad-select
-                    pad-l pad-r.
+                    pad-l pad-r pad-y pad-a pad-x.
     type TEXT       Type the rest of the line as characters.
     snap            Save a screenshot (to XU4_TEST_DIR) of the next frame.
     repeat N KEY    Press KEY N times.
@@ -35,7 +35,8 @@ NAMES = {
     'up': ord('['), 'down': ord('/'), 'left': ord(';'), 'right': ord("'"),
     'enter': 13, 'esc': 27, 'space': 32, 'tab': 9, 'backspace': 8,
     'pad-start': 0x1F0, 'pad-b': 0x1F1, 'pad-select': 0x1F2,
-    'pad-l': 0x1F3, 'pad-r': 0x1F4,
+    'pad-l': 0x1F3, 'pad-r': 0x1F4, 'pad-y': 0x1F7, 'pad-a': 0x1F9,
+    'pad-x': 0x1FA,
     'snap': 0x1FE,
 }
 

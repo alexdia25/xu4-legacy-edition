@@ -936,9 +936,6 @@ bool CombatController::keyPressed(int key) {
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
 
-    if (key == U4_PAD_B)
-        key = ' ';              // Gamepad B passes a turn.
-
     switch (key) {
 
     case U4_UP:
@@ -967,7 +964,8 @@ bool CombatController::keyPressed(int key) {
         screenMessage("Pass\n");
         break;
 
-    case U4_ACTIONS:            // Gamepad X, Tab, or a tap on the fighter.
+    case U4_ACTIONS:            // Gamepad A, Tab, or a tap on the fighter.
+    case U4_SMART:              // Nothing is obvious in combat.
     case U4_TAB:
     case U4_ENTER:
         if (key != U4_ENTER || EventHandler::smsMenus()) {
