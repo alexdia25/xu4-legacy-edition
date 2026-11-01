@@ -39,7 +39,9 @@ The whole game can be played with a gamepad, a mouse or a touch screen.
 The **console style menus**, modelled on the Sega Master System version,
 replace one key per command with an action menu, list the topics of a
 conversation as they are discovered instead of having them typed, and
-give pickers for spells, items, numbers and letters.  They switch on by
+give pickers for spells, items, numbers and letters, the virtue to
+meditate on at a shrine, and the topics heard in conversation to ask a
+barkeep about (the right pub must still be found).  They switch on by
 themselves when a gamepad is used or the screen is tapped, and can be
 turned on for keyboard play in Settings > Legacy Edition Options.
 

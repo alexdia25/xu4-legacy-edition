@@ -732,7 +732,9 @@ tavern: context [
                     tip_total: offer
                     vo 7
                     >> "^/What'd ya like to know friend?^/"
-                    either topic: find topics input-text 0 [
+                    ; Console menus list the topics heard of anywhere,
+                    ; so the right pub must still be found.
+                    either topic: find topics input-text all-topics [
                         price: second topic     ; Reuse price for topic.
                         topic: first topic
                         foggy

@@ -301,10 +301,34 @@ static bool smsPlaceholder(const char* stub)
     return smsSameText(stub, "a");
 }
 
+/*
+ * Return true if word (lowercase) has been heard in a conversation.
+ * Two word phrases are only known for the stones named by the pub topics.
+ */
+bool talkWordHeard(const char* word)
+{
+    if (talkHeardWords.count(word))
+        return true;
+    std::string plural(word);
+    plural += 's';
+    return talkHeardWords.count(plural) != 0;
+}
+
 static void talkHeard(SmsTalk* st, const char* text)
 {
     if (! text)
         return;
+
+    // The stones asked about in the pubs are two words.
+    static const char* const phrases[] = { "black stone", "white stone" };
+    std::string lower(text);
+    for (char& ch : lower)
+        ch = (ch == '\n') ? ' ' : tolower((unsigned char) ch);
+    for (const char* ph : phrases) {
+        if (lower.find(ph) != std::string::npos)
+            talkHeardWords.insert(ph);
+    }
+
     std::string w;
     for (const char* cp = text; ; ++cp) {
         if (isalpha((unsigned char) *cp)) {

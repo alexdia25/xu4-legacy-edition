@@ -477,15 +477,52 @@ CFUNC(cf_inputNumber)
 
 /*-cf-
     input-text
-        limit       int!  Maximum number of characters
+        limit       int!/block!  Maximum number of characters, or topics
     return: none!/string!
+
+    With a block of topics (strings, each followed by a value) and the
+    console menus on, the topics the party has heard of in conversation
+    are offered as a list instead of typing.
 */
 CFUNC(cf_inputText)
 {
-    int maxLen = ur_int(a1);
-    if (maxLen <= 0)
-        maxLen = TEXT_AREA_W-2;
-    string str = EventHandler::readString(maxLen);
+    string str;
+    if (ur_is(a1, UT_BLOCK)) {
+        if (EventHandler::smsMenus()) {
+            std::vector<std::string> names;
+            std::vector<const char*> labels;
+            UBlockIt bi;
+            ur_blockIt(ut, &bi, a1);
+            for (; bi.it != bi.end; ++bi.it) {
+                if (ur_is(bi.it, UT_STRING)) {
+                    std::string topic;
+                    cellString(ut, bi.it, topic);
+                    if (talkWordHeard(topic.c_str()))
+                        names.push_back(topic);
+                }
+            }
+            for (std::string& n : names) {
+                n[0] = toupper(n[0]);
+                labels.push_back(n.c_str());
+            }
+            if (labels.empty()) {
+                screenMessage("Nothing to ask about.\n");
+            } else {
+                int n = EventHandler::chooseItem(labels.data(),
+                                                 labels.size());
+                if (n >= 0) {
+                    str = names[n];
+                    screenMessage("%s", str.c_str());
+                }
+            }
+        } else
+            str = EventHandler::readString(TEXT_AREA_W-2);
+    } else {
+        int maxLen = ur_int(a1);
+        if (maxLen <= 0)
+            maxLen = TEXT_AREA_W-2;
+        str = EventHandler::readString(maxLen);
+    }
     screenCrLf();
 
     if (str.empty()) {
@@ -1067,7 +1104,7 @@ static const char pfFuncSpecs[] =
     ">> text\n"
     "input-choice spec string!/block!\n"
     "input-number limit int!\n"
-    "input-text limit int!\n"
+    "input-text limit int!/block!\n"
     "input-player\n"
     "party a word!\n"
     "pc-attr n int! 'a word!\n"
