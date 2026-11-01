@@ -26,6 +26,10 @@ Changed in 1.2-pre2, from players' feedback:
   could show only a cursor, because opening Configure could switch the
   console menus back off.  A gamepad now always gets the lists and the
   letter grid.
+- **Moon Speed** (Settings > Speed Options) slows the moons and their
+  moongates to a half, a quarter or an eighth of the original speed.
+  Normal keeps the DOS pace, where the moons turn in real time, a
+  phase of Felucca every 4 seconds on the world map.
 
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).

@@ -122,6 +122,13 @@ enum LegacyDungeonMap {
     DungeonMap_TopDown      // The map in place of the 3-D view.
 };
 
+enum LegacyMoonSpeed {
+    MoonSpeed_Normal,       // As DOS: a Felucca phase every 4 seconds.
+    MoonSpeed_Slow,         // Half as fast.
+    MoonSpeed_Slower,       // A quarter.
+    MoonSpeed_Slowest       // An eighth.
+};
+
 struct LegacyOptions {
     // Convenience
     bool bumpToAct;         // Walking into someone talks, a foe attacks...
@@ -139,6 +146,7 @@ struct LegacyOptions {
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).
+    uint8_t moonSpeed;      // LegacyMoonSpeed
     uint8_t padMap[6];      // PadAction of each PadMapButton in play.
     // Rules
     uint8_t preset;         // LegacyPreset
@@ -220,6 +228,7 @@ public:
     static const char** turnTimerStrings();
     static const char** autoCombatStrings();
     static const char** dungeonMapStrings();
+    static const char** moonSpeedStrings();
     static void applyLegacyPreset(SettingsData& data, int preset);
 
     void init(const char* profileName);

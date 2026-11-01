@@ -291,6 +291,7 @@ IntroController::IntroController() :
     speedMenu.add(MI_SPEED_05, new IntMenuItem("Inn Rest Length           %3d sec",  2,  6,/*'i'*/  0, &settingsChanged.innTime, 1, MAX_INN_TIME, 1));
     speedMenu.add(MI_SPEED_06, new IntMenuItem("Shrine Meditation Length  %3d sec",  2,  7,/*'s'*/  0, &settingsChanged.shrineTime, 1, MAX_SHRINE_TIME, 1));
     speedMenu.add(MI_SPEED_07, new IntMenuItem("Screen Shake Interval     %3d msec", 2,  8,/*'r'*/  2, &settingsChanged.shakeInterval, MIN_SHAKE_INTERVAL, MAX_SHAKE_INTERVAL, 10));
+    speedMenu.add(MI_SPEED_08, new EnumMenuItem("Moon Speed                %s",      2,  9,/*'o'*/  1, &settingsChanged.legacy.moonSpeed, Settings::moonSpeedStrings()));
     speedMenu.add(USE_SETTINGS,                "\010 Use These Settings",            2, 11,/*'u'*/  2);
     speedMenu.add(CANCEL,                      "\010 Cancel",                        2, 12,/*'c'*/  2);
     speedMenu.addShortcutKey(CANCEL, ' ');

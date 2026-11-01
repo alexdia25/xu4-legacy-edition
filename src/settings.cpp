@@ -451,6 +451,8 @@ bool Settings::read() {
             legacy.cheatsMenu = toInt(val);
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
+        else if (VALUE("moonSpeed="))
+            legacy.moonSpeed = settingEnum(moonSpeedStrings(), val);
         else if (VALUE("dungeonMap="))
             legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
         else if (VALUE("rules="))
@@ -617,6 +619,7 @@ bool Settings::write() {
             "cheatsMenu=%d\n"
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
+            "moonSpeed=%s\n"
             "rules=%s\n"
             "starvation=%s\n"
             "turnTimer=%s\n"
@@ -638,6 +641,7 @@ bool Settings::write() {
             legacy.cheatsMenu,
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
+            moonSpeedStrings()[ legacy.moonSpeed ],
             legacyPresetStrings()[ legacy.preset ],
             starvationStrings()[ legacy.starvation ],
             turnTimerStrings()[ legacy.turnTimer ],
@@ -678,6 +682,11 @@ const char** Settings::turnTimerStrings() {
 
 const char** Settings::autoCombatStrings() {
     static const char* names[] = {"Off", "Companions", "Whole Party", NULL};
+    return names;
+}
+
+const char** Settings::moonSpeedStrings() {
+    static const char* names[] = {"Normal", "Slow", "Slower", "Slowest", NULL};
     return names;
 }
 

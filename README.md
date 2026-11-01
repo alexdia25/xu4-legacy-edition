@@ -176,6 +176,11 @@ The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
 (the game waits while its window is in the background).  The video
 filter defaults to point scaling, for pixel sharp graphics.
 
+Speed Options adds **Moon Speed**: Normal is the DOS pace (the moons
+turn in real time on the world map, a phase of Felucca every 4
+seconds), while Slow, Slower and Slowest give the moons and their
+moongates a half, a quarter or an eighth of that speed.
+
 ### Graphics & Music Modules
 
 Graphics & Music in the game menu lists the modules in two sections:

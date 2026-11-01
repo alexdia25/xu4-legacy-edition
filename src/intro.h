@@ -215,6 +215,7 @@ private:
         MI_SPEED_05,
         MI_SPEED_06,
         MI_SPEED_07,
+        MI_SPEED_08,
         MI_GAMEPLAY_01,
         MI_GAMEPLAY_02,
         MI_GAMEPLAY_03,

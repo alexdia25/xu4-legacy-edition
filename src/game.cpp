@@ -3701,7 +3701,11 @@ void GameController::timerFired() {
             c->location->move(dirReverse((Direction) c->windDirection), false);
         }
 
-        updateMoons(true);
+        // Moon Speed: Slow, Slower & Slowest move the moons on every 2nd,
+        // 4th or 8th tick.
+        static unsigned moonTick = 0;
+        if ((++moonTick & ((1 << xu4.settings->legacy.moonSpeed) - 1)) == 0)
+            updateMoons(true);
         screenCycle();
         gameUpdateScreen();
 
