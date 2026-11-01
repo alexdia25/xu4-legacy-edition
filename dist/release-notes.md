@@ -31,8 +31,9 @@ Changed in 1.2-pre2, from players' feedback:
 - **Moon Speed** (Settings > Speed Options) slows the moons and their
   moongates to a half, a quarter or an eighth of the original speed,
   or speeds them up two, three (about the Master System's pace) or four
-  times.  Normal keeps the DOS pace, where the moons turn in real
-  time, a phase of Felucca every 4 seconds on the world map.
+  times.  Normal keeps XU4's pace, close to the DOS game's: the moons
+  turn in real time, a phase of Felucca every 4 seconds on the world
+  map.
 
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).

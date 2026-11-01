@@ -59,7 +59,7 @@ from other people are saved with the game.
 | Back out, cancel       | Escape              | B            | Tap outside the list        |
 | Pass a turn            | Space               | X            |                             |
 | Party status (Ztats)   | Z                   | Y            | Tap the party list          |
-| World map              | Escape, M           | L            |                             |
+| World map              | M                   | L            |                             |
 | The obvious action (board, klimb, descend...) | Enter | R | |
 | Game menu              | Escape              | Select (View) | The icon in the top left corner |
 | Pause                  | Pause               | Start        |                             |
@@ -72,8 +72,9 @@ opens the action menu instead.
 
 The gamepad buttons used in play can be changed in Settings > Input
 Options > Gamepad Buttons, which also offers the Smart Enter layout of
-1.2-pre1 (A the obvious action, X the action menu, B pass).  The letter commands of the original game all still work, and
-Enter keeps XU4's behaviour when the console menus are on.  The first
+1.2-pre1 (A the obvious action, X the action menu, B pass).  The letter
+commands of the original game all still work, and Enter keeps XU4's
+behaviour when the console menus are on.  The first
 time a gamepad is used, Automatic Actions is switched on as well, so
 Open and Jimmy pick the door by themselves.  Walk Into To Act (walking
 into someone talks, into a door opens it) starts off.
@@ -102,6 +103,7 @@ for the contents).  The reader also has:
    people to the quest and the options.
  - **Journal**: the path of each virtue, the quest items found and the
    clues heard.
+ - **Map**: the whole cloth map of Britannia.
  - **Three text sizes**: - and + (or the shoulder buttons) change the
    size of the text, which rewraps to fit.
 
@@ -176,9 +178,9 @@ The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
 (the game waits while its window is in the background).  The video
 filter defaults to point scaling, for pixel sharp graphics.
 
-Speed Options adds **Moon Speed**: Normal is the DOS pace (the moons
-turn in real time on the world map, a phase of Felucca every 4
-seconds), while Slow, Slower and Slowest give the moons and their
+Speed Options adds **Moon Speed**: Normal is XU4's pace, close to the
+DOS game's (the moons turn in real time on the world map, a phase of
+Felucca every 4 seconds, against about 3.6 in GOG's DOSBox), while Slow, Slower and Slowest give the moons and their
 moongates a half, a quarter or an eighth of that speed, and Fast,
 Faster and Fastest two, three (about the Master System's pace) or four
 times that speed.
