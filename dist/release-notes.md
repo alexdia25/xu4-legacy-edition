@@ -4,6 +4,29 @@ makes Ultima IV easier to play on modern systems, especially with the free
 
 ## New in 1.2 (pre-release)
 
+Changed in 1.2-pre2, from players' feedback:
+
+- **Gamepad buttons are back to the 1.1.5 layout**: in play A opens the
+  action menu, B does nothing (it backs out of questions), X passes a
+  turn, Y shows Ztats, L the world map, and R does the obvious action
+  (XU4's smart Enter).  **Settings > Input Options > Gamepad Buttons**
+  sets what each button does in play, with the Classic layout and the
+  Smart Enter layout of pre1 one choice away.
+- **Walk Into To Act starts off** everywhere, and a gamepad no longer
+  switches it on (Settings > Legacy Edition Options turns it on).
+- **The world map in play shows only what the party has explored**, so
+  a Gem still has its use.  The Books of Britannia have a new Map tab
+  with the whole cloth map (without the party or the moongates), and
+  the Cheats menu can map all of Britannia.  Games saved before pre2
+  show the whole map.
+- With console menus, **meditating at a shrine picks the virtue from a
+  list**, and **a barkeep is asked about a topic picked from a list**
+  of those heard in conversation (the right pub must still be found).
+- Fixed: with a gamepad, the shrine's virtue (and other typed answers)
+  could show only a cursor, because opening Configure could switch the
+  console menus back off.  A gamepad now always gets the lists and the
+  letter grid.
+
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
 - **Android**: an APK for phones, tablets and handhelds (Android 7 or
@@ -20,10 +43,9 @@ makes Ultima IV easier to play on modern systems, especially with the free
   the documents; loose or zipped) and removes them, and exports the
   saves.
 - **Android and web play fill the screen** (stretched to fit, refitted
-  when the device turns or the window is resized).  Walk Into To Act
-  is on by default there, and tapping the party does the obvious
-  action, like the smart Enter key (the message area still opens the
-  action menu).
+  when the device turns or the window is resized).  Tapping the party
+  does the obvious action, like the smart Enter key (the message area
+  still opens the action menu).
 - With touch, Male or Female and the History's Yes or No are picked
   from short lists, so a tap picks them.
 - The runes of the world map and Runes tab now show in the browser.
@@ -50,19 +72,17 @@ makes Ultima IV easier to play on modern systems, especially with the free
   History is offered when the story asks you to read it, and with Spell
   Info In Lists on, a spell or reagent opens its Book of Mystic Wisdom
   page (?, the right shoulder button, a right click or a long press).
-- **Gamepad buttons**: in play A does the obvious action (XU4's smart
-  Enter key), X opens the action menu, Y the world map and B passes a
-  turn; in menus A or X picks and B backs out.  On the keyboard, Tab
-  opens the action menu.
+- On the keyboard, Enter does the obvious action (XU4's smart Enter
+  key) and Tab opens the action menu.
 - Picking other graphics during play no longer goes back to the title:
   the game carries on where it was with the new graphics (in a town or a
   battle, once the party is back outside).  Your save files are not
   changed.
 - The help lines of the books, the world map and Graphics & Music name
   the gamepad buttons or the keys, whichever was used last.  The books'
-  footer has a second line, with Tab (or 1-7) to change book.
-- The Legacy Edition options start on (except Auto Combat), and Walk
-  Into To Act and Automatic Actions switch on with a gamepad.  Console
+  footer has a second line, with Tab (or 1-8) to change book.
+- The Legacy Edition options start on (except Auto Combat and Walk
+  Into To Act), and Automatic Actions switches on with a gamepad.  Console
   (SMS) Menus is now in Legacy Edition Options, and Pause Unfocused in
   the Graphics options.
 - Names can be entered in upper and lower case with the letter grid.
@@ -159,10 +179,11 @@ The source code is in `xu4-legacy-*.tar.gz`.
 ## What's new compared with XU4
 
 - **Gamepad support** through SDL3.  The console style menus switch on by
-  themselves when a controller is used.  In play A does the obvious
-  action (XU4's smart Enter key), X opens the action menu, Y the world
-  map and B passes; in menus A or X picks and B backs out.  Select opens
-  the game menu and Start pauses.
+  themselves when a controller is used.  In play A opens the action
+  menu, X passes, Y shows Ztats, L the world map and R does the obvious
+  action (changeable in Settings > Input Options > Gamepad Buttons); in
+  menus A or X picks and B backs out.  Select opens the game menu and
+  Start pauses.
 - **Console (SMS) style menus**, also available for keyboard play under
   Settings > Legacy Edition Options: an action menu instead of one
   key per command, conversation topics that are listed as they are
