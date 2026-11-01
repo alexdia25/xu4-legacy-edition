@@ -410,6 +410,13 @@ Future benefits:
    later rewrites can be checked against the previous version in the same
    way.
 
+### Thanks
+
+A big thank you to [/u/randyrobbinsmusic](https://www.reddit.com/user/randyrobbinsmusic/)
+from the [/r/ultima](https://www.reddit.com/r/ultima/) community, whose
+knowledge of the game, and of the Sega Master System version in
+particular, made testing move so much quicker.
+
 The original XU4 readme follows.
 
 [XU4]: https://xu4.sourceforge.net/
