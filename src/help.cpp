@@ -68,6 +68,7 @@ static const char helpText[] =
 "  Y                 Party status (Ztats)\n"
 "  L                 The world map\n"
 "  R                 The obvious action, like Enter\n"
+"  (Settings, Input Options, Gamepad Buttons changes these)\n"
 "  Start             Pause\n"
 "  Select            This menu\n"
 "\n"

@@ -112,6 +112,7 @@ public:
     void updateInterfaceMenu(MenuEvent &event);
     void updateLegacyMenu(MenuEvent &event);
     void updateRulesMenu(MenuEvent &event);
+    void updatePadMenu(MenuEvent &event);
     void updateCheatsMenu(MenuEvent &event);
     void updateGameMenu(MenuEvent &event);
     void updateQuitMenu(MenuEvent &event);
@@ -198,6 +199,15 @@ private:
         MI_INPUT_01,
         MI_INPUT_02,
         MI_INPUT_03,
+        MI_INPUT_PAD,
+        MI_PAD_A,
+        MI_PAD_B,
+        MI_PAD_X,
+        MI_PAD_Y,
+        MI_PAD_L,
+        MI_PAD_R,
+        MI_PAD_CLASSIC,
+        MI_PAD_SMART,
         MI_SPEED_01,
         MI_SPEED_02,
         MI_SPEED_03,
@@ -282,6 +292,7 @@ private:
     Menu interfaceMenu;
     Menu legacyMenu;
     Menu rulesMenu;
+    Menu padMenu;
     Menu cheatsMenu;
     Menu gameMenu;
     Menu quitMenu;

@@ -70,8 +70,9 @@ toward the target, and the gypsy's questions a tap on a card.  The
 obvious action is XU4's Smart 'Enter' Key; with that option off, Enter
 opens the action menu instead.
 
-The gamepad buttons used in play can be changed in Settings > Gamepad
-Buttons.  The letter commands of the original game all still work, and
+The gamepad buttons used in play can be changed in Settings > Input
+Options > Gamepad Buttons, which also offers the Smart Enter layout of
+1.2-pre1 (A the obvious action, X the action menu, B pass).  The letter commands of the original game all still work, and
 Enter keeps XU4's behaviour when the console menus are on.  The first
 time a gamepad is used, Automatic Actions is switched on as well, so
 Open and Jimmy pick the door by themselves.  Walk Into To Act (walking

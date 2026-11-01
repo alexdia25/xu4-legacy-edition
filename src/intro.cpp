@@ -8,6 +8,7 @@
 #include "u4.h"
 
 #include "intro.h"
+#include "gamepad.h"
 #include "context.h"
 #include "location.h"
 #include "discourse.h"
@@ -256,12 +257,31 @@ IntroController::IntroController() :
     inputMenu.add(MI_INPUT_02,  new IntMenuItem("Repeat Interval     %4d msec", 2,  3,/*'i'*/  7, &settingsChanged.keyinterval, 10, MAX_KEY_INTERVAL, 10));
     /* "Mouse Options:" is drawn in the updateInputMenu() function */
     inputMenu.add(MI_INPUT_03, new BoolMenuItem("Mouse                %s",      2,  7,/*'m'*/  0, &settingsChanged.mouseOptions.enabled));
+    inputMenu.add(MI_INPUT_PAD,                 "\010 Gamepad Buttons",         2,  9,/*'g'*/  2);
     inputMenu.add(USE_SETTINGS,                 "\010 Use These Settings",      2, 11,/*'u'*/  2);
     inputMenu.add(CANCEL,                       "\010 Cancel",                  2, 12,/*'c'*/  2);
     inputMenu.addShortcutKey(CANCEL, ' ');
     inputMenu.addShortcutKey(CANCEL, U4_ESC);
     inputMenu.setClosesMenu(USE_SETTINGS);
     inputMenu.setClosesMenu(CANCEL);
+
+    // What each gamepad button does on the map and in combat.
+    padMenu.setTitle("Gamepad Buttons In Play:", 0, 0);
+    {
+    static const char* padRows[PadMap_Count] = {
+        "A  %s", "B  %s", "X  %s", "Y  %s", "L  %s", "R  %s"
+    };
+    for (int i = 0; i < PadMap_Count; ++i)
+        padMenu.add(MI_PAD_A + i, new EnumMenuItem(padRows[i], 2, 1 + i, 0, &settingsChanged.legacy.padMap[i], padActionNames));
+    }
+    padMenu.add(MI_PAD_CLASSIC,               "\010 Classic Layout",         2,  8,/*'c'*/  2);
+    padMenu.add(MI_PAD_SMART,                 "\010 Smart Enter Layout",     2,  9,/*'s'*/  2);
+    padMenu.add(USE_SETTINGS,                 "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    padMenu.add(CANCEL,                       "\010 Cancel",                 2, 12,/*'n'*/  4);
+    padMenu.addShortcutKey(CANCEL, ' ');
+    padMenu.addShortcutKey(CANCEL, U4_ESC);
+    padMenu.setClosesMenu(USE_SETTINGS);
+    padMenu.setClosesMenu(CANCEL);
 
     speedMenu.setTitle("Speed Options:", 0, 0);
     speedMenu.add(MI_SPEED_01, new IntMenuItem("Game Cycles per Second    %3d",      2,  2,/*'g'*/  0, &settingsChanged.gameCyclesPerSecond, 1, MAX_CYCLES_PER_SECOND, 1));
@@ -1787,6 +1807,8 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateLegacyMenu(event);
     else if (menu == &rulesMenu)
         updateRulesMenu(event);
+    else if (menu == &padMenu)
+        updatePadMenu(event);
     else if (menu == &cheatsMenu)
         updateCheatsMenu(event);
     else if (menu == &gameMenu)
@@ -1972,6 +1994,9 @@ void IntroController::updateInputMenu(MenuEvent &event) {
             EventHandler::setKeyRepeat(settingsChanged.keydelay, settingsChanged.keyinterval);
             screenShowMouseCursor(xu4.settings->mouseOptions.enabled);
             break;
+        case MI_INPUT_PAD:
+            runMenu(&padMenu, &extendedMenuArea, true);
+            break;
         case CANCEL:
             // discard settings
             settingsChanged = *xu4.settings;
@@ -1986,6 +2011,41 @@ void IntroController::updateInputMenu(MenuEvent &event) {
 
     // after drawing the menu, extra menu text can be added here
     extendedMenuArea.textAt(0, 5, "Mouse Options:");
+}
+
+void IntroController::updatePadMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE ||
+        event.type == MenuEvent::INCREMENT ||
+        event.type == MenuEvent::DECREMENT) {
+        uint8_t* map = settingsChanged.legacy.padMap;
+        switch(event.item->getId()) {
+        case MI_PAD_CLASSIC:
+            gamepad_defaultMap(map);
+            break;
+        case MI_PAD_SMART:
+            // The layout of 1.2-pre1: A the obvious action, X the action
+            // menu, B passes, Y & L the world map.
+            map[PadMap_A] = PadAct_Smart;
+            map[PadMap_B] = PadAct_Pass;
+            map[PadMap_X] = PadAct_Actions;
+            map[PadMap_Y] = PadAct_WorldMap;
+            map[PadMap_L] = PadAct_WorldMap;
+            map[PadMap_R] = PadAct_None;
+            break;
+        case USE_SETTINGS:
+            xu4.settings->setData(settingsChanged);
+            xu4.settings->write();
+            break;
+        case CANCEL:
+            settingsChanged = *xu4.settings;
+            break;
+        default: break;
+        }
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    extendedMenuArea.textAt(2, 10, "In menus A & X pick, B backs out.");
 }
 
 void IntroController::updateSpeedMenu(MenuEvent &event) {
