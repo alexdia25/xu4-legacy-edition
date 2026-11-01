@@ -26,6 +26,9 @@ Changed in 1.2-pre2, from players' feedback:
   could show only a cursor, because opening Configure could switch the
   console menus back off.  A gamepad now always gets the lists and the
   letter grid.
+- Fixed: in Magincia, asking Nate the Snake about the Rune now opens
+  the Rune with Barren in Paws, as Nate says.  The Master System
+  version opened it when Nate was asked about the Stone instead.
 - Fixed: pressing V in Settings during play opened the hidden Video
   Options, and changing them there crashed the game.
 - **Moon Speed** (Settings > Speed Options) slows the moons and their

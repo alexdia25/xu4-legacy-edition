@@ -50,7 +50,10 @@ turned on for keyboard play in Settings > Legacy Edition Options.
 
 Talk topics unlock by the rules of the Master System version: a topic
 opens once the right answer, topic or hint has been heard, and hints
-from other people are saved with the game.
+from other people are saved with the game.  One mistake of the Master
+System version is corrected: there Barren in Paws only talks of the
+Rune after Nate the Snake is asked about the Stone, though it is Nate's
+answer about the Rune that sends you to Barren.
 
 | In play                | Keyboard            | Gamepad      | Mouse & touch               |
 |------------------------|---------------------|--------------|-----------------------------|

@@ -224,7 +224,10 @@ static const SmsRule smsRules[] = {
     { "Sir Hobie", "FAIT", "QUES", { 0x8485, 0x8586 } },
     { "Damsel", "FOOD", "RATI", { 0x8385, 0x8586 } },
     { "Wheatpin", "RUNE", "A", { 0x3985 } },
-    { "Barren", "LAND", "RUNE", { 0x8385, 0x3586, 0x8639 } },
+    // The SMS opens Barren's RUNE with flag 0x35, which Nate sets for STONE
+    // (the Black Stone hint), so Nate's RUNE answer, "Ask Barren in Paws!",
+    // did not open it.  Here it is flag 0x36, set by Nate's RUNE.
+    { "Barren", "LAND", "RUNE", { 0x8385, 0x3686, 0x8639 } },
     { "Sir Simon", "KEEP", "MYST", { 0x8385, 0x2186 } },
     { "Lady Tessa", "KEEP", "MYST", { 0x8385, 0x2186 } },
     { "Asemly", "SERV", "DANC", { 0x8385, 0x8586 } },
