@@ -178,7 +178,12 @@ to, several characters each with their own saves, and a Cheats menu.
 ![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
 
 The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
-(the game waits while its window is in the background).  The video
+(the game waits while its window is in the background).  **Map View**
+set to Fill Space shows more of the towns, castles and Britannia when
+the tiles are smaller than the DOS ones: with the SMS module's 12 pixel
+tiles the map area holds 15 by 15 tiles (the outer ones cut at the edge)
+instead of 11 by 11 with a black border.  Combat and other small maps
+keep their size, and the DOS-sized tile sets look the same either way.  The video
 filter defaults to point scaling, for pixel sharp graphics.
 
 Speed Options adds **Moon Speed**: Normal is XU4's pace, close to the

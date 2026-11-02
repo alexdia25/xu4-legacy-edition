@@ -98,8 +98,9 @@ struct Screen {
     BlockingGroups* blockingUpdate;
     BlockingGroups blockingGroups;
 #else
-    uint8_t blockingGrid[VIEWPORT_W * VIEWPORT_H];
-    uint8_t screenLos[VIEWPORT_W * VIEWPORT_H];
+    int losW, losH;     // Size of the grids (the view's columns & rows).
+    uint8_t blockingGrid[TILEVIEW_MAX * TILEVIEW_MAX];
+    uint8_t screenLos[TILEVIEW_MAX * TILEVIEW_MAX];
 #endif
 
     Screen(uint8_t layerCount) {
@@ -126,6 +127,11 @@ struct Screen {
 
         needPrompt = 1;
         colorFG = FONT_COLOR_INDEX(FG_WHITE);
+#ifndef GPU_RENDER
+        losW = VIEWPORT_W;
+        losH = VIEWPORT_H;
+        memset(screenLos, 0, sizeof(screenLos));
+#endif
 #ifdef GPU_RENDER
         textureInfo = NULL;
         renderMapView = NULL;
@@ -149,7 +155,7 @@ struct Screen {
 
 static void screenLoadLayoutsFromConf(Screen*);
 #ifndef GPU_RENDER
-static void screenFindLineOfSight();
+static void screenFindLineOfSight(int w, int h);
 #endif
 
 // Just extern the system functions here. That way people aren't tempted to call them as part of the public API.
@@ -691,21 +697,24 @@ bool screenTileUpdate(TileView *view, const Coords &coords)
     // Get the screen coordinates
     int x = coords.x;
     int y = coords.y;
+    const int vw = view->columns;
+    const int vh = view->rows;
 
     if (loc->map->width > VIEWPORT_W || loc->map->height > VIEWPORT_H)
     {
         //Center the coordinates to the viewport if you're on centered-view map.
-        x = x - loc->coords.x + VIEWPORT_W / 2;
-        y = y - loc->coords.y + VIEWPORT_H / 2;
+        x = x - loc->coords.x + vw / 2;
+        y = y - loc->coords.y + vh / 2;
     }
 
 #ifdef GPU_RENDER
-    if (x >= 0 && y >= 0 && x < VIEWPORT_W && y < VIEWPORT_H)
+    if (x >= 0 && y >= 0 && x < vw && y < vh)
         return true;
 #else
     // Draw if it is on screen
-    if (x >= 0 && y >= 0 && x < VIEWPORT_W && y < VIEWPORT_H &&
-        XU4_SCREEN->screenLos[y*VIEWPORT_W + x])
+    if (x >= 0 && y >= 0 && x < vw && y < vh &&
+        vw == XU4_SCREEN->losW && vh == XU4_SCREEN->losH &&
+        XU4_SCREEN->screenLos[y*vw + x])
     {
         // Get the tiles
         bool focus;
@@ -820,6 +829,17 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
 
     c->stats->redraw();
 
+    // Fill Space shows more of the maps that are centered on the party
+    // (towns, castles & Britannia) when the tiles leave room for them.
+    {
+    const Map* map = c->location->map;
+    bool fill = xu4.settings->legacy.mapView == MapView_Fill &&
+                ! (map->flags & FIRST_PERSON) &&
+                (map->width > VIEWPORT_W || map->height > VIEWPORT_H);
+    if (view->setFill(fill))
+        screenEraseMapArea();
+    }
+
     if (blackout)
     {
         screenEraseMapArea();
@@ -838,22 +858,23 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
         // Note what the party sees of Britannia for the world map.
         if (c->location->map->id == MAP_WORLD)
             legacyWorldSee(c->location->coords.x, c->location->coords.y,
-                           VIEWPORT_W / 2);
+                           view->columns / 2);
 #ifdef GPU_RENDER
         screenUpdateMap(view, c->location->map, c->location->coords);
 #else
         MapTile black = c->location->map->tileset->getByName(Tile::sym.black)->getId();
-        vector<MapTile> viewTiles[VIEWPORT_W][VIEWPORT_H];
+        static vector<MapTile> viewTiles[TILEVIEW_MAX][TILEVIEW_MAX];
         uint8_t* blocked = XU4_SCREEN->blockingGrid;
+        const int vw = view->columns;
+        const int vh = view->rows;
         bool focus;
         int focusX, focusY;
         int x, y;
 
         focusX = -1;
-        for (y = 0; y < VIEWPORT_H; y++) {
-            for (x = 0; x < VIEWPORT_W; x++) {
-                viewTiles[x][y] = screenViewportTile(VIEWPORT_W, VIEWPORT_H,
-                                                     x, y, focus);
+        for (y = 0; y < vh; y++) {
+            for (x = 0; x < vw; x++) {
+                viewTiles[x][y] = screenViewportTile(vw, vh, x, y, focus);
                 *blocked++ = viewTiles[x][y].front().getTileType()->isOpaque();
                 if (focus) {
                     focusX = x;
@@ -862,11 +883,11 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
             }
         }
 
-        screenFindLineOfSight();
+        screenFindLineOfSight(vw, vh);
 
         const uint8_t* lineOfSight = XU4_SCREEN->screenLos;
-        for (y = 0; y < VIEWPORT_H; y++) {
-            for (x = 0; x < VIEWPORT_W; x++) {
+        for (y = 0; y < vh; y++) {
+            for (x = 0; x < vw; x++) {
                 if (*lineOfSight++)
                     view->drawTile(viewTiles[x][y], x, y);
                 else
@@ -1506,28 +1527,106 @@ static void screenFindLineOfSightEnhanced(const uint8_t* blocking, uint8_t* line
 //#define CPU_TEST
 #include "support/cpuCounter.h"
 
+/*
+ * Spread visibility out from the view center the way the DOS game does:
+ * a tile is visible when one of its neighbors toward the center is
+ * visible and does not block.  Only tiles further than inner tiles from
+ * the center are changed (all of them if inner is negative, in which
+ * case the center is made visible first).
+ */
+static void screenSpreadLineOfSight(const uint8_t* blocking,
+                                    uint8_t* lineOfSight,
+                                    int w, int h, int inner) {
+    const int cx = w / 2;
+    const int cy = h / 2;
+    int x, y, dx, dy, ax, ay, sx, sy, m;
+
+#define SEES(px,py) (lineOfSight[(py) * w + (px)] && ! blocking[(py) * w + (px)])
+
+    if (inner < 0)
+        lineOfSight[cy * w + cx] = 1;
+
+    // Each neighbor toward the center is one step closer to it, so going
+    // out by distance (|dx| + |dy|) sets those neighbors first.
+    for (m = 1; m <= cx + cy; ++m) {
+        for (y = 0; y < h; ++y) {
+            dy = y - cy;
+            ay = (dy < 0) ? -dy : dy;
+            if (ay > m)
+                continue;
+            for (x = 0; x < w; ++x) {
+                dx = x - cx;
+                ax = (dx < 0) ? -dx : dx;
+                if (ax + ay != m || (ax <= inner && ay <= inner))
+                    continue;
+                sx = (dx > 0) - (dx < 0);
+                sy = (dy > 0) - (dy < 0);
+                if ((sx && SEES(x - sx, y)) ||
+                    (sy && SEES(x, y - sy)) ||
+                    (sx && sy && SEES(x - sx, y - sy)))
+                    lineOfSight[y * w + x] = 1;
+            }
+        }
+    }
+#undef SEES
+}
+
 /**
  * Finds which tiles in the viewport are visible from the avatars
  * location in the middle.
  * Uses Screen blockingGrid to build screenLos.
+ *
+ * The algorithms are made for the standard 11x11 view.  A larger view
+ * (Fill Space) uses them for the 11x11 tiles at the center and spreads
+ * the visibility out to the rest like the DOS game.
  */
-static void screenFindLineOfSight() {
+static void screenFindLineOfSight(int w, int h) {
+    Screen* sp = XU4_SCREEN;
+    uint8_t* los = sp->screenLos;
+    const uint8_t* blocking = sp->blockingGrid;
+
+    sp->losW = w;
+    sp->losH = h;
+
     if (c->location->map->flags & NO_LINE_OF_SIGHT) {
         // The map has the no line of sight flag, all is visible
-        memset(XU4_SCREEN->screenLos, 1, VIEWPORT_W * VIEWPORT_H);
-    } else {
-        // otherwise calculate it from the map data
-        memset(XU4_SCREEN->screenLos, 0, VIEWPORT_W * VIEWPORT_H);
-
-        CPU_START()
-        if (xu4.settings->lineOfSight == 0)
-            screenFindLineOfSightDOS(XU4_SCREEN->blockingGrid,
-                                     XU4_SCREEN->screenLos);
-        else
-            screenFindLineOfSightEnhanced(XU4_SCREEN->blockingGrid,
-                                          XU4_SCREEN->screenLos);
-        CPU_END()
+        memset(los, 1, w * h);
+        return;
     }
+
+    // otherwise calculate it from the map data
+    memset(los, 0, w * h);
+
+    CPU_START()
+    if (w == VIEWPORT_W && h == VIEWPORT_H) {
+        if (xu4.settings->lineOfSight == 0)
+            screenFindLineOfSightDOS(blocking, los);
+        else
+            screenFindLineOfSightEnhanced(blocking, los);
+    } else if (xu4.settings->lineOfSight == 0 ||
+               w < VIEWPORT_W || h < VIEWPORT_H) {
+        screenSpreadLineOfSight(blocking, los, w, h, -1);
+    } else {
+        uint8_t innerBlocking[VIEWPORT_W * VIEWPORT_H];
+        uint8_t innerLos[VIEWPORT_W * VIEWPORT_H];
+        const int ox = (w - VIEWPORT_W) / 2;
+        const int oy = (h - VIEWPORT_H) / 2;
+        int x, y;
+
+        for (y = 0; y < VIEWPORT_H; ++y) {
+            for (x = 0; x < VIEWPORT_W; ++x)
+                innerBlocking[y * VIEWPORT_W + x] =
+                    blocking[(y + oy) * w + x + ox];
+        }
+        memset(innerLos, 0, sizeof(innerLos));
+        screenFindLineOfSightEnhanced(innerBlocking, innerLos);
+        for (y = 0; y < VIEWPORT_H; ++y) {
+            for (x = 0; x < VIEWPORT_W; ++x)
+                los[(y + oy) * w + x + ox] = innerLos[y * VIEWPORT_W + x];
+        }
+        screenSpreadLineOfSight(blocking, los, w, h, VIEWPORT_W / 2);
+    }
+    CPU_END()
 }
 #endif
 

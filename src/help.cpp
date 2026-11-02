@@ -165,8 +165,9 @@ static const char helpText[] =
 "Rules, Saving & Cheats sets the difficulty (Classic is the game as it\n"
 "was, Modern and Story are gentler), autosave with a history of saves,\n"
 "several characters with their own saves, and what happens when the\n"
-"party falls.  Scanlines, Battery Saver and Pause Unfocused (the game\n"
-"waits while you are away) are in the Graphics options.\n";
+"party falls.  Scanlines, Battery Saver, Pause Unfocused (the game\n"
+"waits while you are away) and Map View (Fill Space shows more of the\n"
+"map with the smaller SMS tiles) are in the Graphics options.\n";
 
 std::string legacyHelpText()
 {

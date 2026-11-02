@@ -5,6 +5,9 @@
 #ifndef TILEVIEW_H
 #define TILEVIEW_H
 
+/* The most tiles a view can have across or down (Fill Space). */
+#define TILEVIEW_MAX    31
+
 #include <vector>
 
 #include "anim.h"
@@ -47,6 +50,8 @@ public:
     virtual ~TileView();
 
     void reinit();
+    bool setFill(bool fill);
+    bool filled() const { return fillMode; }
     void drawTile(const MapTile &mapTile, int x, int y);
     void drawTile(std::vector<MapTile> &tiles, int x, int y);
     void drawFocus(int x, int y);
@@ -67,9 +72,19 @@ public:
 
     int columns, rows;
     int tileWidth, tileHeight;
+    int originX, originY;   /**< screen position of tile 0,0 */
     const Tileset *tileset;
     Image *animated;        /**< a scratchpad image for drawing animations */
 
+private:
+    void layout();
+    void blitTile(const Image* img, int px, int py, int sx, int sy) const;
+
+    // The area laid out for the view (in 16x16 tile units) & the mode.
+    int areaX, areaY, areaColumns, areaRows;
+    bool fillMode;
+
+public:
 #ifdef GPU_RENDER
     int effectCount;
     VisualEffect effect[VE_MAX];

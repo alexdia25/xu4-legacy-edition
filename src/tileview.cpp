@@ -28,15 +28,12 @@ TileView::TileView(int x, int y, int columns, int rows) : View(x, y, columns * T
     tileset = xu4.config->tileset();
     tileWidth  = tileset->tileW;
     tileHeight = tileset->tileH;
-
-    // Tiles of another size are centered in the area laid out for 16x16.
-    if (tileWidth != TILE_WIDTH || tileHeight != TILE_HEIGHT) {
-        this->x += columns * (TILE_WIDTH  - tileWidth) / 2;
-        this->y += rows    * (TILE_HEIGHT - tileHeight) / 2;
-        width  = columns * tileWidth;
-        height = rows * tileHeight;
-        View::reinit();
-    }
+    areaX = x;
+    areaY = y;
+    areaColumns = columns;
+    areaRows = rows;
+    fillMode = false;
+    layout();
     animated = Image::create(tileWidth, tileHeight);
 
 #ifdef GPU_RENDER
@@ -46,6 +43,94 @@ TileView::TileView(int x, int y, int columns, int rows) : View(x, y, columns * T
     effectCount = 0;
     memset(effect, 0, sizeof(effect));      // Sets method to VE_FREE.
 #endif
+}
+
+/*
+ * Place the tiles in the area laid out for 16x16 tiles.
+ *
+ * Normally the view has the columns & rows it was made with, and tiles
+ * of another size are centered in the area.  With fill on, the view has
+ * as many tiles as it takes to cover the whole area (an odd number, so
+ * that one tile is at the center) and the tiles on the edges are cut.
+ * Tiles that are 16x16 fill the area either way.
+ */
+void TileView::layout() {
+    const int areaW = areaColumns * TILE_WIDTH;
+    const int areaH = areaRows * TILE_HEIGHT;
+
+    if (fillMode) {
+        columns = (areaW + tileWidth - 1) / tileWidth;
+        rows    = (areaH + tileHeight - 1) / tileHeight;
+        columns |= 1;
+        rows    |= 1;
+        if (columns > TILEVIEW_MAX)
+            columns = TILEVIEW_MAX;
+        if (rows > TILEVIEW_MAX)
+            rows = TILEVIEW_MAX;
+    } else {
+        columns = areaColumns;
+        rows    = areaRows;
+    }
+
+    // Can be left of or above the area when fill is on.
+    originX = areaX + (areaW - columns * tileWidth) / 2;
+    originY = areaY + (areaH - rows * tileHeight) / 2;
+
+    // The View is the part of the area that is drawn on.
+    x = (originX > areaX) ? originX : areaX;
+    y = (originY > areaY) ? originY : areaY;
+    width  = columns * tileWidth;
+    height = rows * tileHeight;
+    if (width > areaW)
+        width = areaW;
+    if (height > areaH)
+        height = areaH;
+    View::reinit();
+}
+
+/*
+ * Switch the Fill Space layout on or off.
+ * Returns true if the columns & rows changed.
+ */
+bool TileView::setFill(bool fill) {
+#ifdef GPU_RENDER
+    // The GPU map renderer only draws whole tiles.
+    fill = false;
+#endif
+    if (fill == fillMode)
+        return false;
+    int oldColumns = columns;
+    int oldRows = rows;
+    fillMode = fill;
+    layout();
+    return columns != oldColumns || rows != oldRows;
+}
+
+/*
+ * Draw a tile image at screen position px,py, cutting off any part
+ * outside the view.
+ */
+void TileView::blitTile(const Image* img, int px, int py, int sx, int sy) const {
+    int w = tileWidth;
+    int h = tileHeight;
+    int d;
+
+    if ((d = x - px) > 0) {
+        px += d;
+        sx += d;
+        w  -= d;
+    }
+    if ((d = y - py) > 0) {
+        py += d;
+        sy += d;
+        h  -= d;
+    }
+    if ((d = px + w - (x + width)) > 0)
+        w -= d;
+    if ((d = py + h - (y + height)) > 0)
+        h -= d;
+    if (w > 0 && h > 0)
+        img->drawSubRect(px, py, sx, sy, w, h);
 }
 
 TileView::~TileView() {
@@ -90,17 +175,14 @@ void TileView::drawTile(const MapTile &mapTile, int x, int y) {
         tile->getAnim()->draw(animated, tile, mapTile, DIR_NONE);
 
         // Then draw it to the screen
-        animated->drawSubRect(x * tileWidth + this->x,
-                              y * tileHeight + this->y,
-                              0, 0,
-                              tileWidth, tileHeight);
+        blitTile(animated, x * tileWidth + originX,
+                           y * tileHeight + originY, 0, 0);
     }
     else {
         const Image *image = tile->getImage();
-        image->drawSubRect(x * tileWidth + this->x,
-                           y * tileHeight + this->y,
-                           0, tileHeight * mapTile.frame,
-                           tileWidth, tileHeight);
+        blitTile(image, x * tileWidth + originX,
+                        y * tileHeight + originY,
+                        0, tileHeight * mapTile.frame);
     }
 }
 
@@ -146,9 +228,8 @@ void TileView::drawTile(vector<MapTile> &tiles, int x, int y) {
     Image::enableBlend(0);
 
     // Then draw it to the screen
-    animated->drawSubRect(x * tileWidth + this->x,
-                          y * tileHeight + this->y,
-                          0, 0, tileWidth, tileHeight);
+    blitTile(animated, x * tileWidth + originX,
+                       y * tileHeight + originY, 0, 0);
 }
 
 /**
@@ -164,26 +245,26 @@ void TileView::drawFocus(int x, int y) {
      */
     if ((screenState()->currentCycle * 4 / SCR_CYCLE_PER_SECOND) % 2) {
         /* left edge */
-        screen->fillRect(x * tileWidth + this->x,
-                         y * tileHeight + this->y,
+        screen->fillRect(x * tileWidth + originX,
+                         y * tileHeight + originY,
                          2, tileHeight,
                          0xff, 0xff, 0xff);
 
         /* top edge */
-        screen->fillRect(x * tileWidth + this->x,
-                         y * tileHeight + this->y,
+        screen->fillRect(x * tileWidth + originX,
+                         y * tileHeight + originY,
                          tileWidth, 2,
                          0xff, 0xff, 0xff);
 
         /* right edge */
-        screen->fillRect((x + 1) * tileWidth + this->x - 2,
-                         y * tileHeight + this->y,
+        screen->fillRect((x + 1) * tileWidth + originX - 2,
+                         y * tileHeight + originY,
                          2, tileHeight,
                          0xff, 0xff, 0xff);
 
         /* bottom edge */
-        screen->fillRect(x * tileWidth + this->x,
-                         (y + 1) * tileHeight + this->y - 2,
+        screen->fillRect(x * tileWidth + originX,
+                         (y + 1) * tileHeight + originY - 2,
                          tileWidth, 2,
                          0xff, 0xff, 0xff);
     }

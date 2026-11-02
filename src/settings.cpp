@@ -462,6 +462,8 @@ bool Settings::read() {
         }
         else if (VALUE("dungeonMap="))
             legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
+        else if (VALUE("mapView="))
+            legacy.mapView = settingEnum(mapViewStrings(), val);
         else if (VALUE("rules="))
             legacy.preset = settingEnum(legacyPresetStrings(), val);
         else if (VALUE("starvation="))
@@ -626,6 +628,7 @@ bool Settings::write() {
             "cheatsMenu=%d\n"
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
+            "mapView=%s\n"
             "moonSpeed=%s\n"
             "rules=%s\n"
             "starvation=%s\n"
@@ -648,6 +651,7 @@ bool Settings::write() {
             legacy.cheatsMenu,
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
+            mapViewStrings()[ legacy.mapView ],
             moonSpeedStrings()[ legacy.moonSpeed ],
             legacyPresetStrings()[ legacy.preset ],
             starvationStrings()[ legacy.starvation ],
@@ -700,6 +704,11 @@ const char** Settings::moonSpeedStrings() {
 
 const char** Settings::dungeonMapStrings() {
     static const char* names[] = {"Off", "Mini Map", "Top Down", NULL};
+    return names;
+}
+
+const char** Settings::mapViewStrings() {
+    static const char* names[] = {"Standard", "Fill Space", NULL};
     return names;
 }
 
