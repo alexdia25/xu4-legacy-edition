@@ -827,6 +827,21 @@ CFUNC(cf_talkFlag)
 }
 
 /*-cf-
+    talk-flag?
+        n       int!    SMS story flag number.
+    return: logic!
+
+    Has a story flag of the SMS style talk menu been set?
+*/
+CFUNC(cf_talkFlagQ)
+{
+    (void) ut;
+    ur_setId(res, UT_LOGIC);
+    ur_logic(res) = talkFlagIsSet(ur_int(a1));
+    return UR_OK;
+}
+
+/*-cf-
     add-item
         item    word!   (horse)
     return: unset!
@@ -1084,6 +1099,7 @@ static const BoronCFunc pfFuncs[] = {
     cf_pcHeal,
     cf_pay,
     cf_talkFlag,
+    cf_talkFlagQ,
     cf_addItem,
     cf_addItems,
     cf_removeItems,
@@ -1112,6 +1128,7 @@ static const char pfFuncSpecs[] =
     "pc-heal n int! a word! /magic\n"
     "pay price int! quant int! a block! b block!\n"
     "talk-flag n int!\n"
+    "talk-flag? n int!\n"
     "add-item item word!\n"
     "add-items item word! n int!\n"
     "remove-items item word! n int!\n"

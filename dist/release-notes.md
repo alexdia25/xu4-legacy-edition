@@ -31,6 +31,10 @@ Changed in 1.2-pre2, from players' feedback:
   version opened it when Nate was asked about the Stone instead.
 - Fixed: pressing V in Settings during play opened the hidden Video
   Options, and changing them there crashed the game.
+- Fixed: with console menus the Guild shops never offered the Sextant.
+  As in the Master System version, it is now listed after the Magic
+  Keys once the Britain pub has told the party about it.  With the
+  keyboard menus it stays the DOS game's secret item D.
 - **Moon Speed** (Settings > Speed Options) slows the moons and their
   moongates to a half, a quarter or an eighth of the original speed,
   or speeds them up two, three (about the Master System's pace) or four

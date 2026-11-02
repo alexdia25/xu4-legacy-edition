@@ -234,6 +234,11 @@ void talkFlagSet(int flag)
     talkHeardWords.insert(talkFlagKey(flag));
 }
 
+bool talkFlagIsSet(int flag)
+{
+    return talkFlag(flag);
+}
+
 static bool smsTrigger(int trigger, int askedMask)
 {
     if (trigger & 0x80)

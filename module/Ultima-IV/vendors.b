@@ -1307,7 +1307,9 @@ guild: context [
         end
     ]
 
-    ; Sextants are hidden from the user.
+    ; Sextants are hidden from the user.  Typing D buys one at any time, as
+    ; in DOS.  The console menus list it, as the SMS does, once the Britain
+    ; pub's sextant rumor (story flag 69) has been heard.
     inventory: {{
         A-Torches
         B-Magic Gems
@@ -1315,23 +1317,36 @@ guild: context [
     }}
 
     items: [
-        'a' "Torches" [
-            price:  50 quant: 5 type: 'torch
-            will_buy? "^/I can give ya # long lasting Torches for a mere $gp."
-        ]
-        'b' "Magic Gems" [
-            price:  60 quant: 5 type: 'gem
-            will_buy? "^/I've got magical mapping Gems, # for only $gp."
-        ]
-        'c' "Magic Keys" [
-            price:  60 quant: 6 type: 'key
-            will_buy? "^/Magical Keys, 1 use each, a fair price at $gp for #."
-        ]
-        'd' "" [    ; Not listed.
-            price: 900 quant: 1 type: 'sextant
-            will_buy? "^/So...Ya want a Sextant...Well I gots one which I might part with fer $ gold!"
-        ]
+        'a' "Torches" buy-torches
+        'b' "Magic Gems" buy-gems
+        'c' "Magic Keys" buy-keys
+        'd' "" buy-sextant     ; Not listed.
         adieu
+    ]
+
+    items-sextant: [
+        'a' "Torches" buy-torches
+        'b' "Magic Gems" buy-gems
+        'c' "Magic Keys" buy-keys
+        'd' "Sextant" buy-sextant
+        adieu
+    ]
+
+    buy-torches: [
+        price:  50 quant: 5 type: 'torch
+        will_buy? "^/I can give ya # long lasting Torches for a mere $gp."
+    ]
+    buy-gems: [
+        price:  60 quant: 5 type: 'gem
+        will_buy? "^/I've got magical mapping Gems, # for only $gp."
+    ]
+    buy-keys: [
+        price:  60 quant: 6 type: 'key
+        will_buy? "^/Magical Keys, 1 use each, a fair price at $gp for #."
+    ]
+    buy-sextant: [
+        price: 900 quant: 1 type: 'sextant
+        will_buy? "^/So...Ya want a Sextant...Well I gots one which I might part with fer $ gold!"
     ]
 
     will_buy?: func [msg] [
@@ -1345,7 +1360,7 @@ guild: context [
         vo 3
         => "^/% says: Good Mate!^/Ya see I gots:^/+Wat'l it be? "
             ['%' owner '+' inventory]
-        input-choice items
+        input-choice either talk-flag? 69 [items-sextant] [items]
     ]
 
     buy: [
