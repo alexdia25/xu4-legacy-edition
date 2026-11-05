@@ -41,6 +41,11 @@ Changed in 1.2-pre2, from players' feedback:
   times.  Normal keeps XU4's pace, close to the DOS game's: the moons
   turn in real time, a phase of Felucca every 4 seconds on the world
   map.
+- **Map View** (Settings > Video > Game Graphics Options): Fill Space
+  shows more of the towns, castles and Britannia when the tiles are
+  smaller than the DOS ones.  With the SMS module's 12 pixel tiles the
+  map holds 15 by 15 tiles instead of 11 by 11 in a black border.
+  Combat and other small maps keep their size.
 
 - **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
   later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
