@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <SDL3/SDL.h>
@@ -313,6 +314,7 @@ static void importZip(ImportResult& res, const std::string& path) {
     std::vector<size_t> sizes;
     std::string avatarDir;
     bool haveAvatar = false, upgrade = false;
+    long upgradeEntry = -1;
     char name[512];
     unz_file_info info;
     for (int r = unzGoToFirstFile(zf); r == UNZ_OK; r = unzGoToNextFile(zf)) {
@@ -323,21 +325,32 @@ static void importZip(ImportResult& res, const std::string& path) {
         std::string base = lower(baseName(n));
         if (base == "u4vga.pal")
             upgrade = true;
-        if (base == "avatar.exe" && ! haveAvatar) {
-            haveAvatar = true;
-            avatarDir = n.substr(0, n.size() - base.size());
+        if (base == "u4upgrad.zip")
+            upgradeEntry = (long) names.size();
+        // The game is in the shallowest folder with AVATAR.EXE (a package
+        // may also hold an upgraded copy in a subfolder).
+        if (base == "avatar.exe") {
+            std::string dir = n.substr(0, n.size() - base.size());
+            if (! haveAvatar || std::count(dir.begin(), dir.end(), '/') <
+                    std::count(avatarDir.begin(), avatarDir.end(), '/')) {
+                haveAvatar = true;
+                avatarDir = dir;
+            }
         }
         names.push_back(n);
         sizes.push_back(info.uncompressed_size);
     }
 
-    if (upgrade) {
+    if (upgrade && ! haveAvatar) {
         unzClose(zf);
         std::string dest = std::string(androidInternalData()) + "/u4upgrad.zip";
         if (SDL_RenamePath(path.c_str(), dest.c_str()))
             res.upgrade = true;
         return;
     }
+    // A game package with the VGA upgrade installed in a folder of its own:
+    // XU4 reads both from the zip, which is kept as it is.
+    bool keepZip = upgrade;
 
     std::vector<uint8_t> data;
     size_t i = 0;
@@ -356,9 +369,22 @@ static void importZip(ImportResult& res, const std::string& path) {
         } else if (isImageFile(base)) {
             if (zipRead(zf, data, sizes[i]))
                 addImage(res, base, data.data(), data.size());
+        } else if ((long) i == upgradeEntry && ! keepZip) {
+            // A u4upgrad.zip inside the zip.
+            std::string dest = std::string(androidInternalData()) +
+                               "/u4upgrad.zip";
+            if (zipRead(zf, data, sizes[i]) &&
+                saveData(dest, data.data(), data.size()))
+                res.upgrade = true;
         }
     }
     unzClose(zf);
+
+    if (keepZip) {
+        std::string dest = std::string(androidInternalData()) + "/u4game.zip";
+        if (SDL_RenamePath(path.c_str(), dest.c_str()))
+            res.upgrade = true;
+    }
 }
 
 static ImportResult importFiles(const std::vector<PickedFile>& files) {

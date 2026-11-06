@@ -259,14 +259,24 @@ async function saveChosen(files) {
       const buf = new Uint8Array(await f.arrayBuffer());
       const list = zipEntries(buf);
       if (!list) continue;
-      if (list.some((e) => /^u4vga\.pal$/i.test(baseName(e.name)))) {
-        // xu4 reads the upgrade from its zip.
-        saveFile(DATA + '/u4upgrad.zip', buf);
-        got.upgrade = true;
-        continue;
-      }
-      const exe = list.find((e) => /^avatar\.exe$/i.test(baseName(e.name)));
+      // The game is in the shallowest folder with AVATAR.EXE (a package
+      // may also hold an upgraded copy in a subfolder).
+      const depth = (e) => e.name.split('/').length;
+      const exe = list.filter((e) => /^avatar\.exe$/i.test(baseName(e.name)))
+                      .sort((a, b) => depth(a) - depth(b))[0];
       const dir = exe ? exe.name.slice(0, exe.name.length - 10) : null;
+      if (list.some((e) => /^u4vga\.pal$/i.test(baseName(e.name)))) {
+        if (!exe) {
+          // xu4 reads the upgrade from its zip.
+          saveFile(DATA + '/u4upgrad.zip', buf);
+          got.upgrade = true;
+          continue;
+        }
+        // A game package with the upgrade installed in a folder of its
+        // own: xu4 reads both from the zip, which is kept as it is.
+        saveFile(DATA + '/u4game.zip', buf);
+        got.upgrade = true;
+      }
       for (const e of list) {
         const base = baseName(e.name);
         if (exe && e.name === dir + base && DOS_FILE.test(base))
@@ -278,6 +288,11 @@ async function saveChosen(files) {
         else if (IMAGE_FILE.test(base)) {
           saveFile(DATA + '/' + base, await zipRead(buf, e));
           got.images.push(base);
+        }
+        else if (/^u4upgrad\.zip$/i.test(base)) {
+          // The VGA upgrade inside another zip.
+          saveFile(DATA + '/u4upgrad.zip', await zipRead(buf, e));
+          got.upgrade = true;
         }
       }
     }
