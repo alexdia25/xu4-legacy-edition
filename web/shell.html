@@ -292,7 +292,8 @@ function describe(got) {
   else if (got.dos) parts.push(got.dos + ' Ultima IV file(s)');
   if (got.docs) parts.push('the documents');
   if (got.upgrade) parts.push('the VGA upgrade');
-  if (got.images.length) parts.push(got.images.join(', '));
+  // A file both chosen on its own and in a chosen zip is named once.
+  if (got.images.length) parts.push([...new Set(got.images)].join(', '));
   let text = parts.length ? '<p>Added ' + parts.join(', ') + '.</p>' : '<p>Nothing XU4 uses was found in the chosen files.</p>';
   if (got.installer)
     text += '<p>The GOG installer cannot run in a browser: install it on a PC and choose the ' +
