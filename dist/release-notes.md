@@ -2,121 +2,122 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
-## New in 1.2 (pre-release)
+## New in 1.2
 
-Changed in 1.2-pre2, from players' feedback:
+New platforms:
 
-- **Gamepad buttons are back to the 1.1.5 layout**: in play A opens the
-  action menu, B does nothing (it backs out of questions), X passes a
-  turn, Y shows Ztats, L the world map, and R does the obvious action
-  (XU4's smart Enter).  **Settings > Input Options > Gamepad Buttons**
-  sets what each button does in play, with the Classic layout and the
-  Smart Enter layout of pre1 one choice away.
-- **Walk Into To Act starts off** everywhere, and a gamepad no longer
-  switches it on (Settings > Legacy Edition Options turns it on).
+- **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
+  later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
+- **Android**: an APK for phones, tablets and handhelds (Android 7 or
+  later), played with touch or a gamepad.  It takes the GOG game's
+  folder (copied from a PC), its files or a zip of them, and the Files
+  button of Graphics & Music lists, adds and removes game files.  See
+  Getting started (Android).
+- **Web, iPhone and iPad**: the game runs in the browser at
+  <https://alexdia25.github.io/xu4-legacy-edition/play/>; on iOS use
+  Safari's Share > Add to Home Screen to install it.  It takes the
+  files of the installed GOG game (a folder, the files or a zip of
+  them).  The Files button lists the game files kept in the browser,
+  adds more (the VGA upgrade, disk images, the SMS ROM, the documents;
+  loose or zipped) and removes them, and exports the saves.
+- **Steam Deck**: the Flatpak can be installed with one click from the
+  [Flatpak repository](https://alexdia25.github.io/xu4-legacy-edition/)
+  and then updates with your other Flatpaks; the README has the steps
+  for adding it to Steam.
+- Android and web play fill the screen (stretched to fit, refitted when
+  the device turns or the window is resized).
+
+Finding the game:
+
+- **The Steam release** of Ultima IV is found by itself in any Steam
+  library, on Windows and on Linux or a Steam Deck (installed through
+  Proton; the Flatpak can read Steam's folders).
+- **Zip files of any name and layout**: the DOS game is found in any
+  zip (such as `Ultima_IV_-_Quest_of_the_Avatar_1985.zip`, with the game
+  in a folder), together with the History, Wisdom, Hints and Keyboard
+  documents and a copy with the VGA upgrade installed if the zip has
+  one.  Apple II and C64 disk images, the Master System ROM and
+  `u4upgrad.zip` are taken out of any zip put with the game files (for
+  example one zip holding them all), on every platform.
+
+In the game:
+
+- **Game menu**: Escape (Select) opens a menu drawn like the title
+  menus, with the Journal, How to Play, the Books of Britannia, the
+  World Map, Save Game, Settings, Graphics & Music and Quit Game.
 - **The world map in play shows only what the party has explored**, so
-  a Gem still has its use.  The Books of Britannia have a new Map tab
-  with the whole cloth map (without the party or the moongates), and
-  the Cheats menu can map all of Britannia.  Games saved before pre2
-  show the whole map.
-- With console menus, **meditating at a shrine picks the virtue from a
-  list**, and **a barkeep is asked about a topic picked from a list**
-  of those heard in conversation (the right pub must still be found).
-- Fixed: with a gamepad, the shrine's virtue (and other typed answers)
-  could show only a cursor, because opening Configure could switch the
-  console menus back off.  A gamepad now always gets the lists and the
-  letter grid.
-- Fixed: in Magincia, asking Nate the Snake about the Rune now opens
-  the Rune with Barren in Paws, as Nate says.  The Master System
-  version opened it when Nate was asked about the Stone instead.
-- Fixed: pressing V in Settings during play opened the hidden Video
-  Options, and changing them there crashed the game.
-- Fixed: with console menus the Guild shops never offered the Sextant.
-  As in the Master System version, it is now listed after the Magic
-  Keys once the Britain pub has told the party about it.  With the
-  keyboard menus it stays the DOS game's secret item D.
+  a Gem still has its use.  The Books of Britannia have a Map tab with
+  the whole cloth map (without the party or the moongates), and the
+  Cheats menu can map all of Britannia.  Games saved before 1.2 show the
+  whole map.
+- **Journal** of the virtues, quest items and clues heard, and a
+  **dungeon auto-map** (mini map or top-down view of the rooms seen).
+- **Legacy Edition options** (Settings): difficulty presets and rule
+  toggles, auto combat, gear compare and equip on buy, spells named by
+  effect and a heal shortcut, walk into to act, folded repeated moves,
+  pause on focus loss, cheats, autosave with save history, several
+  characters, a choice after a party wipe, scanlines and a battery
+  saver.  They start on, except Walk Into To Act and Auto Combat, and
+  under Rules, Saving & Cheats, Autosave, Keep Characters and the
+  Cheats menu.  Console (SMS) Menus is now in Legacy Edition Options,
+  and Pause Unfocused in the Graphics options.
 - **Moon Speed** (Settings > Speed Options) slows the moons and their
   moongates to a half, a quarter or an eighth of the original speed,
   or speeds them up two, three (about the Master System's pace) or four
   times.  Normal keeps XU4's pace, close to the DOS game's: the moons
   turn in real time, a phase of Felucca every 4 seconds on the world
   map.
-- **The Steam release** of Ultima IV is found by itself in any Steam
-  library, on Windows and on Linux or a Steam Deck (installed through
-  Proton; the Flatpak can now read Steam's folders).
 - **Map View** (Settings > Video > Game Graphics Options): Fill Space
   shows more of the towns, castles and Britannia when the tiles are
   smaller than the DOS ones.  With the SMS module's 12 pixel tiles the
   map holds 15 by 15 tiles instead of 11 by 11 in a black border.
   Combat and other small maps keep their size.
-
-- **macOS**: a universal app (Apple Silicon and Intel, macOS 11 or
-  later) in `xu4-legacy-*-macos.dmg`.  See Getting started (macOS).
-- **Android**: an APK for phones, tablets and handhelds (Android 7 or
-  later), played with touch or a gamepad.  It takes the GOG game's
-  folder (copied from a PC), its files, a zip of them or `ultima4.zip`,
-  and the Files button of Graphics & Music lists, adds and removes game
-  files.  See Getting started (Android).
-- **Web, iPhone and iPad**: the game runs in the browser at
-  <https://alexdia25.github.io/xu4-legacy-edition/play/>; on iOS use
-  Safari's Share > Add to Home Screen to install it.  It takes the
-  files of the installed GOG game (a folder, the files or a zip of
-  them) or `ultima4.zip`.  The Files button lists the game files kept
-  in the browser, adds more (the VGA upgrade, disk images, the SMS ROM,
-  the documents; loose or zipped) and removes them, and exports the
-  saves.
-- **Android and web play fill the screen** (stretched to fit, refitted
-  when the device turns or the window is resized).  Tapping the party
-  does the obvious action, like the smart Enter key (the message area
-  still opens the action menu).
-- With touch, Male or Female and the History's Yes or No are picked
-  from short lists, so a tap picks them.
-- The runes of the world map and Runes tab now show in the browser.
-- The books scroll by dragging the text, and Graphics & Music is also
-  in Configure; during play its first button is Apply.
-- About and Graphics & Music show the Legacy Edition version
-  (XU4LE1.2).
-- **Steam Deck**: the Flatpak can be installed with one click from the
-  [Flatpak repository](https://alexdia25.github.io/xu4-legacy-edition/)
-  and then updates with your other Flatpaks; the README has the steps
-  for adding it to Steam.
-- **Game menu**: Escape (Select) opens a menu drawn like the title
-  menus, with the Journal, How to Play, the Books of Britannia, the
-  World Map, Save Game, Settings, Graphics & Music and Quit Game.
-- **Journal** of the virtues, quest items and clues heard, and a
-  **dungeon auto-map** (mini map or top-down view of the rooms seen).
-- **Legacy Edition options** (Settings): difficulty presets and rule
-  toggles, auto combat, gear compare and equip on buy, spells named by
-  effect and a heal shortcut, bump to act, folded repeated moves,
-  pause on focus loss, cheats, autosave with save history, several
-  characters, a choice after a party wipe, scanlines and a battery
-  saver.
+- With console menus, **meditating at a shrine picks the virtue from a
+  list**, and **a barkeep is asked about a topic picked from a list**
+  of those heard in conversation (the right pub must still be found).
+  The Guild shops list the Sextant once the Britain pub has told the
+  party about it, as in the Master System version (with the keyboard
+  menus it stays the DOS game's secret item D).
 - The books are read a chapter at a time in three text sizes, the
   History is offered when the story asks you to read it, and with Spell
   Info In Lists on, a spell or reagent opens its Book of Mystic Wisdom
   page (?, the right shoulder button, a right click or a long press).
-- On the keyboard, Enter does the obvious action (XU4's smart Enter
-  key) and Tab opens the action menu.
+  The Book of Mystic Wisdom is split into its entries from GOG's
+  `ULTIMA4.TXT` and from the separate `Wisdom.txt` of other releases.
 - Picking other graphics during play no longer goes back to the title:
   the game carries on where it was with the new graphics (in a town or a
   battle, once the party is back outside).  Your save files are not
   changed.
+
+Controls:
+
+- **Gamepad Buttons** (Settings > Input Options) sets what each button
+  does in play.  The default is the 1.1.5 layout: A opens the action
+  menu, B backs out of questions, X passes a turn, Y shows Ztats, L the
+  world map and R does the obvious action (XU4's smart Enter); the
+  Classic and Smart Enter layouts are one choice away.  A gamepad
+  always gets the console menus and the letter grid.
+- On the keyboard, Enter does the obvious action (XU4's smart Enter
+  key) and Tab opens the action menu.
+- With touch, tapping the party does the obvious action (the message
+  area opens the action menu), Male or Female and the History's Yes or
+  No are picked from short lists, and the books scroll by dragging.
 - The help lines of the books, the world map and Graphics & Music name
-  the gamepad buttons or the keys, whichever was used last.  The books'
-  footer has a second line, with Tab (or 1-8) to change book.
-- The Legacy Edition options start on (except Auto Combat and Walk
-  Into To Act; under Rules, Saving & Cheats, Autosave, Keep Characters
-  and the Cheats menu start off), and Automatic Actions switches on with a gamepad.  Console
-  (SMS) Menus is now in Legacy Edition Options, and Pause Unfocused in
-  the Graphics options.
+  the gamepad buttons or the keys, whichever was used last.
 - Names can be entered in upper and lower case with the letter grid.
+
+Other changes and fixes:
+
+- Graphics & Music is also in Configure; during play its first button
+  is Apply.  About and Graphics & Music show the Legacy Edition version.
+- The runes of the world map and Runes tab show in the browser.
 - The text size buttons of the reader change only the text, and the
   U4-Upgrade font is drawn with its shading on the menu pages.
 - A fatal error (such as missing game files) is shown in a message box
   on macOS and Linux too.
-- The Book of Mystic Wisdom is split into its reagent and spell entries
-  from the separate `Wisdom.txt` of other releases too ("Garlic: ..."),
-  not only from GOG's `ULTIMA4.TXT`.
+- Fixed: in Magincia, asking Nate the Snake about the Rune now opens
+  the Rune with Barren in Paws, as Nate says.  The Master System
+  version opened it when Nate was asked about the Stone instead.
 
 ## New in 1.1.5
 

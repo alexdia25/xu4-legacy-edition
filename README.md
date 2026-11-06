@@ -74,8 +74,8 @@ obvious action is XU4's Smart 'Enter' Key; with that option off, Enter
 opens the action menu instead.
 
 The gamepad buttons used in play can be changed in Settings > Input
-Options > Gamepad Buttons, which also offers the Smart Enter layout of
-1.2-pre1 (A the obvious action, X the action menu, B pass).  The letter
+Options > Gamepad Buttons, which also offers a Smart Enter layout
+(A the obvious action, X the action menu, B pass).  The letter
 commands of the original game all still work, and Enter keeps XU4's
 behaviour when the console menus are on.  The first
 time a gamepad is used, Automatic Actions is switched on as well, so
@@ -133,7 +133,7 @@ moongates found are marked with the moon phase that opens them, and the
 names written on the cloth map are shown in runes, or in English with R
 (Y on a gamepad).  The Map tab of the Books of Britannia shows the whole
 cloth map, without the party or the moongates, and the Cheats menu has
-Map All Of Britannia.  Games saved before 1.2-pre2 show the whole map.  Zoom with
+Map All Of Britannia.  Games saved before 1.2 show the whole map.  Zoom with
 +/- (A, the shoulder buttons, the mouse wheel or a tap) and pan with the
 arrows or by dragging.
 
@@ -315,6 +315,13 @@ XU4 Legacy Edition looks for the game data, modules, disk images and ROMs
 in the same places as XU4 (listed under Running in the original readme
 below), and on Windows also in `C:\GOG Games\Ultima 4 - Quest of the Avatar`,
 where the GOG release installs by default.
+
+The DOS game can also be in a zip file of any name, even in a folder
+inside it (the books' documents and a copy with the VGA upgrade installed
+are used from it too).  Apple II and C64 disk images, the Master System
+ROM and `u4upgrad.zip` can likewise be in any zip put with the game
+files: they are taken out once into the `imported` folder of the data
+folder.
 
 The [Steam release](https://store.steampowered.com/app/3067510/) is found
 in every Steam library (`steamapps/common/Ultima IV`), on Windows and on
