@@ -51,6 +51,9 @@ extern bool androidTakeDataAdded();
 #ifdef _WIN32
 #include "win32console.c"
 #endif
+#if !defined(__EMSCRIPTEN__) && !defined(ANDROID)
+extern void steamFindUltima4(StringTable*);
+#endif
 
 #ifdef DEBUG
 extern int gameSave(const char*);
@@ -236,6 +239,8 @@ static void initResourcePaths(StringTable* st) {
         sst_appendCon(st, home, "\\xu4");
     // Default install directory of the free GOG release.
     sst_append(st, "C:\\GOG Games\\Ultima 4 - Quest of the Avatar", -1);
+    // The Steam release (app 3067510).
+    steamFindUltima4(st);
 #else
     home = getenv("HOME");
     if (home && home[0]) {
@@ -258,6 +263,8 @@ static void initResourcePaths(StringTable* st) {
 #endif
     sst_append(st, "/usr/share/xu4", -1);
     sst_append(st, "/usr/local/share/xu4", -1);
+    // The Steam release, installed through Steam's Proton.
+    steamFindUltima4(st);
 #endif
 #endif
 }
