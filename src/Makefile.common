@@ -24,6 +24,7 @@ CXXSRCS=\
         smsrom.cpp \
         smsz80.cpp \
         steam.cpp \
+        zipimport.cpp \
         annotation.cpp \
         aura.cpp \
         camp.cpp \

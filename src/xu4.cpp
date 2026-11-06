@@ -53,6 +53,10 @@ extern bool androidTakeDataAdded();
 #endif
 #if !defined(__EMSCRIPTEN__) && !defined(ANDROID)
 extern void steamFindUltima4(StringTable*);
+extern void zipImportExtras(StringTable*, const char* dataDir);
+extern bool zipImportVerbose;
+// The user's data folder (where game files may be put).
+static std::string userDataDir;
 #endif
 
 #ifdef DEBUG
@@ -235,8 +239,10 @@ static void initResourcePaths(StringTable* st) {
     sst_append(st, ".", 1);
 #ifdef _WIN32
     home = getenv("LOCALAPPDATA");
-    if (home && home[0])
+    if (home && home[0]) {
         sst_appendCon(st, home, "\\xu4");
+        userDataDir = std::string(home) + "\\xu4";
+    }
     // Default install directory of the free GOG release.
     sst_append(st, "C:\\GOG Games\\Ultima 4 - Quest of the Avatar", -1);
     // The Steam release (app 3067510).
@@ -245,10 +251,11 @@ static void initResourcePaths(StringTable* st) {
     home = getenv("HOME");
     if (home && home[0]) {
 #ifdef __APPLE__
-        sst_appendCon(st, home, "/Library/Application Support/xu4");
+        userDataDir = std::string(home) + "/Library/Application Support/xu4";
 #else
-        sst_appendCon(st, home, "/.local/share/xu4");
+        userDataDir = std::string(home) + "/.local/share/xu4";
 #endif
+        sst_append(st, userDataDir.c_str(), -1);
     }
 #ifdef __APPLE__
     // The Resources folder of the app bundle (render.pak & the modules).
@@ -279,6 +286,11 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     gs->verbose = opt->flags & OPT_VERBOSE;
 
     initResourcePaths(&gs->resourcePaths);
+#if !defined(__EMSCRIPTEN__) && !defined(ANDROID)
+    // Disk images, ROMs & the VGA upgrade inside zips of any name.
+    zipImportVerbose = gs->verbose;
+    zipImportExtras(&gs->resourcePaths, userDataDir.c_str());
+#endif
 #ifdef ANDROID
     // Back opens the game menu (as Escape) instead of closing the app.
     SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
