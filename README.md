@@ -62,7 +62,7 @@ answer about the Rune that sends you to Barren.
 | Back out, cancel       | Escape              | B            | Tap outside the list        |
 | Pass a turn            | Space               | X            |                             |
 | Party status (Ztats)   | Z                   | Y            | Tap the party list          |
-| World map              | M                   | L            |                             |
+| World map              | Escape, then W      | L            | The corner icon, then Map   |
 | The obvious action (board, klimb, descend...) | Enter | R | |
 | Game menu              | Escape              | Select (View) | The icon in the top left corner |
 | Pause                  | Pause               | Start        |                             |
@@ -173,7 +173,8 @@ it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
 turn timer, and whether a fallen party is raised by Lord British or may
 reload).  It also turns on autosave with a history of saves to go back
-to, several characters each with their own saves, and a Cheats menu.
+to, several characters each with their own saves, and a Cheats menu
+(these three start off).
 
 ![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
 
@@ -239,10 +240,12 @@ Getting Started
 
 Every download is on the [releases page].  The game data
 (`ultima4.zip`, or the files of the GOG release) goes in one of the
-[data folders](#data-folders).
+[data folders](#data-folders).  The Steam release is found by itself
+wherever Steam installed it.
 
  - **Windows**: unpack the zip anywhere and run `xu4.exe`.  If the GOG
-   release is installed in its default folder, it is found by itself.
+   release is installed in its default folder, or the Steam release in
+   any Steam library, it is found by itself.
  - **macOS** (11 or later, Apple Silicon and Intel): open the `.dmg` and
    drag XU4 Legacy to Applications.  Put the game data in
    `~/Library/Application Support/xu4` (in Finder, Go > Go to Folder;
@@ -313,12 +316,18 @@ in the same places as XU4 (listed under Running in the original readme
 below), and on Windows also in `C:\GOG Games\Ultima 4 - Quest of the Avatar`,
 where the GOG release installs by default.
 
+The [Steam release](https://store.steampowered.com/app/3067510/) is found
+in every Steam library (`steamapps/common/Ultima IV`), on Windows and on
+Linux or a Steam Deck where Steam installed it through Proton.
+
 On macOS the folder is `~/Library/Application Support/xu4`, which also
 holds the settings and saved games.
 
 The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
 modules, disk images and the SMS ROM) and `~/.config/xu4` (settings and
-saved games), so put the files there.
+saved games), so put the files there.  It can also read Steam's
+libraries (in `~/.local/share/Steam`, the Steam Flatpak's folder and SD
+cards under `/run/media`) to find the Steam release.
 
 ### Apple II Disk Images
 

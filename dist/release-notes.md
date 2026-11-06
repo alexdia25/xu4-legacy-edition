@@ -41,6 +41,9 @@ Changed in 1.2-pre2, from players' feedback:
   times.  Normal keeps XU4's pace, close to the DOS game's: the moons
   turn in real time, a phase of Felucca every 4 seconds on the world
   map.
+- **The Steam release** of Ultima IV is found by itself in any Steam
+  library, on Windows and on Linux or a Steam Deck (installed through
+  Proton; the Flatpak can now read Steam's folders).
 - **Map View** (Settings > Video > Game Graphics Options): Fill Space
   shows more of the towns, castles and Britannia when the tiles are
   smaller than the DOS ones.  With the SMS module's 12 pixel tiles the
@@ -102,7 +105,8 @@ Changed in 1.2-pre2, from players' feedback:
   the gamepad buttons or the keys, whichever was used last.  The books'
   footer has a second line, with Tab (or 1-8) to change book.
 - The Legacy Edition options start on (except Auto Combat and Walk
-  Into To Act), and Automatic Actions switches on with a gamepad.  Console
+  Into To Act; under Rules, Saving & Cheats, Autosave, Keep Characters
+  and the Cheats menu start off), and Automatic Actions switches on with a gamepad.  Console
   (SMS) Menus is now in Legacy Edition Options, and Pause Unfocused in
   the Graphics options.
 - Names can be entered in upper and lower case with the letter grid.
@@ -131,8 +135,8 @@ Since 1.0:
 
 - **World map** of Britannia drawn with the chosen module's tiles, with
   the cloth map's place names in runes or English, the moon phases at
-  the moongates and the party's position marked (M key, Map in the
-  Escape menu, or View Map in the action menu).
+  the moongates and the party's position marked (World Map in the
+  Escape menu, Map in the xu4 menu, or View Map in the action menu).
 - **Runes tab** in the Docs reader: the rune for each letter and the
   combined runes, and the virtues and some place names in runes.
 - **Commodore 64 and Sega Master System graphics & music** modules,

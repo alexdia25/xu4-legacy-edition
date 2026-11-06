@@ -25,6 +25,12 @@ finish-args:
   - --device=all
   - --filesystem=xdg-data/xu4:create
   - --filesystem=xdg-config/xu4:create
+  # Read only access to Steam's libraries, to find the Steam release
+  # (installed through Proton), also on a Steam Deck's SD card.
+  - --filesystem=xdg-data/Steam:ro
+  - --filesystem=~/.steam:ro
+  - --filesystem=~/.var/app/com.valvesoftware.Steam/.local/share/Steam:ro
+  - --filesystem=/run/media:ro
   # Use the Flatpak ID for the Wayland app ID so the desktop file matches.
   - --env=SDL_APP_ID=io.github.alexdia25.xu4_legacy_edition
 
