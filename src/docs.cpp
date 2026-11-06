@@ -21,6 +21,7 @@
 #include "settings.h"
 #include "processDir.h"
 #include "u4file.h"
+#include "u4file.h"
 #include "xu4.h"
 
 using std::string;
@@ -305,6 +306,32 @@ bool docsLoad(GameDocument doc, string& text) {
 }
 
 /*
+ * Read a file of the DOS game, which may be in its zip file.
+ */
+static bool readGameFile(const char* name, string& text) {
+    text.clear();
+    U4FILE* uf = u4fopen(name);
+    if (! uf)
+        return false;
+    char buf[4096];
+    size_t n;
+    while ((n = uf->read(buf, 1, sizeof(buf))) > 0)
+        text.append(buf, n);
+    u4fclose(uf);
+    return true;
+}
+
+static void writeDoc(const string& path, const string& text) {
+    FILE* fp = FileSystem::openFile(path, "wb");
+    if (fp) {
+        fwrite(text.data(), 1, text.size(), fp);
+        fclose(fp);
+        if (xu4.verbose)
+            printf("Wrote %s\n", path.c_str());
+    }
+}
+
+/*
  * If ULTIMA4.TXT is found with the game files, split it into documents in
  * the docs directory of the user path.  Existing documents, and those
  * included as separate files with the game, are kept.
@@ -322,18 +349,34 @@ void docsExtract(const string& userPath) {
     if (i == DOC_COUNT)
         return;
 
+    // Separate documents inside the game's zip file (e.g. the ultima4.zip
+    // of the XU4 site has History.txt, Wisdom.txt...).
+    for (i = 0; i < DOC_COUNT; ++i) {
+        string path = dir + docNames[i];
+        if (! shipped[i].empty() || Path::exists(path))
+            continue;
+        string text;
+        if (readGameFile(docNames[i], text) && ! text.empty())
+            writeDoc(path, text);
+    }
+
     static const char* srcNames[] = {
         "ULTIMA4.TXT", "ultima4.txt", "Ultima4.txt", "Ultima4.TXT", NULL
     };
     string src;
     for (const char** it = srcNames; *it && src.empty(); ++it)
         src = u4find_path(*it, &u4Path.u4ForDOSPaths);
-    if (src.empty())
-        return;
 
     string text;
+    if (src.empty()) {
+        if (! readGameFile("ULTIMA4.TXT", text))
+            return;
+        src = "ULTIMA4.TXT";
+    } else if (! readFile(src, text))
+        text.clear();
+
     string docs[DOC_COUNT];
-    if (! readFile(src, text) || ! docsSplit(text, docs)) {
+    if (! docsSplit(text, docs)) {
         if (xu4.verbose)
             printf("Cannot split documents from %s\n", src.c_str());
         return;
@@ -343,12 +386,6 @@ void docsExtract(const string& userPath) {
         string path = dir + docNames[i];
         if (! shipped[i].empty() || Path::exists(path))
             continue;
-        FILE* fp = FileSystem::openFile(path, "wb");
-        if (fp) {
-            fwrite(docs[i].data(), 1, docs[i].size(), fp);
-            fclose(fp);
-            if (xu4.verbose)
-                printf("Wrote %s\n", path.c_str());
-        }
+        writeDoc(path, docs[i]);
     }
 }

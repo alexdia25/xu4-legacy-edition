@@ -6,6 +6,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <map>
+#include <vector>
+#include <SDL3/SDL_filesystem.h>
+#include <SDL3/SDL_stdinc.h>
 
 #include "u4file.h"
 #include "unzip.h"
@@ -88,6 +91,17 @@ U4PATH * U4PATH::getInstance() {
 }
 
 static void u4zip_setup();
+
+// The files the VGA upgrade's SWITCH.BAT swaps with their *.old copies.
+static const char* upgradeSwapped[] = {
+    "ega.drv", "ultima.com", "avatar.exe",
+    "compassn.ega", "courage.ega", "honesty.ega", "honor.ega", "humility.ega",
+    "justice.ega", "key7.ega", "love.ega", "rune_0.ega", "rune_1.ega",
+    "rune_2.ega", "rune_3.ega", "rune_4.ega", "rune_5.ega", "sacrific.ega",
+    "spirit.ega", "start.ega", "stoncrcl.ega", "truth.ega", "valor.ega",
+    "cove.tlk", "lcb.tlk", "minoc.tlk", "skara.tlk", "yew.tlk",
+    NULL
+};
 static U4FILE *u4fopen_dir(const string &fname);
 
 /**
@@ -254,6 +268,72 @@ static const char* u4ZipFilenames[] = {
     NULL
 };
 
+/*
+ * Find the folder inside a zip file holding the DOS game (the shallowest
+ * one with CHARSET.EGA and AVATAR.EXE).  Return false if there is none.
+ */
+static bool zipGamePrefix(unzFile f, string& prefix) {
+    vector<string> candidates;
+    char name[512];
+    unz_file_info info;
+    for (int r = unzGoToFirstFile(f); r == UNZ_OK; r = unzGoToNextFile(f)) {
+        if (unzGetCurrentFileInfo(f, &info, name, sizeof(name),
+                                  NULL, 0, NULL, 0) != UNZ_OK)
+            continue;
+        size_t len = strlen(name);
+        if (len < 11 || SDL_strcasecmp(name + len - 11, "charset.ega") != 0)
+            continue;
+        if (len > 11 && name[len - 12] != '/')
+            continue;
+        candidates.push_back(string(name, len - 11));
+    }
+
+    bool found = false;
+    for (const string& cand : candidates) {
+        if (found && cand.size() >= prefix.size())
+            continue;
+        if (unzLocateFile(f, (cand + "avatar.exe").c_str(), 2) == UNZ_OK) {
+            prefix = cand;
+            found = true;
+        }
+    }
+    return found;
+}
+
+/*
+ * Look for a zip file of any name with the DOS game in the resource paths
+ * (e.g. Ultima_IV_-_Quest_of_the_Avatar_1985.zip).
+ */
+static string findGameZip() {
+    const StringTable* st = &xu4.resourcePaths;
+    const char* root = sst_strings(st);
+    for (uint32_t i = 0; i < st->used; ++i) {
+        for (const string& sub : u4Path.u4ZipPaths) {
+            string dir = string(root + sst_start(st, i)) + "/" + sub;
+            int count = 0;
+            char** names = SDL_GlobDirectory(dir.c_str(), "*.zip",
+                                             SDL_GLOB_CASEINSENSITIVE, &count);
+            string found;
+            for (int n = 0; n < count && found.empty(); ++n) {
+                if (SDL_strcasecmp(names[n], "u4upgrad.zip") == 0)
+                    continue;
+                string path = dir + "/" + names[n];
+                unzFile f = unzOpen(path.c_str());
+                if (! f)
+                    continue;
+                string prefix;
+                if (zipGamePrefix(f, prefix))
+                    found = path;
+                unzClose(f);
+            }
+            SDL_free(names);
+            if (! found.empty())
+                return found;
+        }
+    }
+    return string();
+}
+
 static void u4zip_setup() {
     u4zip_orig = u4zip_upgrad = NULL;
 
@@ -299,26 +379,51 @@ static void u4zip_setup() {
         if (! pathname.empty())
             break;
     }
-    if (*zipFile) {
-        unzFile f = unzOpen(pathname.c_str());
-        if (!f)
-            return;
+    if (! *zipFile)
+        pathname = findGameZip();
+    if (pathname.empty())
+        return;
 
-        //Now we detect the folder structure inside the zipfile.
-        if (unzLocateFile(f, "charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "");
-        else if (unzLocateFile(f, "ultima4/charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "ultima4/");
-        else if (unzLocateFile(f, "Ultima4/charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "Ultima4/");
-        else if (unzLocateFile(f, "ULTIMA4/charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "ULTIMA4/");
-        else if (unzLocateFile(f, "u4/charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "u4/");
-        else if (unzLocateFile(f, "U4/charset.ega", 2) == UNZ_OK)
-            u4zip_orig = new U4ZipPackage(pathname, "U4/");
-        unzClose(f);
+    unzFile f = unzOpen(pathname.c_str());
+    if (!f)
+        return;
+    string prefix;
+    if (zipGamePrefix(f, prefix)) {
+        u4zip_orig = new U4ZipPackage(pathname, prefix);
+        if (xu4.verbose)
+            printf("Game files in %s/%s\n", pathname.c_str(), prefix.c_str());
+
+        // Some packages hold a copy of the game with the VGA upgrade
+        // installed in an "upgrade" folder beside the original files.
+        string upg = prefix + "upgrade/";
+        if (! u4zip_upgrad &&
+            unzLocateFile(f, (upg + "u4vga.pal").c_str(), 2) == UNZ_OK) {
+            U4ZipPackage* upgrade = new U4ZipPackage(pathname, upg);
+            u4zip_upgrad = upgrade;
+            unz_file_info info;
+            bool switchedOn =
+                unzLocateFile(f, (upg + "ega.drv").c_str(), 2) == UNZ_OK &&
+                unzGetCurrentFileInfo(f, &info, NULL, 0, NULL, 0, NULL, 0)
+                    == UNZ_OK &&
+                info.uncompressed_size > 5 * 1024;
+            // u4upgrad.zip keeps the upgrade's pictures as *.old.  Once
+            // its SWITCH.BAT has run they have the original names (and
+            // the originals are *.old), while the talk files stay *.old.
+            for (const char** it = upgradeSwapped; *it; ++it) {
+                const char* name = *it;
+                size_t len = strlen(name);
+                bool tlk = strcmp(name + len - 4, ".tlk") == 0;
+                if (strcmp(name, "avatar.exe") == 0)
+                    continue;
+                string oldName = string(name, len - 3) + "old";
+                if (switchedOn && ! tlk)
+                    upgrade->addTranslation(oldName, name);
+                else
+                    upgrade->addTranslation(name, oldName);
+            }
+        }
     }
+    unzClose(f);
 }
 
 int U4FILE::getshort() {
@@ -498,15 +603,6 @@ static U4FILE *u4fopen_dir(const string &fname) {
  * original files are named *.old and the upgrade files have the original
  * names.
  */
-static const char* upgradeSwapped[] = {
-    "ega.drv", "ultima.com", "avatar.exe",
-    "compassn.ega", "courage.ega", "honesty.ega", "honor.ega", "humility.ega",
-    "justice.ega", "key7.ega", "love.ega", "rune_0.ega", "rune_1.ega",
-    "rune_2.ega", "rune_3.ega", "rune_4.ega", "rune_5.ega", "sacrific.ega",
-    "spirit.ega", "start.ega", "stoncrcl.ega", "truth.ega", "valor.ega",
-    "cove.tlk", "lcb.tlk", "minoc.tlk", "skara.tlk", "yew.tlk",
-    NULL
-};
 
 /*
  * Return the name a file has when the upgrade is switched on in the DOS
