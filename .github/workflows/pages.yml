@@ -6,7 +6,7 @@
 #               the game installs with one click on a Steam Deck or any Linux
 #               with Flatpak and updates with every other Flatpak;
 #  - /          a page with links to both.
-# The Release workflow starts this after each full release; it can also be
+# The Release workflow starts this after each release; it can also be
 # run from the Actions tab.  The Flatpak repository needs the
 # FLATPAK_GPG_KEY & FLATPAK_GPG_KEY_ID secrets (dist/flatpak/README.md) and
 # is left out without them.  Pages must be set to deploy from GitHub Actions.

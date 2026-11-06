@@ -187,9 +187,8 @@ jobs:
           if [ -n "$REPLACES" ] && [ "$REPLACES" != "$TAG" ]; then
             gh release delete "$REPLACES" --cleanup-tag -y || true
           fi
-          # Update the GitHub Pages site: the web version and the Flatpak
-          # repository, so installed copies update (not for pre-releases).
-          case "$TAG" in
-            *-pre*|*-rc*|*-beta*) ;;
-            *) gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}" ;;
-          esac
+          # Update the GitHub Pages site after every release, so the web
+          # version is never older than the newest download.  The Flatpak
+          # repository there always takes the latest full release's bundle,
+          # so pre-releases don't reach installed Flatpaks.
+          gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"
