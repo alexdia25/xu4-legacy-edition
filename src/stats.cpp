@@ -446,6 +446,10 @@ void StatsArea::showSpellView() {
             mainArea.textAtFmt(0, line++, "%c%s", CHARSET_BULLET,
                                getReagentName((Reagent) r));
     }
+    // Spell Card Extras: the mixtures made.
+    if (xu4.settings->legacy.spellExtras && line < STATS_AREA_HEIGHT)
+        mainArea.textAtFmt(0, STATS_AREA_HEIGHT - 1, "Mixed: %d",
+                           c->saveGame->mixtures[spell]);
 }
 
 /*

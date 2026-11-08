@@ -173,6 +173,7 @@ struct LegacyOptions {
     bool snapMark;          // Snap Attacks: mark the target, PgUp/PgDn or L/R pick another.
     bool autoExtras;        // Auto Combat: mark, action menu item, stuck check.
     bool sceneStop;         // Held keys stop repeating at a new scene.
+    bool spellExtras;       // Spell lists: mana, mixtures made, castable first.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

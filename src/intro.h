@@ -263,6 +263,8 @@ private:
         MI_MORE_FOES,
         MI_MORE_SNAP,
         MI_MORE_AUTO,
+        MI_MORE_NEXT,
+        MI_MORE_SPELL,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,
@@ -319,6 +321,7 @@ private:
     Menu legacyMenu;
     Menu rulesMenu;
     Menu moreMenu;
+    Menu moreMenu2;
     Menu padMenu;
     Menu cheatsMenu;
     Menu gameMenu;

@@ -384,13 +384,23 @@ IntroController::IntroController() :
     moreMenu.add(MI_MORE_XP,      new BoolMenuItem("Experience On Ztats      %s", 2,  7,/*'x'*/  0, &lo.xpOnZtats));
     moreMenu.add(MI_MORE_FOES,    new BoolMenuItem("Creatures On Mini Map    %s", 2,  8,/*'m'*/ 13, &lo.mapCreatures));
     moreMenu.add(MI_MORE_SNAP,    new BoolMenuItem("Snap Target Mark         %s", 2,  9,/*'k'*/ 15, &lo.snapMark));
-    moreMenu.add(MI_MORE_AUTO,    new BoolMenuItem("Auto Combat Extras       %s", 2, 10,/*'a'*/  0, &lo.autoExtras));
+    moreMenu.add(MI_MORE_NEXT,                     "\010 Next Page",              2, 10,/*'n'*/  2);
     moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu.addShortcutKey(CANCEL, ' ');
     moreMenu.addShortcutKey(CANCEL, U4_ESC);
     moreMenu.setClosesMenu(USE_SETTINGS);
     moreMenu.setClosesMenu(CANCEL);
+
+    moreMenu2.setTitle("More Legacy Options (2):", 0, 0);
+    moreMenu2.add(MI_MORE_AUTO,   new BoolMenuItem("Auto Combat Extras       %s", 2,  1,/*'a'*/  0, &lo.autoExtras));
+    moreMenu2.add(MI_MORE_SPELL,  new BoolMenuItem("Spell Card Extras        %s", 2,  2,/*'s'*/  0, &lo.spellExtras));
+    moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu2.addShortcutKey(CANCEL, ' ');
+    moreMenu2.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu2.setClosesMenu(USE_SETTINGS);
+    moreMenu2.setClosesMenu(CANCEL);
 
     gameMenu.setTitle("Game Menu:", 0, 0);
     gameMenu.add(CANCEL,          "\017 Return to Game",       2,  1,/*'r'*/  2);
@@ -1994,7 +2004,9 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_XP, "Ztats in the action menu shows XP against the next level." },
         { &moreMenu, MI_MORE_FOES, "The dungeon mini map marks a creature the party can see." },
         { &moreMenu, MI_MORE_SNAP, "Snap Attacks mark their target; PgUp/PgDn or L/R pick another foe." },
-        { &moreMenu, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
+        { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
+        { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },
+        { &moreMenu2, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
         { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },
@@ -2101,7 +2113,7 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateLegacyMenu(event);
     else if (menu == &rulesMenu)
         updateRulesMenu(event);
-    else if (menu == &moreMenu)
+    else if (menu == &moreMenu || menu == &moreMenu2)
         updateMoreMenu(event);
     else if (menu == &padMenu)
         updatePadMenu(event);
@@ -2470,6 +2482,9 @@ void IntroController::updateMoreMenu(MenuEvent &event) {
         event.type == MenuEvent::INCREMENT ||
         event.type == MenuEvent::DECREMENT) {
         switch(event.item->getId()) {
+            case MI_MORE_NEXT:
+                runMenu(&moreMenu2, &extendedMenuArea, true);
+                break;
             case USE_SETTINGS:
                 xu4.settings->setData(settingsChanged);
                 xu4.settings->write();

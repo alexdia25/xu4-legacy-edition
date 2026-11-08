@@ -1685,6 +1685,7 @@ int  EventHandler::cancelCount = 0;
 uint32_t EventHandler::lastInputTime = 0;
 uint32_t EventHandler::pressCount = 0;
 uint32_t EventHandler::sceneCount = 0;
+bool EventHandler::pickShowsMana = false;
 
 void EventHandler::sceneBreak() {
     ++sceneCount;
@@ -1706,9 +1707,17 @@ int EventHandler::choosePlayer()
 {
     if (smsMenus()) {
         const char* names[8];
+        static char label[8][20];
         int count = c->saveGame->members;
-        for (int i = 0; i < count; ++i)
+        for (int i = 0; i < count; ++i) {
             names[i] = c->saveGame->players[i].name;
+            if (pickShowsMana) {
+                snprintf(label[i], sizeof(label[0]), "%-9.9s%3dmp",
+                         c->saveGame->players[i].name,
+                         c->saveGame->players[i].mp);
+                names[i] = label[i];
+            }
+        }
         return chooseItem(names, count);
     }
 

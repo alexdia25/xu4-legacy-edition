@@ -2169,11 +2169,27 @@ static void showSpellWisdom(int n) {
  * With Spell Info on, '?' (or R) opens the Book of Mystic Wisdom at the
  * spell.  Returns the spell index, or -1 if cancelled or there are none.
  */
-static int smsChooseSpell(bool mixed) {
+static int smsChooseSpell(bool mixed, int caster = -1) {
     const char* names[SPELL_MAX];
     int* index = spellPickIndex;
     int count = 0;
-    for (int i = 0; i < SPELL_MAX; ++i) {
+    // Spell Card Extras: the spells the caster has the mana for come first.
+    int order[SPELL_MAX];
+    int orderCount = 0;
+    bool castableFirst = caster >= 0 && xu4.settings->legacy.spellExtras;
+    for (int pass = 0; pass < (castableFirst ? 2 : 1); ++pass) {
+        for (int i = 0; i < SPELL_MAX; ++i) {
+            if (castableFirst) {
+                bool enough = c->saveGame->players[caster].mp >=
+                              spellGetRequiredMP(i);
+                if (enough != (pass == 0))
+                    continue;
+            }
+            order[orderCount++] = i;
+        }
+    }
+    for (int oi = 0; oi < orderCount; ++oi) {
+        int i = order[oi];
         if (mixed && c->saveGame->mixtures[i] < 1)
             continue;
         names[count] = spellGetName(i);
@@ -2541,7 +2557,10 @@ void board() {
 void castSpell(int player) {
     if (player == -1) {
         screenMessage("Cast Spell!\nPlayer: ");
+        // Spell Card Extras: each member's mana beside their name.
+        EventHandler::pickShowsMana = xu4.settings->legacy.spellExtras;
         player = gameGetPlayer(false, true);
+        EventHandler::pickShowsMana = false;
     }
     if (player == -1)
         return;
@@ -2549,7 +2568,7 @@ void castSpell(int player) {
     // get the spell to cast
     c->stats->setView(STATS_MIXTURES);
     screenMessage("Spell: ");
-    int spell = EventHandler::smsMenus() ? smsChooseSpell(true)
+    int spell = EventHandler::smsMenus() ? smsChooseSpell(true, player)
                 : EventHandler::readAlphaAction('z', "Spell: ");
     if (spell == -1)
         return;
