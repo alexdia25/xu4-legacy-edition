@@ -269,9 +269,13 @@ void StatsArea::setTitle(const char* s) {
 /**
  * The basic party view.
  */
+bool StatsArea::autoMark = false;
+
 void StatsArea::showPartyView() {
     const char *format = "%d%c%-9.8s%3d%s";
     PartyMember *p;
+    if (autoMark)
+        setTitle("Auto");
     int activePlayer = c->party->getActivePlayer();
     int count = avatarOnly ? 1 : c->party->size();
 

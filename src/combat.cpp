@@ -185,12 +185,37 @@ void CombatController::applyCreatureTileEffects() {
 // Set when Auto Combat hands the battle back to the player.
 static bool autoHalted = false;
 static uint32_t autoPresses;    // EventHandler::pressCount at the start.
+// Auto Combat Extras: started from the action menu for this battle only,
+// and the auto turns since a foe was last hurt.
+static bool autoForced = false;
+static int autoIdleTurns;
+static int autoFoeState;
+
+// The foes' hit points and count, which change when the fight progresses.
+static int foeProgressState(CombatMap* map) {
+    CreatureVector foes = map->getCreatures();
+    int sum = int(foes.size()) * 10000;
+    for (CreatureVector::iterator it = foes.begin(); it != foes.end(); ++it)
+        sum += (*it)->getHp();
+    return sum;
+}
+
+// Auto Combat Extras: "Auto Combat" over the party panel while it fights.
+static void autoMarkShow(bool on) {
+    if (StatsArea::autoMark != on) {
+        StatsArea::autoMark = on;
+        c->stats->update();
+    }
+}
 
 void CombatController::beginCombat() {
     bool partyIsReadyToFight = false;
 
     autoHalted = false;
     autoPresses = EventHandler::pressCount;
+    autoForced = false;
+    autoIdleTurns = 0;
+    autoFoeState = -1;
 
     if (c->horseSpeed == HORSE_GALLOP)
         c->horseSpeed = HORSE_GALLOP_INTERRUPT;
@@ -242,6 +267,8 @@ void CombatController::beginCombat() {
  */
 void CombatController::endCombat(bool adjustKarma) {
     screenSetTargetMark(NULL, NULL);
+    autoForced = false;
+    autoMarkShow(false);
     // Other code paths use autoDelete, but we manually delete below.
     setDeleteOnPop(false);
     xu4.eventHandler->popController();
@@ -1000,8 +1027,8 @@ bool CombatController::keyPressed(int key) {
     case U4_ENTER:
         if (key != U4_ENTER || EventHandler::smsMenus()) {
             // Console style action menu for the current party member.
-            const char* items[9];
-            char keys[10];
+            const char* items[11];
+            char keys[12];
             int n = 0;
             int healSpell, healCaster, healSubject;
             char healName[24];
@@ -1033,10 +1060,23 @@ bool CombatController::keyPressed(int key) {
             }
             items[n] = "Pass";       keys[n++] = ' ';
             items[n] = "Ztats";      keys[n++] = 'z';
+            if (settings.legacy.autoExtras) {
+                items[n] = "Auto Combat"; keys[n++] = '@';
+            }
             keys[n] = '\0';
             int pick = EventHandler::chooseItem(items, n);
             if (pick < 0)
                 return true;
+            if (keys[pick] == '@') {
+                // Auto Combat for the rest of this battle.
+                screenMessage("%cAuto Combat on%c\n", FG_GREY, FG_WHITE);
+                autoForced = true;
+                autoHalted = false;
+                autoIdleTurns = 0;
+                autoFoeState = -1;
+                autoPresses = EventHandler::pressCount;
+                return true;
+            }
             if (keys[pick] == '!') {
                 screenMessage("Cast Spell!\n%s on %s\n",
                               spellGetName(healSpell),
@@ -1614,8 +1654,12 @@ bool CombatController::snapAttack() {
  */
 bool CombatController::isAutoTurn(bool checkHalt) {
     uint8_t mode = xu4.settings->legacy.autoCombat;
-    if (mode == AutoCombat_Off || camping || autoHalted)
+    if (autoForced)
+        mode = AutoCombat_Party;
+    if (mode == AutoCombat_Off || camping || autoHalted) {
+        autoMarkShow(false);
         return false;
+    }
     if (! checkHalt) {
         if (mode == AutoCombat_Companions && focus == 0)
             return false;
@@ -1626,6 +1670,8 @@ bool CombatController::isAutoTurn(bool checkHalt) {
     // Any key or button pressed in the battle takes it back.
     if (EventHandler::pressCount != autoPresses) {
         autoHalted = true;
+        autoForced = false;
+        autoMarkShow(false);
         screenMessage("%cAuto Combat off%c\n", FG_GREY, FG_WHITE);
         announceActivePlayer();
         return false;
@@ -1642,6 +1688,8 @@ bool CombatController::isAutoTurn(bool checkHalt) {
         PartyMember* m = party->member(i);
         if (! m->isDead() && m->getHp() * 4 < m->getMaxHp()) {
             autoHalted = true;
+            autoForced = false;
+            autoMarkShow(false);
             screenMessage("%c%s is badly hurt! Auto Combat off%c\n",
                           FG_YELLOW, m->getName(), FG_WHITE);
             announceActivePlayer();
@@ -1665,6 +1713,25 @@ bool CombatController::autoCombatTurn() {
     if (! isAutoTurn())
         return false;
     busy = true;
+
+    if (xu4.settings->legacy.autoExtras) {
+        autoMarkShow(true);
+        // Hand the battle back when no foe has been hurt for 30 turns.
+        int state = foeProgressState(map);
+        if (state != autoFoeState) {
+            autoFoeState = state;
+            autoIdleTurns = 0;
+        } else if (++autoIdleTurns >= 30) {
+            autoHalted = true;
+            autoForced = false;
+            autoMarkShow(false);
+            screenMessage("%cAuto Combat is stuck! Auto Combat off%c\n",
+                          FG_YELLOW, FG_WHITE);
+            announceActivePlayer();
+            busy = false;
+            return false;
+        }
+    }
 
     PartyMember* pm = getCurrentPlayer();
     {

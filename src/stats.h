@@ -46,6 +46,7 @@ public:
     StatsView getView() const { return view; }
     void showCompare(const class Weapon* w, const class Armor* a);
     void showSpell(int spell);
+    static bool autoMark;   // Auto Combat is fighting (Auto Combat Extras).
 
     void prevItem();
     void nextItem();
