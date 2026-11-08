@@ -304,6 +304,7 @@ bool Settings::read() {
     legacy.quickFx      = true;
     legacy.updateNotice = true;
     legacy.stepOnto     = true;
+    legacy.perCharacter = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -514,6 +515,8 @@ bool Settings::read() {
             legacy.updateNotice = toInt(val);
         else if (VALUE("stepOnto="))
             legacy.stepOnto = toInt(val);
+        else if (VALUE("perCharacter="))
+            legacy.perCharacter = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -587,6 +590,49 @@ bool Settings::read() {
     }
 
     fclose(settingsFile);
+    return true;
+}
+
+const char* Settings::baseFilename() {
+    return SETTINGS_BASE_FILENAME;
+}
+
+/*
+ * Settings Per Character: take the play options (the Legacy Edition
+ * options, rules, console menus & battle difficulty) from the settings file
+ * kept with a character.  The device's own settings (display, sound, the
+ * gamepad layout, saving) stay as they are.  The settings are not written.
+ */
+bool Settings::readCharacter(const std::string& path) {
+    SettingsData keep(*this);
+    std::string fn = filename;
+    filename = path;
+    bool ok = read();
+    filename = fn;
+
+    SettingsData mine(*this);
+    *static_cast<SettingsData*>(this) = keep;
+    if (! ok)
+        return false;
+
+    LegacyOptions lo = mine.legacy;
+    const LegacyOptions& dev = keep.legacy;
+    lo.pauseUnfocused = dev.pauseUnfocused;
+    lo.keepCharacters = dev.keepCharacters;
+    lo.batterySaver   = dev.batterySaver;
+    lo.scanlines      = dev.scanlines;
+    lo.smoothMotion   = dev.smoothMotion;
+    lo.cheatsMenu     = dev.cheatsMenu;
+    lo.steamSaves     = dev.steamSaves;
+    lo.updateNotice   = dev.updateNotice;
+    lo.perCharacter   = dev.perCharacter;
+    lo.readerSize     = dev.readerSize;
+    lo.heldPace       = dev.heldPace;
+    lo.mapView        = dev.mapView;
+    memcpy(lo.padMap, dev.padMap, sizeof lo.padMap);
+    legacy = lo;
+    enhancementsOptions.smsInterface = mine.enhancementsOptions.smsInterface;
+    battleDiff = mine.battleDiff;
     return true;
 }
 
@@ -733,6 +779,7 @@ bool Settings::write() {
             "quickFx=%d\n"
             "updateNotice=%d\n"
             "stepOnto=%d\n"
+            "perCharacter=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -786,6 +833,7 @@ bool Settings::write() {
             legacy.quickFx,
             legacy.updateNotice,
             legacy.stepOnto,
+            legacy.perCharacter,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

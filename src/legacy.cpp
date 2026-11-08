@@ -686,6 +686,11 @@ bool legacyParkActive() {
     std::error_code ec;
     fs::copy_file(base / "place.txt", dst / "place.txt",
                   fs::copy_options::overwrite_existing, ec);
+    // Settings Per Character: the options go with the character.
+    if (xu4.settings->legacy.perCharacter)
+        fs::copy_file(base / Settings::baseFilename(),
+                      dst / Settings::baseFilename(),
+                      fs::copy_options::overwrite_existing, ec);
     for (const char** fn = saveFiles; *fn; ++fn)
         fs::remove(base / *fn, ec);
     fs::remove(base / "character.txt", ec);
@@ -721,6 +726,12 @@ bool legacySelectCharacter(const LegacySaveInfo& ch) {
     fs::copy_file(src / "place.txt", base / "place.txt",
                   fs::copy_options::overwrite_existing, ec);
     writeText(base / "character.txt", ch.folder);
+    if (xu4.settings->legacy.perCharacter &&
+        fs::exists(src / Settings::baseFilename(), ec) &&
+        xu4.settings->readCharacter(
+                        (src / Settings::baseFilename()).string())) {
+        xu4.settings->write();
+    }
     fs::remove_all(src, ec);
     return true;
 }

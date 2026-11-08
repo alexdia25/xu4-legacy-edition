@@ -185,6 +185,7 @@ struct LegacyOptions {
     bool quickFx;           // Spell flashes & storm sounds don't hold play.
     bool updateNotice;      // Desktop: say when a newer release is out.
     bool stepOnto;          // Walk Into To Act: chests & ladders stepped on.
+    bool perCharacter;      // Keep Characters: each has their own options.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
@@ -285,6 +286,8 @@ public:
     void setGame(const char* modName);
     void setSoundtrack(const char* modName);
     bool write();
+    bool readCharacter(const std::string& path);
+    static const char* baseFilename();
     const std::string &getUserPath() const { return userPath; }
 
     std::string profile;

@@ -269,6 +269,7 @@ private:
         MI_MORE_QUICKFX,
         MI_MORE_UPDATE,
         MI_MORE_STEP,
+        MI_MORE_PERCHAR,
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
