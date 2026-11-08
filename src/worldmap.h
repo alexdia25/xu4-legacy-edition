@@ -10,6 +10,8 @@
 #include "gui.h"
 #include "textpage.h"
 
+class Location;
+class Tileset;
 struct ScreenState;
 struct WorkBuffer;
 
@@ -38,6 +40,7 @@ public:
         WI_ZOOM_OUT,
         WI_ZOOM_IN,
         WI_LANG,
+        WI_PLACE,
         WI_BACK,
         WI_COUNT
     };
@@ -50,6 +53,10 @@ private:
     uint32_t partyTex;          // The party tile.
     uint32_t moonTex[8];        // Moon phase characters.
     int partyX, partyY;         // Party map position, or -1 if unknown.
+    const Location* here;       // The town or dungeon the party is in (Map
+                                // Opens Where You Are), or NULL.
+    bool showHere;              // here is shown, not Britannia.
+    int mapW, mapH;             // Size of the map shown in tiles.
     int buttonDown;
     uint32_t frame;             // Frames drawn, for blinking.
     int dragX, dragY;           // Where the map was pressed.
@@ -68,6 +75,8 @@ private:
     float labelX, labelY;
 
     bool explored(int x, int y) const;
+    bool buildHereTexture(const Tileset* ts);
+    void showPlace(bool local);
     bool buildTextures();
     void freeTextures();
     void layout();

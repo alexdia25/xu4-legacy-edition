@@ -297,6 +297,8 @@ bool Settings::read() {
     legacy.capDials     = true;
     legacy.blockReason  = true;
     legacy.askRules     = true;
+    legacy.mapHere      = true;
+    legacy.gateNotes    = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -493,6 +495,10 @@ bool Settings::read() {
             legacy.blockReason = toInt(val);
         else if (VALUE("askRules="))
             legacy.askRules = toInt(val);
+        else if (VALUE("mapHere="))
+            legacy.mapHere = toInt(val);
+        else if (VALUE("gateNotes="))
+            legacy.gateNotes = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -705,6 +711,8 @@ bool Settings::write() {
             "capDials=%d\n"
             "blockReason=%d\n"
             "askRules=%d\n"
+            "mapHere=%d\n"
+            "gateNotes=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -751,6 +759,8 @@ bool Settings::write() {
             legacy.capDials,
             legacy.blockReason,
             legacy.askRules,
+            legacy.mapHere,
+            legacy.gateNotes,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

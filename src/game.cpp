@@ -4163,6 +4163,7 @@ bool GameController::checkMoongates() {
         return false;
 
     EventHandler::sceneBreak();
+    legacyGateUsed(c->saveGame->trammelphase, c->saveGame->feluccaphase);
 
     // Default spell effect (screen inversion without 'spell' sound effects)
     gameSpellEffect(-1, -1, SOUND_MOONGATE);

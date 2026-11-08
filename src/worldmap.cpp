@@ -16,6 +16,7 @@
 
 #include "worldmap.h"
 #include "context.h"
+#include "dungeon.h"
 #include "config.h"
 #include "event.h"
 #include "gamepad.h"
@@ -115,6 +116,38 @@ static const Location* worldLocation()
         loc = loc->prev;
     return loc->map->isWorldMap() ? loc : NULL;
 }
+
+/*
+ * Return the town, castle, shrine or dungeon the party is in (the innermost
+ * location which is not a fight), or NULL if it is out in Britannia.
+ */
+static const Location* hereLocation()
+{
+    if (! c || ! c->location)
+        return NULL;
+    const Location* loc = c->location;
+    while (loc->prev && loc->map->type == Map::COMBAT)
+        loc = loc->prev;
+    switch (loc->map->type) {
+        case Map::CITY:
+        case Map::SHRINE:
+        case Map::DUNGEON:
+            return loc;
+    }
+    return NULL;
+}
+
+// The town by each moongate, in the order of the moon phases which open it.
+static const char* gateTown[8][2] = {
+    { "TO MOONGLOW",   "to Moonglow" },
+    { "TO BRITAIN",    "to Britain" },
+    { "TO JHELOM",  "to Jhelom" },
+    { "TO YEW",        "to Yew" },
+    { "TO MINOC",      "to Minoc" },
+    { "TO TRINSIC",    "to Trinsic" },
+    { "TO SKARA BRAE", "to Skara Brae" },
+    { "TO MAGINCIA",   "to Magincia" }
+};
 
 /*
  * Make a texture of a character of the font.
@@ -231,6 +264,9 @@ WorldMapView::WorldMapView()
     fitScale = scale = 1.0f;
     centerX = centerY = targetX = targetY = MAP_DIM * 0.5f;
     labelScale = 0.0f;
+    here = NULL;
+    showHere = false;
+    mapW = mapH = MAP_DIM;
 }
 
 WorldMapView::~WorldMapView()
@@ -257,6 +293,10 @@ bool WorldMapView::buildTextures()
     int th = ts->tileH;
     if (tw < 1 || th < 1)
         return false;
+
+    mapW = mapH = MAP_DIM;
+    if (showHere)
+        return buildHereTexture(ts);
 
     Image32 img;
     if (! image32_allocPixels(&img, MAP_DIM * tw, MAP_DIM * th))
@@ -317,6 +357,100 @@ bool WorldMapView::buildTextures()
     return true;
 }
 
+/*
+ * Draw the town or dungeon level the party is in, with the avatar on it.
+ * Dungeons show only the cells seen, with hidden things as they look.
+ */
+bool WorldMapView::buildHereTexture(const Tileset* ts)
+{
+    const Map* map = here->map;
+    const bool dungeon = (map->type == Map::DUNGEON);
+    const Dungeon* dng = dungeon ? static_cast<const Dungeon*>(map) : NULL;
+    const int z = dungeon ? here->coords.z : 0;
+    int tw = ts->tileW;
+    int th = ts->tileH;
+    mapW = map->width;
+    mapH = map->height;
+
+    TileId wall = 0, corridor = 0, secret = 0;
+    if (dungeon) {
+        const Tile* t;
+        if ((t = ts->getByName(Tile::sym.dungeonTiles[15])))
+            wall = t->getId();
+        if ((t = ts->getByName(Tile::sym.dungeonTiles[14])))
+            secret = t->getId();
+        if ((t = ts->getByName(Tile::sym.dungeonFloor)))
+            corridor = t->getId();
+    }
+
+    Image32 img;
+    if (! image32_allocPixels(&img, mapW * tw, mapH * th))
+        return false;
+    RGBA black;
+    rgba_set(black, 0, 0, 0, 255);
+    image32_fill(&img, &black);
+
+    for (int y = 0; y < mapH; ++y) {
+        for (int x = 0; x < mapW; ++x) {
+            TileId id = map->getTileFromData(Coords(x, y, z));
+            if (dungeon) {
+                if (! legacyDungeonSeen(map->id, z, x, y))
+                    continue;
+                if (id == secret)
+                    id = wall;
+                else if (dng->tokenForTile(id) == DUNGEON_TRAP)
+                    id = corridor;
+            }
+            const Tile* tile = ts->get(id);
+            const Image* timg = tile ? tile->getImage() : NULL;
+            if (timg)
+                image32_blitRect(&img, x * tw, y * th, timg, 0, 0, tw, th, 0);
+        }
+    }
+    mapTex = makeMipTexture(&img);
+    image32_freePixels(&img);
+
+    partyX = here->coords.x;
+    partyY = here->coords.y;
+    const Tile* tile = ts->getByName(Tile::sym.avatar);
+    const Image* timg = tile ? tile->getImage() : NULL;
+    if (timg && image32_allocPixels(&img, tw, th)) {
+        image32_blitRect(&img, 0, 0, timg, 0, 0, tw, th, 0);
+        partyTex = makeMipTexture(&img);
+        image32_freePixels(&img);
+    }
+    return true;
+}
+
+/*
+ * Switch between Britannia and the place the party is in.
+ */
+void WorldMapView::showPlace(bool local)
+{
+    if (local == showHere || (local && ! here))
+        return;
+    soundPlay(SOUND_UI_CLICK);
+    freeTextures();
+    showHere = local;
+    if (! buildTextures()) {
+        showHere = false;
+        buildTextures();
+    }
+    layout();
+    zoomLevel = 0;
+    if (partyX >= 0) {
+        zoomLevel = showHere ? 0 : ((zoomMax < 2) ? zoomMax : 2);
+        targetX = partyX + 0.5f;
+        targetY = partyY + 0.5f;
+    } else
+        targetX = targetY = MAP_DIM * 0.5f;
+    scale = targetScale();
+    clampCenter(scale, targetX, targetY);
+    centerX = targetX;
+    centerY = targetY;
+    labelScale = 0.0f;
+}
+
 void WorldMapView::freeTextures()
 {
     if (mapTex) {
@@ -337,6 +471,12 @@ void WorldMapView::freeTextures()
 
 bool WorldMapView::present()
 {
+    // Map Opens Where You Are: in a town or dungeon, start on it.
+    here = NULL;
+    if (! wholeMap && focusX < 0 && xu4.settings->legacy.mapHere)
+        here = hereLocation();
+    showHere = (here != NULL);
+
     if (! page.begin() || ! buildTextures()) {
         freeTextures();
         return false;
@@ -348,7 +488,8 @@ bool WorldMapView::present()
     // Start at the party position, or show the whole map.
     zoomLevel = 0;
     scale = fitScale;
-    targetX = targetY = MAP_DIM * 0.5f;
+    targetX = mapW * 0.5f;
+    targetY = mapH * 0.5f;
     if (focusX >= 0) {
         // A place chosen in the journal.
         zoomLevel = (zoomMax < 2) ? zoomMax : 2;
@@ -356,7 +497,7 @@ bool WorldMapView::present()
         targetX = focusX + 0.5f;
         targetY = focusY + 0.5f;
         clampCenter(scale, targetX, targetY);
-    } else if (! wholeMap && partyX >= 0) {
+    } else if (! wholeMap && partyX >= 0 && ! showHere) {
         // Little may be explored yet, so start closer, on the party.
         zoomLevel = (zoomMax < 2) ? zoomMax : 2;
         scale = targetScale();
@@ -405,19 +546,35 @@ void WorldMapView::layout()
     page.fill(edge + 4, footY - 6, W - 2 * edge - 8, 2, TextPage::BLUE);
 
     padHelp = gamepad_prompts();
-    const char* help = padHelp ?
-        "D-pad Pan  A,X Zoom  Y Runes/English  B Back" :
-        "Arrows Pan  +,- Zoom  R Runes/English  Esc Back";
+    const char* help;
+    if (showHere)
+        help = padHelp ? "D-pad Pan  A,X Zoom  Y Britannia  B Back" :
+                         "Arrows Pan  +,- Zoom  W Britannia  Esc Back";
+    else if (here)
+        help = padHelp ? "D-pad Pan  A,X Zoom  Y Runes  B Back" :
+                         "Arrows +,- R Runes  W Here  Esc Back";
+    else
+        help = padHelp ? "D-pad Pan  A,X Zoom  Y Runes/English  B Back" :
+                         "Arrows Pan  +,- Zoom  R Runes/English  Esc Back";
     page.text(edge + 8, footY + 3, help, TextPage::GREY);
 
     // Buttons at the bottom right (page pixels to GUI areas).
-    static const char* label[4] = { "-", "+", NULL, "Back" };
-    int wid[4] = { WI_ZOOM_OUT, WI_ZOOM_IN, WI_LANG, WI_BACK };
+    static const char* label[5] = { "-", "+", NULL, NULL, "Back" };
+    int wid[5] = { WI_ZOOM_OUT, WI_ZOOM_IN, WI_LANG, WI_PLACE, WI_BACK };
+    gbox[WI_LANG].x = gbox[WI_LANG].x2 = 0;
+    gbox[WI_PLACE].x = gbox[WI_PLACE].x2 = 0;
     int x = W - edge - 6;
-    for (int i = 3; i >= 0; --i) {
+    for (int i = 4; i >= 0; --i) {
         const char* text = label[i];
-        if (! text)
+        if (wid[i] == WI_LANG) {
+            if (showHere)
+                continue;
             text = english ? "Runes" : "English";
+        } else if (wid[i] == WI_PLACE) {
+            if (! here)
+                continue;
+            text = showHere ? "World" : "Here";
+        }
         int w = (strlen(text) + 2) * cw;
         x -= w;
         page.fill(x, footY, w, 14, TextPage::DK_BLUE);
@@ -433,7 +590,9 @@ void WorldMapView::layout()
     const GuiArea* area = gbox + WI_MAP;
     float aw = area->x2 - area->x;
     float ah = area->y2 - area->y;
-    fitScale = ((aw < ah) ? aw : ah) / MAP_DIM;
+    float fw = aw / mapW;
+    float fh = ah / mapH;
+    fitScale = (fw < fh) ? fw : fh;
 
     // Zoom in by doubling until the tiles are about as big as in the game
     // view.
@@ -453,7 +612,8 @@ void WorldMapView::mapRect(float* rect) const
     const GuiArea* area = gbox + WI_MAP;
     float mid = (area->x + area->x2) * 0.5f;
     float top = (area->y + area->y2) * 0.5f;
-    rect[2] = rect[3] = MAP_DIM * scale;
+    rect[2] = mapW * scale;
+    rect[3] = mapH * scale;
     rect[0] = mid - centerX * scale;
     rect[1] = top + centerY * scale - rect[3];
 }
@@ -478,7 +638,7 @@ void WorldMapView::markRect(int tx, int ty, float size, float* mrect) const
     float rect[4];
     mapRect(rect);
     mrect[0] = rect[0] + (tx + 0.5f) * scale - size * 0.5f;
-    mrect[1] = rect[1] + (MAP_DIM - ty - 0.5f) * scale - size * 0.5f;
+    mrect[1] = rect[1] + (mapH - ty - 0.5f) * scale - size * 0.5f;
     mrect[2] = mrect[3] = size;
 }
 
@@ -503,14 +663,35 @@ void WorldMapView::generateLabels()
     ds.fontTable = screenState()->fontTable;
     txf_begin(&ds, english ? FONT_LATIN : FONT_RUNES, psize, 0.0f, 0.0f);
 
+    // Moongates Say Where: once zoomed in, a gate the party has gone
+    // through names the town it led to last.
+    MapLabel gateLabels[8];
+    int gateCount = 0;
+    if (! showHere && ! wholeMap && xu4.settings->legacy.gateNotes &&
+        scale > fitScale * 1.5f) {
+        for (int phase = 0; phase < 8; ++phase) {
+            const Coords* gate = xu4.config->moongateCoords(phase);
+            int led = legacyGateLed(phase);
+            if (! gate || led < 0 || ! explored(gate->x, gate->y))
+                continue;
+            MapLabel& gl = gateLabels[gateCount++];
+            gl.runes   = gateTown[led][0];
+            gl.english = gateTown[led][1];
+            gl.x = gate->x;
+            gl.y = gate->y + 2;
+        }
+    }
+
     float* attr = gpu_beginRegion(work, REGION_LABELS);
-    for (size_t n = 0; n < LABEL_COUNT; ++n) {
-        const MapLabel* lab = labels + n;
+    size_t labelTotal = showHere ? 0 : LABEL_COUNT + gateCount;
+    for (size_t n = 0; n < labelTotal; ++n) {
+        const MapLabel* lab = (n < LABEL_COUNT) ? labels + n
+                                                : gateLabels + (n - LABEL_COUNT);
         if (! explored(lab->x, lab->y))
             continue;
         const char* text = english ? lab->english : lab->runes;
         float cx = rect[0] + (lab->x + 0.5f) * scale;
-        float cy = rect[1] + (MAP_DIM - lab->y - 0.5f) * scale;
+        float cy = rect[1] + (mapH - lab->y - 0.5f) * scale;
 
         int lines = 1;
         for (const char* it = text; *it; ++it)
@@ -543,7 +724,8 @@ void WorldMapView::generateLabels()
     attr = gpu_beginRegion(work, REGION_MARKER);
     if (partyX >= 0) {
         float t = fitScale * 0.6f + 1.0f;
-        markRect(partyX, partyY, markSize(PARTY_TILES) + 4.0f * t, rect);
+        float ps = showHere ? scale : markSize(PARTY_TILES);
+        markRect(partyX, partyY, ps + 4.0f * t, rect);
         attr = emitOutline(attr, rect, t, COL_BLACK);
         rect[0] += t * 0.5f;
         rect[1] += t * 0.5f;
@@ -617,7 +799,7 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
     float mrect[4];
     for (int phase = 0; phase < 8; ++phase) {
         const Coords* gate = xu4.config->moongateCoords(phase);
-        if (gate && wm->moonTex[phase] && ! wm->wholeMap &&
+        if (gate && wm->moonTex[phase] && ! wm->wholeMap && ! wm->showHere &&
             wm->explored(gate->x, gate->y)) {
             wm->markRect(gate->x, gate->y, size, mrect);
             gpu_drawImage(xu4.gpu, wm->moonTex[phase], mrect,
@@ -626,7 +808,8 @@ void WorldMapView::renderMap(ScreenState* ss, void* data)
     }
 
     if (wm->partyTex) {
-        wm->markRect(wm->partyX, wm->partyY, wm->markSize(PARTY_TILES), mrect);
+        float ps = wm->showHere ? wm->scale : wm->markSize(PARTY_TILES);
+        wm->markRect(wm->partyX, wm->partyY, ps, mrect);
         gpu_drawImage(xu4.gpu, wm->partyTex, mrect, ss->aspectW, ss->aspectH);
     }
 
@@ -651,21 +834,22 @@ void WorldMapView::clampCenter(float s, float& cx, float& cy) const
     const GuiArea* area = gbox + WI_MAP;
     float halfW = (area->x2 - area->x) * 0.5f / s;
     float halfH = (area->y2 - area->y) * 0.5f / s;
-    float mid = MAP_DIM * 0.5f;
+    float midX = mapW * 0.5f;
+    float midY = mapH * 0.5f;
 
-    if (halfW >= mid)
-        cx = mid;
+    if (halfW >= midX)
+        cx = midX;
     else if (cx < halfW)
         cx = halfW;
-    else if (cx > MAP_DIM - halfW)
-        cx = MAP_DIM - halfW;
+    else if (cx > mapW - halfW)
+        cx = mapW - halfW;
 
-    if (halfH >= mid)
-        cy = mid;
+    if (halfH >= midY)
+        cy = midY;
     else if (cy < halfH)
         cy = halfH;
-    else if (cy > MAP_DIM - halfH)
-        cy = MAP_DIM - halfH;
+    else if (cy > mapH - halfH)
+        cy = mapH - halfH;
 }
 
 /*
@@ -763,11 +947,20 @@ bool WorldMapView::keyPressed(int key)
         case U4_HOME:
             zoomTo(0, mx, my);
             return true;
+        case 'w':
+        case 'h':
+            if (here)
+                showPlace(! showHere);
+            return true;
         case 'r':
         case 'e':
         case 'z':
         case U4_PAD_Y:
         case U4_TAB:
+            if (showHere) {
+                showPlace(false);
+                return true;
+            }
             soundPlay(SOUND_UI_CLICK);
             english = ! english;
             layout();
@@ -849,6 +1042,9 @@ bool WorldMapView::inputEvent(const InputEvent* ev)
                         break;
                     case WI_LANG:
                         keyPressed('r');
+                        break;
+                    case WI_PLACE:
+                        keyPressed('w');
                         break;
                     case WI_BACK:
                         soundPlay(SOUND_UI_CLICK);

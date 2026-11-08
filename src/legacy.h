@@ -72,4 +72,8 @@ bool legacyDungeonSeen(int mapId, int level, int x, int y);
 void legacyWorldSee(int x, int y, int radius);
 bool legacyWorldSeen(int x, int y);
 
+// Moongates: the gate each one led to last (by moon phase), or -1.
+void legacyGateUsed(int from, int to);
+int  legacyGateLed(int from);
+
 #endif

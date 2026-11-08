@@ -203,6 +203,8 @@ Beside Rules & Saving, **More Options** holds these, all starting on:
 | Quick Mixing               | With console menus, Mix offers By Recipe for a spell already mixed once: pick it and dial how many, and the reagents are taken for you |
 | Say What Blocks            | "Blocked by water!", "Blocked by mountains!", "Blocked by someone!" and so on in place of "Blocked!" |
 | Ask Rules At New Game      | A new game asks which rules to play by (Story, Modern, Classic, or as set) after Male or Female |
+| Map Opens Where You Are    | In a town, castle, shrine or dungeon the map shows that place first (a dungeon level shows the cells seen); W, Y or the World button switches to Britannia and Here back |
+| Moongates Say Where        | Zoomed in on the world map, a moongate the party has gone through names the town it led to last |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is

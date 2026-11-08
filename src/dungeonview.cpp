@@ -95,7 +95,8 @@ void DungeonView::display(Context * c, TileView *view)
     int x, y;
     int mapMode = xu4.settings->legacy.dungeonMap;
 
-    if (mapMode != DungeonMap_Off)
+    // Map Opens Where You Are shows the cells seen even without a map here.
+    if (mapMode != DungeonMap_Off || xu4.settings->legacy.mapHere)
         markSeen(dungeon);
 
     if (mapMode == DungeonMap_TopDown) {

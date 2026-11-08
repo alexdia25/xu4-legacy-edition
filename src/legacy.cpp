@@ -1379,6 +1379,9 @@ std::string legacyJournalText() {
 
 static uint8_t dngSeen[8][8][8];
 
+// The moongate each gate led to last (0xff if not used), kept after dngSeen.
+static uint8_t gateLed[8];
+
 static uint8_t* seenRow(int mapId, int level, int y) {
     int dng = mapId - MAP_DECEIT;
     if (dng < 0 || dng > 7 || level < 0 || level > 7 || y < 0 || y > 7)
@@ -1389,9 +1392,12 @@ static uint8_t* seenRow(int mapId, int level, int y) {
 void legacyDungeonLoad() {
     memset(dngSeen, 0, sizeof(dngSeen));
     FILE* fp = fopen((userDir() / DNGSEEN_SAV).string().c_str(), "rb");
+    memset(gateLed, 0xff, sizeof(gateLed));
     if (fp) {
         if (fread(dngSeen, 1, sizeof(dngSeen), fp) != sizeof(dngSeen))
             memset(dngSeen, 0, sizeof(dngSeen));
+        else if (fread(gateLed, 1, sizeof(gateLed), fp) != sizeof(gateLed))
+            memset(gateLed, 0xff, sizeof(gateLed));
         fclose(fp);
     }
 
@@ -1411,7 +1417,8 @@ bool legacyDungeonWrite(const char* userPath) {
     FILE* fp = fopen(fn.c_str(), "wb");
     if (! fp)
         return false;
-    bool ok = fwrite(dngSeen, 1, sizeof(dngSeen), fp) == sizeof(dngSeen);
+    bool ok = fwrite(dngSeen, 1, sizeof(dngSeen), fp) == sizeof(dngSeen) &&
+              fwrite(gateLed, 1, sizeof(gateLed), fp) == sizeof(gateLed);
     fclose(fp);
     if (! ok)
         return false;
@@ -1441,6 +1448,17 @@ void legacyWorldSee(int x, int y, int radius) {
 
 bool legacyWorldSeen(int x, int y) {
     return worldSeen[y & 255][(x & 255) >> 3] & (1 << (x & 7));
+}
+
+void legacyGateUsed(int from, int to) {
+    if (from >= 0 && from < 8 && to >= 0 && to < 8)
+        gateLed[from] = to;
+}
+
+int legacyGateLed(int from) {
+    if (from < 0 || from > 7 || gateLed[from] > 7)
+        return -1;
+    return gateLed[from];
 }
 
 void legacyDungeonSee(int mapId, int level, int x, int y) {
