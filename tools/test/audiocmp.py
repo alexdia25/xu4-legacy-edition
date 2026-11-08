@@ -129,14 +129,23 @@ def segments(items, pcm):
                 best = (score, found)
 
     segs = {}
-    for (kind, num, start, length), at in zip(played, best[1]):
+    found = best[1]
+    for i, ((kind, num, start, length), at) in enumerate(zip(played, found)):
         if at is None:
             segs[(kind, num)] = None
             continue
         size = int(length * RATE)
         if kind == 's':
             size += int(0.3 * RATE)     # Allow for a longer tail.
-        seg = remove_dropouts(pcm[at:at + size + int(0.5 * RATE)])
+        end = at + size + int(0.5 * RATE)
+        # Never take in the next item.  Removing the dropouts (stalls while
+        # recording, most often while the game starts) would otherwise pull
+        # its beginning into this one's tail, so the length would change
+        # from one run to the next.
+        later = [f for f in found[i + 1:] if f is not None]
+        if later and later[0] > at:
+            end = min(end, later[0])
+        seg = remove_dropouts(pcm[at:end])
         segs[(kind, num)] = seg[:size]
     return segs
 

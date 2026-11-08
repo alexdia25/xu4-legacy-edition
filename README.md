@@ -456,6 +456,8 @@ from the [/r/ultima](https://www.reddit.com/r/ultima/) community, whose
 knowledge of the game, and of the Sega Master System version in
 particular, made testing move so much quicker.
 
+Thank you to [u/Cassoule](https://www.reddit.com/user/Cassoule/) for helping test on Android.
+
 The original XU4 readme follows.
 
 [XU4]: https://xu4.sourceforge.net/
