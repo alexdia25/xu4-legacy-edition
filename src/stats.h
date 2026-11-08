@@ -32,7 +32,8 @@ enum StatsView {
     STATS_REAGENTS,
     STATS_MIXTURES,
     MIX_REAGENTS,
-    STATS_COMPARE       // A weapon or armour in a shop, member by member.
+    STATS_COMPARE,      // A weapon or armour in a shop, member by member.
+    STATS_SPELL         // What a spell does, costs & is mixed from.
 };
 
 class StatsArea {
@@ -41,7 +42,9 @@ public:
     ~StatsArea();
 
     void setView(StatsView view);
+    StatsView getView() const { return view; }
     void showCompare(const class Weapon* w, const class Armor* a);
+    void showSpell(int spell);
 
     void prevItem();
     void nextItem();
@@ -67,6 +70,7 @@ private:
     void showReagents(bool active = false);
     void showMixtures();
     void showCompareView();
+    void showSpellView();
     void setTitle(const char* s);
     void redrawAura();
 
@@ -86,6 +90,7 @@ private:
     bool     avatarOnly;
     const class Weapon* compareWeapon;
     const class Armor*  compareArmor;
+    int spellShown;
 };
 
 /**

@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "game.h"
+#include "legacy.h"
 #include "names.h"
 #include "settings.h"
 #include "party.h"
@@ -51,6 +52,7 @@ StatsArea::StatsArea() :
     avatarOnly = false;
     compareWeapon = NULL;
     compareArmor = NULL;
+    spellShown = 0;
 }
 
 StatsArea::~StatsArea() {
@@ -162,6 +164,9 @@ void StatsArea::redraw() {
         break;
     case STATS_COMPARE:
         showCompareView();
+        break;
+    case STATS_SPELL:
+        showSpellView();
         break;
     }
 
@@ -409,6 +414,30 @@ void StatsArea::showCompareView() {
             strcpy(what, "same");
         mainArea.textAtFmt(0, i, "%c%-9.9s%5s%c", color, pm->getName(), what,
                            FG_WHITE);
+    }
+}
+
+/*
+ * Show what a spell does, its cost in magic points and its reagents (the
+ * Spell Info In Lists option, for the spell under the cursor in a list).
+ */
+void StatsArea::showSpell(int spell) {
+    spellShown = spell;
+    setView(STATS_SPELL);
+    redraw();
+}
+
+void StatsArea::showSpellView() {
+    int spell = spellShown;
+    setTitle(spellGetName(spell));
+    mainArea.textAt(0, 0, legacySpellEffect(spell));
+    mainArea.textAtFmt(0, 1, "Cost %d MP", spellGetRequiredMP(spell));
+    int line = 2;
+    int mask = getSpell(spell)->components;
+    for (int r = 0; r < REAG_MAX && line < STATS_AREA_HEIGHT; ++r) {
+        if (mask & (1 << r))
+            mainArea.textAtFmt(0, line++, "%c%s", CHARSET_BULLET,
+                               getReagentName((Reagent) r));
     }
 }
 

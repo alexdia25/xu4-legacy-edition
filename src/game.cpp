@@ -2070,6 +2070,11 @@ const char* gameGetInput(int maxlen) {
 
 static int spellPickIndex[SPELL_MAX];
 
+// Show the spell under the cursor in the party panel.
+static void showSpellPanel(int n) {
+    c->stats->showSpell(spellPickIndex[n]);
+}
+
 // Open the Book of Mystic Wisdom at a spell picked from the list.
 static void showSpellWisdom(int n) {
     gameShowWisdom(spellGetName(spellPickIndex[n]));
@@ -2101,8 +2106,12 @@ static int smsChooseSpell(bool mixed) {
         screenMessage("%cNone Mixed!%c\n", FG_GREY, FG_WHITE);
         return -1;
     }
+    bool info = xu4.settings->legacy.spellInfo;
+    StatsView before = c->stats->getView();
     int n = EventHandler::chooseItem(names, count, 0, 8,
-                xu4.settings->legacy.spellInfo ? showSpellWisdom : NULL);
+                info ? showSpellWisdom : NULL, info ? showSpellPanel : NULL);
+    if (info)
+        c->stats->setView(before);
     return (n < 0) ? -1 : index[n];
 }
 

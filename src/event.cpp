@@ -973,9 +973,10 @@ bool AlphaActionController::keyPressed(int key) {
 class ListPickerController : public WaitableController<int> {
 public:
     ListPickerController(const char* const* items, int count, int start,
-                         int rows, int line, void (*info)(int))
-        : items(items), info(info), count(count), rows(rows), line(line),
-          top(0), held(-1) {
+                         int rows, int line, void (*info)(int),
+                         void (*highlight)(int))
+        : items(items), info(info), highlight(highlight), count(count),
+          rows(rows), line(line), top(0), held(-1) {
         value = -1;
         sel = (start >= 0 && start < count) ? start : 0;
         scrollToSel();
@@ -1000,6 +1001,7 @@ private:
 
     const char* const* items;
     void (*info)(int);  // Shows more about an item ('?' or R).
+    void (*highlight)(int);     // Shows the item under the cursor.
     int count;
     int rows;
     int line;       // First message area line used.
@@ -1009,6 +1011,8 @@ private:
 };
 
 void ListPickerController::draw() const {
+    if (highlight)
+        highlight(sel);
     for (int i = 0; i < rows; ++i) {
         int n = top + i;
         int more = ' ';
@@ -1914,7 +1918,8 @@ void EventHandler::waitAnyKeyTimeout()
  * and the text cursor left at the start of where it was.
  */
 int EventHandler::chooseItem(const char* const* items, int count, int start,
-                             int maxRows, void (*info)(int))
+                             int maxRows, void (*info)(int),
+                             void (*highlight)(int))
 {
     if (count < 1)
         return -1;
@@ -1933,7 +1938,8 @@ int EventHandler::chooseItem(const char* const* items, int count, int start,
     bool cursor = screenState()->cursorVisible;
     screenHideCursor();
 
-    ListPickerController ctrl(items, count, start, rows, line, info);
+    ListPickerController ctrl(items, count, start, rows, line, info,
+                              highlight);
     ctrl.draw();
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();
