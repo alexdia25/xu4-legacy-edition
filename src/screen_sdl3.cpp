@@ -313,52 +313,109 @@ static void readGamepad(SDL_Gamepad* gp)
 
 //----------------------------------------------------------------------------
 
-extern int screenInitState(ScreenState*, const Settings*, int dw, int dh);
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+extern int screenInitState(ScreenState*, const Settings*, int dw, int dh,
+                           int maxScale);
 extern void screenFitDisplay(ScreenState*, const Settings*);
+extern void screenSetDisplayArea(int x, int y, int w, int h);
+
+/*
+ * Note the part of the window clear of camera cutouts & rounded corners
+ * (all of it on desktops).
+ */
+static void updateSafeArea(SDL_Window* win)
+{
+#if defined(ANDROID)
+    SDL_Rect r;
+    if (SDL_GetWindowSafeArea(win, &r)) {
+        float d = SDL_GetWindowPixelDensity(win);
+        screenSetDisplayArea(int(r.x * d), int(r.y * d),
+                             int(r.w * d), int(r.h * d));
+        return;
+    }
+#else
+    (void) win;
 #endif
+    screenSetDisplayArea(0, 0, 0, 0);
+}
+
+/*
+ * Return the whole number that the Scale option is multiplied by on a
+ * high resolution display (2 for a 4K Windows screen set to 200%), so that
+ * the window is not tiny there.  Where the window size is not in pixels
+ * (macOS & Wayland) the system already makes it larger and this is 1.
+ */
+static int displayScaleFactor(SDL_DisplayID disp)
+{
+    float cs = SDL_GetDisplayContentScale(disp);
+    const SDL_DisplayMode* mode = SDL_GetDesktopDisplayMode(disp);
+    if (mode && mode->pixel_density > 0.0f)
+        cs /= mode->pixel_density;
+    int f = (int) (cs + 0.25f);     // 175% & up give 2, 275% & up 3.
+    return (f < 1) ? 1 : f;
+}
+
+/*
+ * Return the largest scale (up to want) that makes a window which fits
+ * on the display, title bar & task bar included.
+ */
+static int fitWindowScale(SDL_DisplayID disp, int want, int baseH)
+{
+    SDL_Rect r;
+    if (! SDL_GetDisplayUsableBounds(disp, &r) || r.w < 1 || r.h < 1)
+        return want;
+    const int titleBar = 40;    // A guess, the window is not made yet.
+    while (want > 1 && (U4_SCREEN_W * want > r.w ||
+                        baseH * want + titleBar > r.h))
+        --want;
+    return want;
+}
 
 void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 {
     ScreenSDL* ss;
     const char* gpuError;
-    int scale = settings->scale;
-    int dw = U4_SCREEN_W * scale;
-    int dh = ((settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H) * scale;
+    int scale;
+    int baseH = (settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H;
+    int dw, dh;
     char title[MOD_NAME_LIMIT];
 
     xu4.config->gameTitle(title);
 
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
-    // The window always fills the screen (or the page).
-    if (false) {
-#else
-    if (settings->fullscreen) {
-#endif
-        const SDL_DisplayMode* mode =
-            SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-        if (mode) {
-            dw = mode->w;
-            dh = mode->h;
-        }
-    }
-
-    if (reset) {
-        ss = SGL;
-        gpu_free(&ss->gpu);
-
-#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
-        SDL_SetWindowFullscreen(ss->view, settings->fullscreen);
-        if (! settings->fullscreen)
-            SDL_SetWindowSize(ss->view, dw, dh);
-#endif
-        SDL_SetWindowTitle(ss->view, title);
-    } else {
+    if (! reset) {
         xu4.screenSys = ss = (ScreenSDL*) calloc(1, sizeof(ScreenSDL));
 
         if (! SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
             errorFatal("Unable to initialize SDL (%s)", SDL_GetError());
+    } else
+        ss = SGL;
 
+    // The display the window is on (or will open on).
+    SDL_DisplayID disp = 0;
+    if (reset)
+        disp = SDL_GetDisplayForWindow(ss->view);
+    if (! disp)
+        disp = SDL_GetPrimaryDisplay();
+
+    // The window size (when not fullscreen).
+    scale = settings->scale * displayScaleFactor(disp);
+    scale = fitWindowScale(disp, scale, baseH);
+    dw = U4_SCREEN_W * scale;
+    dh = baseH * scale;
+
+    if (reset) {
+        gpu_free(&ss->gpu);
+
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
+        if (! settings->fullscreen) {
+            SDL_SetWindowFullscreen(ss->view, false);
+            SDL_SetWindowSize(ss->view, dw, dh);
+            SDL_SetWindowPosition(ss->view, SDL_WINDOWPOS_CENTERED_DISPLAY(disp),
+                                            SDL_WINDOWPOS_CENTERED_DISPLAY(disp));
+        } else
+            SDL_SetWindowFullscreen(ss->view, true);
+#endif
+        SDL_SetWindowTitle(ss->view, title);
+    } else {
 #if defined(USE_GLES)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -404,11 +461,32 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
 
     //----------------------------------
 
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
-    SDL_GetWindowSizeInPixels(ss->view, &dw, &dh);
-    pointerScale = SDL_GetWindowPixelDensity(ss->view);
+    // Use the size the window really has: going fullscreen may finish
+    // after the call that asked for it, the system may have resized the
+    // window (to fill the screen, or to keep it on the screen), and the
+    // pixels may not match the window size on high resolution displays.
+    // Later changes arrive as SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED.
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
+    SDL_SyncWindow(ss->view);
 #endif
-    scale = screenInitState(state, settings, dw, dh);
+    {
+    int pw, ph;
+    if (SDL_GetWindowSizeInPixels(ss->view, &pw, &ph) && pw > 0 && ph > 0) {
+        dw = pw;
+        dh = ph;
+    }
+    }
+    pointerScale = SDL_GetWindowPixelDensity(ss->view);
+    if (pointerScale <= 0.0f)
+        pointerScale = 1.0f;
+    updateSafeArea(ss->view);
+
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
+    // Fullscreen uses the largest scale that fits.
+    if (settings->fullscreen)
+        scale = 6;
+#endif
+    scale = screenInitState(state, settings, dw, dh, scale);
 
     /* enable or disable the mouse cursor */
     screenShowMouseCursor(settings->mouseOptions.enabled);
@@ -602,19 +680,26 @@ void EventHandler::handleInputEvents(Controller* waitCon,
                 closeGamepad(ss, event.gdevice.which);
                 break;
 
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            case SDL_EVENT_WINDOW_SAFE_AREA_CHANGED:
             {
-                // The screen turned or the page was resized: fit the game
-                // to the new size.
+                // The screen turned, the page or window was resized, or
+                // the window became fullscreen: fit the game to the new
+                // size.
                 ScreenState* st = (ScreenState*) screenState();
-                st->displayW = event.window.data1;
-                st->displayH = event.window.data2;
-                screenFitDisplay(st, xu4.settings);
+                int pw, ph;
+                if (SDL_GetWindowSizeInPixels(ss->view, &pw, &ph) &&
+                    pw > 0 && ph > 0) {
+                    st->displayW = pw;
+                    st->displayH = ph;
+                }
                 pointerScale = SDL_GetWindowPixelDensity(ss->view);
+                if (pointerScale <= 0.0f)
+                    pointerScale = 1.0f;
+                updateSafeArea(ss->view);
+                screenFitDisplay(st, xu4.settings);
             }
                 break;
-#endif
 
             case SDL_EVENT_WINDOW_FOCUS_LOST:
                 // Pause Legacy option: the game, its timers & music wait

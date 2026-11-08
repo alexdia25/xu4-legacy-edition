@@ -257,9 +257,9 @@ static void screenDelete_data(Screen* scr) {
 
 static void clearBorders(Screen* screen)
 {
-    // Garbage is sometimes seen in the fullscreen border on Windows 11 and
-    // Wayland if we don't clear three times.
-    screen->clearCount = xu4.settings->fullscreen ? 3 : 1;
+    // The whole frame (borders included) is cleared each time it is drawn,
+    // see screenRender().
+    screen->clearCount = 1;
 }
 
 
@@ -316,68 +316,123 @@ void screenReInit() {
     //gs_emitMessage(SENDER_DISPLAY, &screen->state);
 }
 
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
-void screenFitDisplay(ScreenState* state, const Settings* settings);
-#endif
+/*
+ * The part of the display the game may use, in pixels from the top left
+ * (the area clear of a phone's camera cutout & rounded corners).
+ * A zero width means all of the display.
+ */
+static int displayArea[4] = { 0, 0, 0, 0 };
+static int fitScaleLimit = 6;   // Largest whole number scale (desktop).
 
-// Private to screenInit_sys().
-int screenInitState(ScreenState* state, const Settings* settings, int dw, int dh)
+void screenSetDisplayArea(int x, int y, int w, int h)
 {
-    int scale = settings->scale;
+    displayArea[0] = x;
+    displayArea[1] = y;
+    displayArea[2] = w;
+    displayArea[3] = h;
+}
+
+void screenFitDisplay(ScreenState* state, const Settings* settings);
+
+/*
+ * Private to screenInit_sys().
+ *
+ * \param dw        Pixel width of the window (or screen) as it really is.
+ * \param dh        Pixel height of the window (or screen).
+ * \param maxScale  Scale of the window on desktops (the size it was
+ *                  made for).
+ *
+ * Return the scale the GPU scaler is made for.
+ */
+int screenInitState(ScreenState* state, const Settings* settings, int dw, int dh,
+                    int maxScale)
+{
+    int baseH = (settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H;
+    int scale;
+
+    // HQX filter is limited to 4x.
+    fitScaleLimit = (settings->filter == FILTER_HQX) ? 4 : 6;
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    maxScale = fitScaleLimit;
+#endif
+    if (maxScale > fitScaleLimit)
+        maxScale = fitScaleLimit;
+    if (maxScale < 1)
+        maxScale = 1;
+
+    for (scale = maxScale; scale > 1; --scale) {
+        if (U4_SCREEN_W * scale <= dw && baseH * scale <= dh)
+            break;
+    }
 
     state->displayW = dw;
     state->displayH = dh;
-
-    // Scale automatically in fullscreen mode.
-#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
-    if (settings->fullscreen)
-#endif
-    {
-        int baseH = (settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H;
-
-        // HQX filter is limited to 4x.
-        scale = (settings->filter == FILTER_HQX) ? 4 : 6;
-
-        for ( ; scale > 1; --scale) {
-            dw = U4_SCREEN_W * scale;
-            dh = baseH * scale;
-            if (dw <= state->displayW && dh <= state->displayH)
-                break;
-        }
-    }
-
-    state->aspectW = dw;
-    state->aspectH = dh;
-    state->aspectX = (state->displayW - dw) / 2;
-    state->aspectY = (state->displayH - dh) / 2;
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    state->aspectW = 0;     // Nothing to redraw yet.
     screenFitDisplay(state, settings);
-#endif
 
     return scale;
 }
 
-#if defined(ANDROID) || defined(__EMSCRIPTEN__)
 /*
- * Draw the game as large as the screen (or page) allows, keeping the shape
- * of the picture.  The views are placed again when the size changes (the
- * device turned or the browser window was resized).
+ * Place the game on the display, keeping the shape of the picture, and
+ * centered with black borders around it.  On desktops it is drawn at the
+ * largest whole number scale that fits (a window made at the Scale option's
+ * size shows the game at that scale); on phones & browsers as large as the
+ * screen allows.
+ *
+ * This is called again when the size changes (a phone turned, a browser
+ * resized, or a window made fullscreen or resized by the system).
  */
 void screenFitDisplay(ScreenState* state, const Settings* settings)
 {
     int baseH = (settings->filter >= FILTER_POINT_43) ? 240 : U4_SCREEN_H;
-    int dw = state->displayW;
-    int dh = dw * baseH / U4_SCREEN_W;
-    if (dh > state->displayH) {
-        dh = state->displayH;
-        dw = dh * U4_SCREEN_W / baseH;
+    int areaX = 0;
+    int areaY = 0;
+    int areaW = state->displayW;
+    int areaH = state->displayH;
+    int dw, dh;
+
+    if (displayArea[2] > 0 && displayArea[3] > 0 &&
+        displayArea[0] + displayArea[2] <= state->displayW &&
+        displayArea[1] + displayArea[3] <= state->displayH) {
+        areaX = displayArea[0];
+        areaW = displayArea[2];
+        areaH = displayArea[3];
+        // OpenGL counts rows from the bottom.
+        areaY = state->displayH - (displayArea[1] + areaH);
     }
+
+#if defined(ANDROID) || defined(__EMSCRIPTEN__)
+    dw = 0;
+#else
+    int scale;
+    for (scale = fitScaleLimit; scale > 0; --scale) {
+        if (U4_SCREEN_W * scale <= areaW && baseH * scale <= areaH)
+            break;
+    }
+    dw = U4_SCREEN_W * scale;
+    dh = baseH * scale;
+#endif
+    if (dw == 0) {
+        // As large as it fits.
+        dw = areaW;
+        dh = dw * baseH / U4_SCREEN_W;
+        if (dh > areaH) {
+            dh = areaH;
+            dw = dh * U4_SCREEN_W / baseH;
+        }
+        if (dw < 1 || dh < 1) {
+            dw = U4_SCREEN_W;
+            dh = baseH;
+        }
+    }
+
     bool changed = state->aspectW && (dw != state->aspectW ||
                                       dh != state->aspectH);
     state->aspectW = dw;
     state->aspectH = dh;
-    state->aspectX = (state->displayW - dw) / 2;
-    state->aspectY = (state->displayH - dh) / 2;
+    state->aspectX = areaX + (areaW - dw) / 2;
+    state->aspectY = areaY + (areaH - dh) / 2;
 
     if (changed) {
         if (xu4.stage == StagePlay && xu4.game)
@@ -386,7 +441,6 @@ void screenFitDisplay(ScreenState* state, const Settings* settings)
             xu4.intro->reinitViews();
     }
 }
-#endif
 
 void screenSetLayer(int layer, void (*renderFunc)(ScreenState*, void*),
                     void* data) {
@@ -948,15 +1002,16 @@ void screenRender() {
             screenUploadCursor(sp, stex);
     }
 
-    if (ss->vertOffset) {
+    if (ss->vertOffset)
         offsetY -= ss->vertOffset;
-        if (! sp->clearCount)
-            sp->clearCount = 1;     // Clear the top rows of pixels.
-    }
-    if (sp->clearCount) {
-        sp->clearCount -= 1;
-        gpu_clear(gpu, colorBlack);
-    }
+
+    // Clear the whole frame each time.  The black borders around the game
+    // otherwise keep whatever an earlier frame left there: on Android,
+    // Windows 11 & Wayland the swapped buffers are not kept as drawn,
+    // and the game may have been placed elsewhere since (the screen
+    // turned or the window was resized).
+    sp->clearCount = 0;
+    gpu_clear(gpu, colorBlack);
     gpu_viewport(ss->aspectX, offsetY, ss->aspectW, ss->aspectH);
     gpu_drawTextureScaled(gpu, gpu_screenTexture(gpu));
 
