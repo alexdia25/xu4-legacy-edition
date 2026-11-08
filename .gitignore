@@ -12,3 +12,6 @@ android/app/build/
 android/app/.cxx/
 android/local.properties
 build-web/
+src/coord
+src/dumpmap
+src/dumpsavegame
