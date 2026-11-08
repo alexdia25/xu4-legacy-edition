@@ -52,7 +52,8 @@ bool legacyRestoreSave(const LegacySaveInfo& save);
 bool legacyDeleteCharacter(const LegacySaveInfo& ch);
 
 // Journal.
-void legacyNoteClue(const char* place, const char* who, const char* text);
+bool legacyNoteClue(const char* place, const char* who, const char* text);
+bool legacyJournalPlace(const std::string& title, int* x, int* y);
 void legacyJournalReset();
 std::string legacyJournalText();
 const char* legacyVirtueWord(int karma);

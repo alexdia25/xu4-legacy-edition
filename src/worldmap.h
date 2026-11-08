@@ -28,6 +28,7 @@ public:
     virtual bool keyPressed(int key);
     virtual bool inputEvent(const InputEvent*);
 
+    int focusX, focusY;         // A place to show & mark, or -1.
     bool wholeMap;              // All of the map without the party & gates
                                 // (the cloth map of the books), not only
                                 // what the party has explored.
@@ -84,5 +85,6 @@ private:
 };
 
 void worldMapShow(bool wholeMap = false);
+void worldMapShowPlace(int x, int y);
 
 #endif

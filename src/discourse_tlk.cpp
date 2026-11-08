@@ -690,6 +690,8 @@ static void talkYNResponse(TalkFunc func, TalkState* ts, SmsTalk* tk,
     talkAsked(tk, (ans == DS_ANSWER_Y) ? TK_YES : TK_NO);
     screenMessage(reply);
     screenCrLf();
+    legacyNoteClue(c->location->map->getName(), func(ts, DS_NAME, NULL),
+                   reply);
 
     if (menu && tk->choice && tk->choice->items &&
         (ans == DS_ANSWER_Y || tk->choice->onNo))

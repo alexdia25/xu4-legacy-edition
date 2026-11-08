@@ -192,6 +192,38 @@ bool discourse_run(const Discourse* dis, uint16_t entry, Person* npc)
 }
 
 /*
+ * Count the lines of a .TLK file which the people can say (job, health,
+ * keyword replies & answers) that match.  Returns -1 if the file cannot be
+ * read (or holds no TLK conversations).
+ */
+int discourse_countLines(const char* resource, bool (*match)(const char*))
+{
+    Discourse dis;
+    discourse_init(&dis);
+    if (discourse_load(&dis, resource) || dis.system != DISCOURSE_U4_TLK) {
+        discourse_free(&dis);
+        return -1;
+    }
+    int count = 0;
+    const U4Talk* tlk = (const U4Talk*) dis.conv.table;
+    for (int i = 0; i < dis.convCount; ++i, ++tlk) {
+        const uint16_t offs[6] = {
+            tlk->job, tlk->health, tlk->response1, tlk->response2,
+            tlk->yes, tlk->no
+        };
+        for (int j = 0; j < 6; ++j) {
+            if (j >= 4 && ! tlk->question)
+                break;
+            const char* text = tlk->strings + offs[j];
+            if (text[0] && match(text))
+                ++count;
+        }
+    }
+    discourse_free(&dis);
+    return count;
+}
+
+/*
  * Return the conversation index for a character or -1 if the name is not found.
  */
 int discourse_findName(const Discourse* dis, const char* name)

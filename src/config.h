@@ -83,6 +83,7 @@ public:
     const Tileset* tileset() const;
     const UltimaSaveIds* usaveIds() const;
     Map* map(uint32_t id);
+    const Map* mapInfo(uint32_t id) const;  // Without loading its data.
     Map* restoreMap(uint32_t id);
     const Coords* moongateCoords(int phase) const;
 

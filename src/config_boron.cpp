@@ -1562,6 +1562,12 @@ Map* Config::map(uint32_t id) {
     return rmap;
 }
 
+const Map* Config::mapInfo(uint32_t id) const {
+    if (id >= CB->mapList.size())
+        return NULL;
+    return CB->mapList[id];
+}
+
 // Load map from saved game.
 Map* Config::restoreMap(uint32_t id) {
     if (id >= CB->mapList.size())

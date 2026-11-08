@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <chrono>
 #include "context.h"
+#include "portal.h"
+#include "city.h"
 #include "discourse.h"
 #include "event.h"
 #include "game.h"
@@ -784,20 +786,23 @@ static std::vector<std::string> journalLines() {
 
 /*
  * Note a line of conversation in the journal if it is a clue to the quest.
+ * Returns true if it was new to the journal (which then says so).
  */
-void legacyNoteClue(const char* place, const char* who, const char* text) {
+bool legacyNoteClue(const char* place, const char* who, const char* text) {
     if (! text || ! isClue(text))
-        return;
+        return false;
     std::string line = std::string(place ? place : "") + "\t" +
                        (who ? who : "") + "\t" + oneLine(text);
     for (const std::string& old : journalLines())
         if (old == line)
-            return;
+            return false;
     FILE* fp = fopen((userDir() / JOURNAL_SAV).string().c_str(), "a");
-    if (fp) {
-        fprintf(fp, "%s\n", line.c_str());
-        fclose(fp);
-    }
+    if (! fp)
+        return false;
+    fprintf(fp, "%s\n", line.c_str());
+    fclose(fp);
+    screenMessage("%cJournal updated%c\n", FG_GREY, FG_WHITE);
+    return true;
 }
 
 /*
@@ -835,6 +840,334 @@ static void wrapText(std::string& out, const std::string& text,
     }
 }
 
+//--------------------------------------------------------------------------
+// Journal: places & clues by topic.
+
+#define JOURNAL_MARK    '\x1e'     // Starts a chapter title for the reader.
+
+struct JournalClue {
+    std::string place, who, text;
+};
+
+static std::vector<JournalClue> journalClues() {
+    std::vector<JournalClue> clues;
+    for (const std::string& line : journalLines()) {
+        size_t t1 = line.find('\t');
+        size_t t2 = (t1 == std::string::npos) ? t1 : line.find('\t', t1 + 1);
+        if (t2 == std::string::npos)
+            continue;
+        JournalClue jc;
+        jc.place = line.substr(0, t1);
+        jc.who   = line.substr(t1 + 1, t2 - t1 - 1);
+        jc.text  = line.substr(t2 + 1);
+        clues.push_back(jc);
+    }
+    return clues;
+}
+
+static std::string lowerCase(const std::string& str) {
+    std::string low(str);
+    for (char& ch : low)
+        ch = tolower((unsigned char) ch);
+    return low;
+}
+
+static bool hasWord(const std::string& low, const char* word) {
+    return low.find(lowerCase(word)) != std::string::npos;
+}
+
+struct JournalPlace {
+    std::string name;
+    const char* kind;       // "Castles", "Townes" or "Villages".
+    int x, y;               // Entrance on the world map.
+    int total;              // Clues its people can tell (-1 unknown).
+};
+
+/*
+ * List the towns, castles & villages, from the portals of Britannia.
+ */
+static const std::vector<JournalPlace>& journalPlaceList() {
+    static std::vector<JournalPlace> list;
+    static const void* listConfig = NULL;
+    if (listConfig == xu4.config && ! list.empty())
+        return list;
+    list.clear();
+    listConfig = xu4.config;
+
+    const Map* world = xu4.config->mapInfo(MAP_WORLD);
+    if (! world)
+        return list;
+    for (const Portal* portal : world->portals) {
+        const Map* m = xu4.config->mapInfo(portal->destid);
+        if (! m || m->type != Map::CITY)
+            continue;
+        const City* city = static_cast<const City*>(m);
+        JournalPlace jp;
+        jp.name = city->getName();
+        bool dup = false;
+        for (const JournalPlace& o : list)
+            if (o.name == jp.name)
+                dup = true;
+        if (dup)
+            continue;
+        const char* type = city->cityTypeStr();
+        jp.kind = (strcmp(type, "castle") == 0) ? "Castles" :
+                  (strcmp(type, "village") == 0) ? "Villages" : "Townes";
+        jp.x = portal->coords.x;
+        jp.y = portal->coords.y;
+        jp.total = discourse_countLines(
+                        xu4.config->confString(city->tlk_fname), isClue);
+        list.push_back(jp);
+    }
+    return list;
+}
+
+/*
+ * Find where a place of the journal is on the world map.  The name may be
+ * followed by a count ("Britain 3/7").
+ */
+bool legacyJournalPlace(const std::string& title, int* x, int* y) {
+    for (const JournalPlace& jp : journalPlaceList()) {
+        if (title.compare(0, jp.name.size(), jp.name) == 0 &&
+            (title.size() == jp.name.size() || title[jp.name.size()] == ' ')) {
+            *x = jp.x;
+            *y = jp.y;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool placeSeen(const JournalPlace& jp) {
+    return legacyWorldSeen(jp.x, jp.y);
+}
+
+static void journalPlaces(std::string& out) {
+    const std::vector<JournalPlace>& places = journalPlaceList();
+    if (places.empty())
+        return;
+    std::vector<JournalClue> clues = journalClues();
+    char buf[128];
+
+    out += "\n";
+    out += JOURNAL_MARK;
+    out += "Places\n\n";
+    wrapText(out, "The towns, castles and villages found, with how many "
+                  "of the clues their people can tell have been heard.  "
+                  "Each has a page of its own after this one.", "    ", 60);
+
+    std::vector<const JournalPlace*> shown;
+    static const char* kinds[] = { "Castles", "Townes", "Villages" };
+    for (const char* kind : kinds) {
+        out += std::string("\n      ") + kind + "\n";
+        for (const JournalPlace& jp : places) {
+            if (strcmp(jp.kind, kind) != 0)
+                continue;
+            int heard = 0;
+            for (const JournalClue& jc : clues)
+                if (jc.place == jp.name)
+                    ++heard;
+            if (! placeSeen(jp) && heard == 0) {
+                out += "        Mystery...\n";
+                continue;
+            }
+            if (jp.total > 0) {
+                snprintf(buf, sizeof(buf), "        %-24s %d/%d\n",
+                         jp.name.c_str(), std::min(heard, jp.total), jp.total);
+            } else
+                snprintf(buf, sizeof(buf), "        %s\n", jp.name.c_str());
+            out += buf;
+            shown.push_back(&jp);
+        }
+    }
+
+    // A page for each place found.
+    for (const JournalPlace* jp : shown) {
+        int heard = 0;
+        for (const JournalClue& jc : clues)
+            if (jc.place == jp->name)
+                ++heard;
+        out += "\n";
+        out += JOURNAL_MARK;
+        if (jp->total > 0)
+            snprintf(buf, sizeof(buf), "%s %d/%d\n\n", jp->name.c_str(),
+                     std::min(heard, jp->total), jp->total);
+        else
+            snprintf(buf, sizeof(buf), "%s\n\n", jp->name.c_str());
+        out += buf;
+        if (heard == 0)
+            wrapText(out, "No clues heard here yet.", "    ", 60);
+        for (const JournalClue& jc : clues)
+            if (jc.place == jp->name)
+                wrapText(out, jc.who + ": " + jc.text, "    ", 60);
+        int left = jp->total - heard;
+        if (left > 0) {
+            snprintf(buf, sizeof(buf), "%d more to hear here.", left);
+            out += "\n";
+            wrapText(out, buf, "    ", 60);
+        }
+        out += "\n";
+        wrapText(out, "M (X on a gamepad): show it on the World Map.",
+                 "    ", 60);
+    }
+}
+
+// Clue topics.  A clue goes under the first whose words it has.
+enum JournalTopic {
+    JT_MANTRAS, JT_RUNES, JT_STONES, JT_PRINCIPLES, JT_KEY, JT_ABYSS,
+    JT_OTHER, JT_COUNT
+};
+
+static const char* topicName[JT_COUNT] = {
+    "Mantras", "Runes", "Stones", "Bell, Book & Candle", "The Key",
+    "The Abyss", "Other Clues"
+};
+
+static int clueTopic(const std::string& low) {
+    static const char* const words[JT_COUNT][8] = {
+        { "mantra", NULL },
+        { "rune", NULL },
+        { "stone", NULL },
+        { "bell", "book", "candle", NULL },
+        { "key", NULL },
+        { "abyss", "codex", "syllable", "word of passage", "altar",
+          "skull", "mondain", NULL },
+        { NULL }
+    };
+    for (int t = 0; t < JT_OTHER; ++t)
+        for (const char* const* w = words[t]; *w; ++w)
+            if (hasWord(low, *w))
+                return t;
+    return JT_OTHER;
+}
+
+/*
+ * Return true if a clue is about a part of the quest that is done: its
+ * virtue's elevation, its rune or stone held, its item found...
+ */
+static bool clueDone(int topic, const std::string& low) {
+    const SaveGame* sg = c->saveGame;
+    int i, named = 0, done = 0;
+    switch (topic) {
+    case JT_MANTRAS:
+    case JT_RUNES:
+        for (i = 0; i < VIRT_MAX; ++i) {
+            if (hasWord(low, getVirtueName((Virtue) i))) {
+                ++named;
+                bool ok = (topic == JT_MANTRAS) ? sg->karma[i] == 0
+                                                : (sg->runes & (1 << i));
+                if (ok)
+                    ++done;
+            }
+        }
+        if (! named)
+            return (topic == JT_MANTRAS) ? false : sg->runes == 0xff;
+        return done == named;
+
+    case JT_STONES: {
+        static const char* colors[8] = {
+            "blue", "yellow", "red", "green", "orange", "purple", "white",
+            "black"
+        };
+        for (i = 0; i < 8; ++i) {
+            if (hasWord(low, colors[i])) {
+                ++named;
+                if (sg->stones & (1 << i))
+                    ++done;
+            }
+        }
+        if (! named)
+            return sg->stones == 0xff;
+        return done == named;
+    }
+    case JT_PRINCIPLES: {
+        static const char* item[3] = { "bell", "book", "candle" };
+        static const int bit[3] = { ITEM_BELL | ITEM_BELL_USED,
+                                    ITEM_BOOK | ITEM_BOOK_USED,
+                                    ITEM_CANDLE | ITEM_CANDLE_USED };
+        for (i = 0; i < 3; ++i) {
+            if (hasWord(low, item[i])) {
+                ++named;
+                if (sg->items & bit[i])
+                    ++done;
+            }
+        }
+        return named && done == named;
+    }
+    case JT_KEY: {
+        static const char* part[3] = { "truth", "love", "courage" };
+        static const int bit[3] = { ITEM_KEY_T, ITEM_KEY_L, ITEM_KEY_C };
+        for (i = 0; i < 3; ++i) {
+            if (hasWord(low, part[i])) {
+                ++named;
+                if (sg->items & bit[i])
+                    ++done;
+            }
+        }
+        if (! named)
+            return (sg->items & (ITEM_KEY_T | ITEM_KEY_L | ITEM_KEY_C)) ==
+                   (ITEM_KEY_T | ITEM_KEY_L | ITEM_KEY_C);
+        return done == named;
+    }
+    case JT_OTHER:
+        if (hasWord(low, "sextant"))
+            return sg->sextants > 0;
+        if (hasWord(low, "horn"))
+            return (sg->items & ITEM_HORN) != 0;
+        if (hasWord(low, "wheel"))
+            return (sg->items & ITEM_WHEEL) != 0;
+        return false;
+    }
+    return false;
+}
+
+static void journalTopics(std::string& out) {
+    std::vector<JournalClue> clues = journalClues();
+    char buf[96];
+
+    if (clues.empty()) {
+        out += "\n";
+        out += JOURNAL_MARK;
+        out += "Clues\n\n";
+        wrapText(out, "Nothing yet.  Words of the runes, stones and other "
+                      "things of the quest are noted here as they are heard.",
+                 "    ", 60);
+        return;
+    }
+
+    for (int t = 0; t < JT_COUNT; ++t) {
+        std::vector<const JournalClue*> open, done;
+        for (auto it = clues.rbegin(); it != clues.rend(); ++it) {
+            std::string low = lowerCase(it->text);
+            if (clueTopic(low) != t)
+                continue;
+            if (clueDone(t, low))
+                done.push_back(&*it);
+            else
+                open.push_back(&*it);
+        }
+        int total = open.size() + done.size();
+        if (! total)
+            continue;
+        out += "\n";
+        out += JOURNAL_MARK;
+        snprintf(buf, sizeof(buf), "Clues: %s %d/%d\n\n", topicName[t],
+                 (int) open.size(), total);
+        out += buf;
+        if (open.empty())
+            wrapText(out, "All of these have been acted on.", "    ", 60);
+        for (const JournalClue* jc : open)
+            wrapText(out, jc->who + " of " + jc->place + ": " + jc->text,
+                     "    ", 60);
+        if (! done.empty()) {
+            out += "\n    Acted on already:\n\n";
+            for (const JournalClue* jc : done)
+                wrapText(out, jc->who + " of " + jc->place + ": " + jc->text,
+                         "      ", 58);
+        }
+    }
+}
+
 /*
  * Write the journal as text for the document reader.
  */
@@ -849,7 +1182,9 @@ std::string legacyJournalText() {
     const SaveGame* sg = c->saveGame;
     int i, n;
 
-    out += "\n    THE PATH OF THE AVATAR\n\n";
+    out += "\n";
+    out += JOURNAL_MARK;
+    out += "The Path of the Avatar\n\n";
     for (i = 0; i < VIRT_MAX; ++i) {
         snprintf(buf, sizeof(buf), "      %-14s %s\n",
                  getVirtueName((Virtue) i), legacyVirtueWord(sg->karma[i]));
@@ -860,7 +1195,9 @@ std::string legacyJournalText() {
                   "path of a virtue.  Ready means the Avatar may be "
                   "elevated in it, and Avatar that this is done.", "    ", 60);
 
-    out += "\n\n    THE QUEST\n\n";
+    out += "\n";
+    out += JOURNAL_MARK;
+    out += "The Quest\n\n";
     std::string list;
     for (i = 0, n = 0; i < VIRT_MAX; ++i) {
         if (sg->runes & (1 << i)) {
@@ -930,28 +1267,8 @@ std::string legacyJournalText() {
     if (n)
         wrapText(out, "Also found: " + list, "      ", 56);
 
-    out += "\n\n    CLUES HEARD\n\n";
-    std::vector<std::string> lines = journalLines();
-    if (lines.empty()) {
-        wrapText(out, "Nothing yet.  Words of the runes, stones and other "
-                      "things of the quest are noted here as they are heard.",
-                 "      ", 56);
-    }
-    std::string lastPlace;
-    for (const std::string& line : lines) {
-        size_t t1 = line.find('\t');
-        size_t t2 = (t1 == std::string::npos) ? t1 : line.find('\t', t1 + 1);
-        if (t2 == std::string::npos)
-            continue;
-        std::string place = line.substr(0, t1);
-        std::string who = line.substr(t1 + 1, t2 - t1 - 1);
-        std::string text = line.substr(t2 + 1);
-        if (place != lastPlace) {
-            out += "\n      " + place + "\n";
-            lastPlace = place;
-        }
-        wrapText(out, who + ": " + text, "        ", 54);
-    }
+    journalPlaces(out);
+    journalTopics(out);
     return out;
 }
 

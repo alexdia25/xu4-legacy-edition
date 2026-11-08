@@ -498,6 +498,29 @@ void DocReader::findChapters()
     string name;
     size_t i;
 
+    // Chapters marked by the text itself (the journal): a line starting
+    // with RS (0x1E) holds the title.
+    for (i = 0; i < lines.size(); ++i) {
+        if (! lines[i].empty() && lines[i][0] == '\x1e') {
+            ch.title = lines[i].substr(1);
+            ch.start = i;
+            found.push_back(ch);
+            string up;
+            for (char c : ch.title)
+                up += toupper((unsigned char) c);
+            lines[i] = "    " + up;
+        }
+    }
+    if (! found.empty()) {
+        chapters = found;
+        if (chapters[0].start > 0)
+            chapters[0].start = 0;
+        for (i = 0; i < chapters.size(); ++i)
+            chapters[i].end = (i + 1 < chapters.size()) ? chapters[i+1].start
+                                                         : lines.size();
+        return;
+    }
+
     // Numbered chapters.
     for (i = 0; i < lines.size(); ++i) {
         string t = trimmed(lines[i]);
@@ -1161,6 +1184,21 @@ bool DocReader::keyPressed(int key)
         case U4_PAD_L:
             resize(-1);
             return true;
+        case 'm':
+        case U4_PAD_X:
+            // The journal's page of a place: show it on the World Map.
+            if (book == BOOK_JOURNAL) {
+                int x, y;
+                if (legacyJournalPlace(chapters[chapter].title, &x, &y)) {
+                    soundPlay(SOUND_UI_CLICK);
+                    worldMapShowPlace(x, y);
+                    screenSetLayer(LAYER_TOP_MENU, renderReader, this);
+                    pressed = -1;
+                    redraw();
+                }
+                return true;
+            }
+            break;
         case U4_TAB:
         case 'z':
         case U4_PAD_Y:

@@ -52,7 +52,7 @@ enum MapRegions {
     REGION_COUNT
 };
 
-static const int regionQuads[REGION_COUNT] = { 300, 1200, 8 };
+static const int regionQuads[REGION_COUNT] = { 300, 1200, 16 };
 
 // Rune font codes for the combined runes (see tools/rune-glyphs.py).
 #define TH  "\x7f"
@@ -220,6 +220,7 @@ WorldMapView::WorldMapView()
         rsize[i] = regionQuads[i] * QUAD_ATTR;
     work = gpu_allocWorkBuffer(rsize, REGION_COUNT);
     mapTex = partyTex = 0;
+    focusX = focusY = -1;
     memset(moonTex, 0, sizeof(moonTex));
     buttonDown = WID_NONE;
     mouseX = mouseY = 0;
@@ -348,7 +349,14 @@ bool WorldMapView::present()
     zoomLevel = 0;
     scale = fitScale;
     targetX = targetY = MAP_DIM * 0.5f;
-    if (! wholeMap && partyX >= 0) {
+    if (focusX >= 0) {
+        // A place chosen in the journal.
+        zoomLevel = (zoomMax < 2) ? zoomMax : 2;
+        scale = targetScale();
+        targetX = focusX + 0.5f;
+        targetY = focusY + 0.5f;
+        clampCenter(scale, targetX, targetY);
+    } else if (! wholeMap && partyX >= 0) {
         // Little may be explored yet, so start closer, on the party.
         zoomLevel = (zoomMax < 2) ? zoomMax : 2;
         scale = targetScale();
@@ -542,6 +550,17 @@ void WorldMapView::generateLabels()
         rect[2] -= t;
         rect[3] -= t;
         attr = emitOutline(attr, rect, t * 0.5f, COL_YELLOW);
+    }
+    if (focusX >= 0) {
+        // The place chosen in the journal, in white.
+        float t = fitScale * 0.6f + 1.0f;
+        markRect(focusX, focusY, markSize(PARTY_TILES) + 4.0f * t, rect);
+        attr = emitOutline(attr, rect, t, COL_BLACK);
+        rect[0] += t * 0.5f;
+        rect[1] += t * 0.5f;
+        rect[2] -= t;
+        rect[3] -= t;
+        attr = emitOutline(attr, rect, t * 0.5f, COL_WHITE);
     }
     gpu_endRegion(work, REGION_MARKER, attr);
 
@@ -862,5 +881,20 @@ void worldMapShow(bool wholeMap)
         view = new WorldMapView;
     // Without a game in progress there is nothing explored to show.
     view->wholeMap = wholeMap || ! worldLocation();
+    view->focusX = view->focusY = -1;
+    xu4.eventHandler->runController(view);
+}
+
+/*
+ * Show the explored map centred on a place, which is marked.
+ */
+void worldMapShowPlace(int x, int y)
+{
+    static WorldMapView* view = NULL;
+    if (! view)
+        view = new WorldMapView;
+    view->wholeMap = ! worldLocation();
+    view->focusX = x;
+    view->focusY = y;
     xu4.eventHandler->runController(view);
 }
