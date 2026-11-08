@@ -182,8 +182,15 @@ void CombatController::applyCreatureTileEffects() {
 /**
  * Begin combat
  */
+// Set when Auto Combat hands the battle back to the player.
+static bool autoHalted = false;
+static uint32_t autoPresses;    // EventHandler::pressCount at the start.
+
 void CombatController::beginCombat() {
     bool partyIsReadyToFight = false;
+
+    autoHalted = false;
+    autoPresses = EventHandler::pressCount;
 
     if (c->horseSpeed == HORSE_GALLOP)
         c->horseSpeed = HORSE_GALLOP_INTERRUPT;
@@ -933,6 +940,14 @@ bool CombatController::keyPressed(int key) {
 
     EventHandler::smsMenus();   // Notice a gamepad being used.
 
+    // A key pressed while Auto Combat fights takes the battle back; the
+    // key itself does nothing more.
+    if (isAutoTurn(false)) {
+        isAutoTurn();
+        return true;
+    }
+    autoPresses = EventHandler::pressCount;     // A command for this turn.
+
     // Note prompts backed out of, for the Cancel Spends No Turn option.
     EventHandler::cancelArmed = true;
     int cancels = EventHandler::cancelCount;
@@ -1508,14 +1523,43 @@ bool CombatController::snapAttack() {
  * Return true if the member whose turn it is fights by itself
  * (the Auto Combat option).
  */
-bool CombatController::isAutoTurn() {
+bool CombatController::isAutoTurn(bool checkHalt) {
     uint8_t mode = xu4.settings->legacy.autoCombat;
-    if (mode == AutoCombat_Off || camping)
+    if (mode == AutoCombat_Off || camping || autoHalted)
         return false;
+    if (! checkHalt) {
+        if (mode == AutoCombat_Companions && focus == 0)
+            return false;
+        PartyMember* pm = getCurrentPlayer();
+        return pm && ! pm->isDisabled();
+    }
+
+    // Any key or button pressed in the battle takes it back.
+    if (EventHandler::pressCount != autoPresses) {
+        autoHalted = true;
+        screenMessage("%cAuto Combat off%c\n", FG_GREY, FG_WHITE);
+        announceActivePlayer();
+        return false;
+    }
     if (mode == AutoCombat_Companions && focus == 0)
         return false;
     PartyMember* pm = getCurrentPlayer();
-    return pm && ! pm->isDisabled();
+    if (! pm || pm->isDisabled())
+        return false;
+
+    // Someone badly hurt: the player decides what to do next.
+    Party* party = c->party;
+    for (int i = 0; i < party->size(); ++i) {
+        PartyMember* m = party->member(i);
+        if (! m->isDead() && m->getHp() * 4 < m->getMaxHp()) {
+            autoHalted = true;
+            screenMessage("%c%s is badly hurt! Auto Combat off%c\n",
+                          FG_YELLOW, m->getName(), FG_WHITE);
+            announceActivePlayer();
+            return false;
+        }
+    }
+    return true;
 }
 
 /*

@@ -645,6 +645,13 @@ void EventHandler::handleInputEvents(Controller* waitCon,
         }
         switch (event.type) {
             case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                ++EventHandler::pressCount;
+                break;
+        }
+        switch (event.type) {
+            case SDL_EVENT_KEY_DOWN:
                 gamepad_keyboardUsed();
                 keyHandler(&event.key);
                 break;

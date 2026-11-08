@@ -188,6 +188,8 @@ public:
 
     // Time of the last key, button or pointer press (getTicks).
     static uint32_t lastInputTime;
+    // Count of key, button & pointer presses (Auto Combat stops on one).
+    static uint32_t pressCount;
     static void noteCancel() { if (cancelArmed) ++cancelCount; }
     static int  chooseNumber(int maxValue);
     static const char* readLetters(int maxlen);
@@ -248,7 +250,10 @@ public:
     }
     int  recordedKey() {
         uint32_t keym = irec_recordedKey(&inputRec);
-        return IREC_KEY(keym) | (IREC_MOD(keym) << 4);
+        int key = IREC_KEY(keym) | (IREC_MOD(keym) << 4);
+        if (key && key != U4_TEST_SNAPSHOT)
+            ++pressCount;
+        return key;
     }
     void recordTick() { irec_recordTick(&inputRec); }
     uint32_t replay(const char* file) {

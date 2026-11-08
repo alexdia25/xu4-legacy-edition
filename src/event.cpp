@@ -1668,6 +1668,7 @@ bool EventHandler::defaultKeyHandler(int key) {
 
 int  EventHandler::cancelCount = 0;
 uint32_t EventHandler::lastInputTime = 0;
+uint32_t EventHandler::pressCount = 0;
 bool EventHandler::cancelArmed = false;
 
 /*

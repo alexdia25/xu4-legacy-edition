@@ -65,7 +65,7 @@ public:
 
     bool creatureRangedAttack(Creature* attacker, int dir);
     bool autoCombatTurn();
-    bool isAutoTurn();
+    bool isAutoTurn(bool checkHalt = true);
     bool snapTarget(Direction* dir, int* dist, Creature** foe);
     bool snapAttack();
     void movePartyMember(MoveEvent &event);
