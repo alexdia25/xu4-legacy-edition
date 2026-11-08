@@ -3603,6 +3603,42 @@ static void mixReagents() {
                 break;
             }
 
+            // Quick Mixing: a recipe the party has mixed before can be
+            // made again by the number wanted.
+            if (EventHandler::smsMenus() && xu4.settings->legacy.quickMix) {
+                char key[8];
+                snprintf(key, sizeof(key), "!mix%c", 'a' + spell);
+                int mask = getSpell(spell)->components;
+                int most = 99 - c->saveGame->mixtures[spell];
+                for (int r = 0; r < REAG_MAX; ++r) {
+                    if ((mask & (1 << r)) && c->saveGame->reagents[r] < most)
+                        most = c->saveGame->reagents[r];
+                }
+                if (talkNote(key) && most > 0) {
+                    static const char* how[2] = { "By Recipe", "Pick Reagents" };
+                    int h = EventHandler::chooseItem(how, 2);
+                    if (h < 0)
+                        break;
+                    if (h == 0) {
+                        screenMessage("How many? ");
+                        int n = EventHandler::chooseNumber(most);
+                        screenMessage("\n");
+                        for (int i = 0; i < n; ++i) {
+                            Ingredients ingredients;
+                            for (int r = 0; r < REAG_MAX; ++r) {
+                                if (mask & (1 << r))
+                                    ingredients.addReagent((Reagent) r);
+                            }
+                            spellMix(spell, &ingredients);
+                        }
+                        if (n > 0)
+                            screenMessage("You mix %d %s.\nSuccess!\n\n", n,
+                                          spellGetName(spell));
+                        continue;
+                    }
+                }
+            }
+
             // Reset the reagent spell mix menu by removing
             // the menu highlight from the current item, and
             // hiding reagents that you don't have

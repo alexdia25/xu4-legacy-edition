@@ -7,6 +7,7 @@
 #include "spell.h"
 
 #include "config.h"
+#include "discourse.h"
 #include "debug.h"
 #include "dungeon.h"
 #include "mapmgr.h"
@@ -228,6 +229,11 @@ int spellMix(unsigned int spell, const Ingredients *ingredients) {
         return 0;
 
     c->saveGame->mixtures[spell]++;
+
+    // Remember the recipe works (for Quick Mixing).
+    char key[8];
+    snprintf(key, sizeof(key), "!mix%c", 'a' + spell);
+    talkNoteSet(key);
 
     return 1;
 }

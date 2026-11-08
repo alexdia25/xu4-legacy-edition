@@ -51,5 +51,8 @@ void talkFlagSet(int flag);
 bool talkFlagIsSet(int flag);
 bool talkWordHeard(const char* word);
 bool talkWordAdd(const char* word);
+// Other facts kept with the heard words (saved with the game).
+bool talkNote(const char* key);
+void talkNoteSet(const char* key);
 
 #endif

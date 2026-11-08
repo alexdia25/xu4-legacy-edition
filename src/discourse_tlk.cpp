@@ -338,6 +338,16 @@ bool talkWordAdd(const char* word)
     return true;
 }
 
+bool talkNote(const char* key)
+{
+    return talkHeardWords.count(key) != 0;
+}
+
+void talkNoteSet(const char* key)
+{
+    talkHeardWords.insert(key);
+}
+
 static void talkHeard(SmsTalk* st, const char* text)
 {
     if (! text)
