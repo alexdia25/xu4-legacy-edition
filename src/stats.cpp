@@ -186,6 +186,8 @@ void StatsArea::redraw() {
     redrawAura();
 
     title.update();
+    gameTintFrameRect(STATS_AREA_X * CHAR_WIDTH, 0,
+                      STATS_AREA_WIDTH * CHAR_WIDTH, CHAR_HEIGHT);
     mainArea.update();
     summary.update();
 

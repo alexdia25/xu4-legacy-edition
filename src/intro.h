@@ -273,6 +273,7 @@ private:
         MI_MORE_HERE,
         MI_MORE_GATES,
         MI_MORE_BUYER,
+        MI_MORE_FRAME,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,

@@ -60,6 +60,7 @@ struct ScreenState;
  */
 class GameController : public TurnController {
 public:
+    void updateBorderTint(bool force);
     GameController();
     ~GameController();
 
@@ -118,6 +119,7 @@ private:
 /* map and screen functions */
 void gameSetViewMode(ViewMode newMode);
 void gameUpdateScreen();
+void gameTintFrameRect(int x, int y, int w, int h);
 
 /* spell functions */
 void castSpell(int player = -1);

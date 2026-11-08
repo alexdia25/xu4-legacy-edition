@@ -153,6 +153,50 @@ void GameController::setHud()
  * Draw the borders on the screen image when there is no HUD draw list.
  * If all is false only the corner with the menu icon is drawn.
  */
+static int borderTintShown = 0;     // Frame Colour By Place key shown.
+
+/*
+ * The colour multiplying the brightness of the frame's blue for a key.
+ */
+static void tintColour(int key, int& tr, int& tg, int& tb)
+{
+    tr = tg = tb = 255;
+    if (key == 1) {
+        tr = 235; tg = 180; tb = 50;    // Shrine gold.
+    } else if (key >= 2) {
+        int v = 170 - (key - 2) * 12;   // Dungeon grey, darker each level.
+        tr = tg = v;
+        tb = v + 10;
+    }
+}
+
+/*
+ * Tint the blue of part of the screen as the frame is (for the bar over
+ * the party panel, which is drawn with the font).
+ */
+void gameTintFrameRect(int x, int y, int w, int h)
+{
+    int key = borderTintShown;
+    Image* dst = xu4.screenImage;
+    if (! key || ! dst || ! xu4.settings->legacy.frameTint)
+        return;
+    int tr, tg, tb;
+    tintColour(key, tr, tg, tb);
+    if (x + w > dst->w) w = dst->w - x;
+    if (y + h > dst->h) h = dst->h - y;
+    for (int j = y; j < y + h; ++j) {
+        RGBA* q = (RGBA*) dst->pixels + j * dst->w + x;
+        for (int i = 0; i < w; ++i, ++q) {
+            if (q->b > q->r + 40 && q->b > q->g + 40) {
+                int b = q->b;
+                q->r = b * tr / 255;
+                q->g = b * tg / 255;
+                q->b = b * tb / 255;
+            }
+        }
+    }
+}
+
 void GameController::drawBorderImage(bool all)
 {
     ImageInfo* info = xu4.imageMgr->get(BKGD_BORDERS);
@@ -225,6 +269,7 @@ void GameController::initScreenWithoutReloadingState()
         setHud();
     else
         drawBorderImage(true);
+    borderTintShown = 0;    // The frame is plain again.
 
     c->stats->update(); /* draw the party stats */
 
@@ -641,7 +686,79 @@ void gameSetViewMode(ViewMode newMode) {
     c->location->viewMode = newMode;
 }
 
+/*
+ * Frame Colour By Place: the blue of the border is tinted gold at a shrine
+ * and grey in a dungeon, darker on each level down.  Returns the tint key
+ * for where the party is (0 for the plain frame).
+ */
+static int borderTintKey()
+{
+    if (! xu4.settings->legacy.frameTint || ! c || ! c->location)
+        return 0;
+    const Location* loc = c->location;
+    while (loc->prev && loc->map->type == Map::COMBAT)
+        loc = loc->prev;
+    switch (loc->map->type) {
+        case Map::SHRINE:
+            return 1;
+        case Map::DUNGEON:
+            return 2 + (loc->coords.z & 7);
+    }
+    return 0;
+}
+
+/*
+ * Redraw the border frame tinted for the current place if it changed (or
+ * always if force is true).
+ */
+void GameController::updateBorderTint(bool force)
+{
+    if (borderAttr)
+        return;
+    int key = borderTintKey();
+    if (key == borderTintShown && ! force)
+        return;
+    borderTintShown = key;
+
+    ImageInfo* info = xu4.imageMgr->get(BKGD_BORDERS);
+    Image* dst = xu4.screenImage;
+    if (! info || ! info->image || ! dst ||
+        info->image->w != dst->w || info->image->h != dst->h)
+        return;
+
+    int tr, tg, tb;
+    tintColour(key, tr, tg, tb);
+
+    const RGBA* src = (const RGBA*) info->image->pixelData();
+    RGBA* out = (RGBA*) dst->pixels;
+    const int w = dst->w;
+    const int skip = xu4.settings->mouseOptions.enabled ? 8 : 0;
+    for (int y = 0; y < dst->h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            const RGBA& p = src[y * w + x];
+            if (p.r == 0 && p.g == 0 && p.b == 0)
+                continue;       // Inside the frame.
+            if (x < skip && y < skip)
+                continue;       // The menu icon.
+            RGBA& q = out[y * w + x];
+            q = p;
+            if (key && p.b > p.r + 40 && p.b > p.g + 40) {
+                q.r = p.b * tr / 255;
+                q.g = p.b * tg / 255;
+                q.b = p.b * tb / 255;
+            }
+        }
+    }
+
+    // Things drawn over the frame.
+    screenUpdateMoons();
+    screenUpdateWind();
+    c->stats->update();
+}
+
 void gameUpdateScreen() {
+    if (xu4.game)
+        xu4.game->updateBorderTint(false);
     switch (c->location->viewMode) {
     case VIEW_NORMAL:
     case VIEW_CUTSCENE_MAP:
