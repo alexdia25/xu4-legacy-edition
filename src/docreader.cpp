@@ -66,12 +66,19 @@ enum HitIds {
 
 static const char* bookTabs[DocReader::BOOK_COUNT] = {
     "History", "Wisdom", "Hints", "Keyboard", "Runes", "Map", "How to Play",
-    "Tips", "Journal"
+    "Tips", "Journal", "Guide"
 };
 
 static const char* shortTabs[DocReader::BOOK_COUNT] = {
     "History", "Wisdom", "Hints", "Keys", "Runes", "Map", "Help", "Tips",
-    "Journal"
+    "Journal", "Guide"
+};
+
+// The order of the tabs: the Guide follows the Hints.
+static const uint8_t tabOrder[DocReader::BOOK_COUNT] = {
+    DOC_HISTORY, DOC_WISDOM, DOC_HINTS, DocReader::BOOK_GUIDE, DOC_KEYBOARD,
+    DocReader::BOOK_RUNES, DocReader::BOOK_MAP, DocReader::BOOK_HELP,
+    DocReader::BOOK_TIPS, DocReader::BOOK_JOURNAL
 };
 
 // Columns of text for each text size.  The text is drawn on a page of its
@@ -469,6 +476,8 @@ void DocReader::openBook(int n, int chap)
         text = legacyTipsText();
     } else if (n == BOOK_JOURNAL) {
         text = legacyJournalText();
+    } else if (n == BOOK_GUIDE) {
+        text = legacyGuideText();
     } else if (! docsLoad(GameDocument(n), text)) {
         text = "\n"
             "This document was not found.\n\n"
@@ -730,6 +739,8 @@ bool DocReader::present()
     if (! page.begin())
         return false;
     sizeBody();
+    if (book == BOOK_GUIDE && ! xu4.settings->legacy.spoilerGuide)
+        book = DOC_HINTS;
     // Reopen the chapter last read in the same book (the journal is
     // remade each time, so it starts over).
     int chap = (book == lastBook && book != BOOK_JOURNAL) ? chapter : 0;
@@ -795,11 +806,29 @@ void DocReader::redraw()
         drawChapterList();
 }
 
+/*
+ * Fill order with the books that have a tab, in the order shown, and
+ * return how many there are.  The Guide only has one with Spoiler Guide on.
+ */
+int DocReader::tabBooks(int* order) const
+{
+    int count = 0;
+    for (int i = 0; i < BOOK_COUNT; ++i) {
+        int n = tabOrder[i];
+        if (n == BOOK_GUIDE && ! xu4.settings->legacy.spoilerGuide)
+            continue;
+        order[count++] = n;
+    }
+    return count;
+}
+
 void DocReader::drawTabs()
 {
     int cw = page.cellWidth();
     int cols = (page.width() - 2 * EDGE) / cw;
     const char** names = bookTabs;
+    int order[BOOK_COUNT];
+    int count = tabBooks(order);
     int gap = 1;
     int total;
     int i;
@@ -809,21 +838,22 @@ void DocReader::drawTabs()
         names = pass ? shortTabs : bookTabs;
         gap = (pass == 2) ? 0 : 1;
         total = 0;
-        for (i = 0; i < BOOK_COUNT; ++i)
-            total += strlen(names[i]) + 2 + gap;
+        for (i = 0; i < count; ++i)
+            total += strlen(names[order[i]]) + 2 + gap;
         if (total - gap <= cols)
             break;
     }
     int x = (page.width() - (total - gap) * cw) / 2;
 
-    for (i = 0; i < BOOK_COUNT; ++i) {
-        int w = (strlen(names[i]) + 2) * cw;
-        bool cur = (i == book);
+    for (i = 0; i < count; ++i) {
+        int n = order[i];
+        int w = (strlen(names[n]) + 2) * cw;
+        bool cur = (n == book);
         if (cur)
             page.fill(x, TAB_Y - 3, w, 14, TextPage::DK_BLUE);
-        page.text(x + cw, TAB_Y, names[i],
+        page.text(x + cw, TAB_Y, names[n],
                   cur ? TextPage::WHITE : TextPage::GREY);
-        addHit(x, TAB_Y - 4, w, 16, HIT_TAB + i);
+        addHit(x, TAB_Y - 4, w, 16, HIT_TAB + n);
         x += w + gap * cw;
     }
 }
@@ -1208,9 +1238,18 @@ bool DocReader::keyPressed(int key)
         case U4_PAD_Y:
             soundPlay(SOUND_UI_TICK);
         {
-            int next = (book + 1) % BOOK_COUNT;
-            if (next == BOOK_MAP)
-                ++next;         // Only opened by its tab or number.
+            // The next tab, skipping the map (only opened by its tab or
+            // number).
+            int order[BOOK_COUNT];
+            int count = tabBooks(order);
+            int i = 0;
+            while (i < count && order[i] != book)
+                ++i;
+            int next;
+            do {
+                i = (i + 1) % count;
+                next = order[i];
+            } while (next == BOOK_MAP);
             openBook(next);
         }
             return true;
@@ -1218,9 +1257,15 @@ bool DocReader::keyPressed(int key)
             xu4.eventHandler->setControllerDone(true);
             return true;
         default:
-            if (key >= '1' && key < '1' + BOOK_COUNT) {
-                soundPlay(SOUND_UI_TICK);
-                openBook(key - '1');
+            if (key >= '0' && key <= '9') {
+                // The number of a tab: 1 is the first and 0 the tenth.
+                int order[BOOK_COUNT];
+                int count = tabBooks(order);
+                int i = (key == '0') ? 9 : key - '1';
+                if (i < count) {
+                    soundPlay(SOUND_UI_TICK);
+                    openBook(order[i]);
+                }
                 return true;
             }
             break;

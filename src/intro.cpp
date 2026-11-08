@@ -419,6 +419,7 @@ IntroController::IntroController() :
     moreMenu3.add(MI_MORE_STEP,   new BoolMenuItem("Step Onto To Use         %s", 2,  4,/*'s'*/  0, &lo.stepOnto));
     moreMenu3.add(MI_MORE_PERCHAR, new BoolMenuItem("Settings Per Character   %s", 2,  5,/*'p'*/  9, &lo.perCharacter));
     moreMenu3.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  6,/*'h'*/  0, &lo.mapPlaces));
+    moreMenu3.add(MI_MORE_GUIDE,  new BoolMenuItem("Spoiler Guide            %s", 2,  7,/*'g'*/  8, &lo.spoilerGuide));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -2072,6 +2073,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
         { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
         { &moreMenu3, MI_MORE_PLACES, "The map names the places visited, and those heard of in a box." },
+        { &moreMenu3, MI_MORE_GUIDE, "Adds the Guide, a walkthrough of the whole quest, to the Books." },
         { &moreMenu3, MI_MORE_PERCHAR, "With Keep Characters, each character keeps their own play options." },
         { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
         { &moreMenu3, MI_MORE_UPDATE, "Once a day, ask GitHub if a newer release is out (Windows, Mac, Linux)." },

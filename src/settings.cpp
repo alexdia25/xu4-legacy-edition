@@ -306,6 +306,7 @@ bool Settings::read() {
     legacy.stepOnto     = false;
     legacy.perCharacter = true;
     legacy.mapPlaces    = true;
+    legacy.spoilerGuide = false;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -520,6 +521,8 @@ bool Settings::read() {
             legacy.perCharacter = toInt(val);
         else if (VALUE("mapPlaces="))
             legacy.mapPlaces = toInt(val);
+        else if (VALUE("spoilerGuide="))
+            legacy.spoilerGuide = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -784,6 +787,7 @@ bool Settings::write() {
             "stepOnto=%d\n"
             "perCharacter=%d\n"
             "mapPlaces=%d\n"
+            "spoilerGuide=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -839,6 +843,7 @@ bool Settings::write() {
             legacy.stepOnto,
             legacy.perCharacter,
             legacy.mapPlaces,
+            legacy.spoilerGuide,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

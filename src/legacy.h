@@ -60,6 +60,7 @@ std::string legacyJournalText();
 const char* legacyVirtueWord(int karma);
 std::string legacyHelpText();
 std::string legacyTipsText();
+std::string legacyGuideText();
 
 // Dungeon map: the cells of each dungeon level the party has seen.
 void legacyDungeonLoad();

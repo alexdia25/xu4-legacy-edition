@@ -18,7 +18,7 @@ struct WorkBuffer;
 /*
  * Viewer for the printed game documents, the rune table, the cloth map,
  * the How to Play
- * guide & the quest journal.  Each is split into chapters which are read
+ * guide, the tips, the quest journal & the walkthrough (Guide).  Each is split into chapters which are read
  * one at a time.
  */
 class DocReader : public Controller {
@@ -29,6 +29,7 @@ public:
         BOOK_HELP,
         BOOK_TIPS,
         BOOK_JOURNAL,
+        BOOK_GUIDE,             // The walkthrough, with Spoiler Guide on.
         BOOK_COUNT
     };
 
@@ -78,6 +79,7 @@ private:
     bool hasRunes;
     bool padHelp;               // Footer names gamepad buttons.
 
+    int  tabBooks(int* order) const;
     void openBook(int n, int chap = 0);
     void openChapter(int n);
     void findChapters();
