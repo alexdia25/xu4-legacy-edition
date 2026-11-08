@@ -79,7 +79,7 @@ protected:
     void initCreature(const Creature *m);
     void fillCreatureTable(const Creature *creature);
     void placeCreatures();
-    void attack(Direction dir = DIR_NONE, int presetRange = 0);
+    bool attack(Direction dir = DIR_NONE, int presetRange = 0);
 
     // Properties
     CombatMap *map;

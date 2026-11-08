@@ -307,6 +307,7 @@ bool Settings::read() {
     legacy.perCharacter = true;
     legacy.mapPlaces    = true;
     legacy.spoilerGuide = false;
+    legacy.outOfReach   = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -523,6 +524,8 @@ bool Settings::read() {
             legacy.mapPlaces = toInt(val);
         else if (VALUE("spoilerGuide="))
             legacy.spoilerGuide = toInt(val);
+        else if (VALUE("outOfReach="))
+            legacy.outOfReach = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -557,9 +560,15 @@ bool Settings::read() {
             legacy.mapView = settingEnum(mapViewStrings(), val);
         else if (VALUE("rules=")) {
             legacy.preset = settingEnum(legacyPresetStrings(), val);
-            // Older files have no wakeOnHit line; it follows the preset.
-            legacy.wakeOnHit = (legacy.preset == LegacyPreset_Modern ||
-                                legacy.preset == LegacyPreset_Story);
+            // Older files lack the newer rules; they follow the preset.
+            bool eased = (legacy.preset == LegacyPreset_Modern ||
+                          legacy.preset == LegacyPreset_Story);
+            legacy.wakeOnHit    = eased;
+            legacy.heavyHitters = eased;
+            legacy.ambushWakes  = eased;
+            legacy.armourBonus  = (legacy.preset == LegacyPreset_Story) ?
+                                  Armour_Story : eased ? Armour_Modern
+                                                       : Armour_None;
         }
         else if (VALUE("starvation="))
             legacy.starvation = settingEnum(starvationStrings(), val);
@@ -573,6 +582,12 @@ bool Settings::read() {
             legacy.wipeChoice = toInt(val);
         else if (VALUE("wakeOnHit="))
             legacy.wakeOnHit = toInt(val);
+        else if (VALUE("armourBonus="))
+            legacy.armourBonus = settingEnum(armourBonusStrings(), val);
+        else if (VALUE("heavyHitters="))
+            legacy.heavyHitters = toInt(val);
+        else if (VALUE("ambushWakes="))
+            legacy.ambushWakes = toInt(val);
 
         /* mouse options */
         else if (VALUE("mouseEnabled="))
@@ -788,6 +803,7 @@ bool Settings::write() {
             "perCharacter=%d\n"
             "mapPlaces=%d\n"
             "spoilerGuide=%d\n"
+            "outOfReach=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -808,7 +824,10 @@ bool Settings::write() {
             "poisonKills=%d\n"
             "sharedXp=%d\n"
             "wipeChoice=%d\n"
-            "wakeOnHit=%d\n",
+            "wakeOnHit=%d\n"
+            "armourBonus=%s\n"
+            "heavyHitters=%d\n"
+            "ambushWakes=%d\n",
             legacy.bumpToAct,
             legacy.foldMoves,
             legacy.freeCancel,
@@ -844,6 +863,7 @@ bool Settings::write() {
             legacy.perCharacter,
             legacy.mapPlaces,
             legacy.spoilerGuide,
+            legacy.outOfReach,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,
@@ -864,7 +884,10 @@ bool Settings::write() {
             legacy.poisonKills,
             legacy.sharedXp,
             legacy.wipeChoice,
-            legacy.wakeOnHit);
+            legacy.wakeOnHit,
+            armourBonusStrings()[ legacy.armourBonus ],
+            legacy.heavyHitters,
+            legacy.ambushWakes);
 
     for (int i = 0; i < PadMap_Count; ++i)
         fprintf(settingsFile, "pad%s=%s\n", padButtonNames[i],
@@ -884,6 +907,11 @@ const char** Settings::battleDiffStrings() {
 
 const char** Settings::legacyPresetStrings() {
     static const char* names[] = {"Classic", "Modern", "Story", "Custom", NULL};
+    return names;
+}
+
+const char** Settings::armourBonusStrings() {
+    static const char* names[] = {"None", "+16", "+32", NULL};
     return names;
 }
 
@@ -949,6 +977,9 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.sharedXp    = false;
             lo.wipeChoice  = false;
             lo.wakeOnHit   = false;
+            lo.armourBonus = Armour_None;
+            lo.heavyHitters = false;
+            lo.ambushWakes = false;
             break;
         case LegacyPreset_Modern:
             lo.poisonKills = false;
@@ -957,6 +988,9 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.sharedXp    = true;
             lo.wipeChoice  = true;
             lo.wakeOnHit   = true;
+            lo.armourBonus = Armour_Modern;
+            lo.heavyHitters = true;
+            lo.ambushWakes = true;
             break;
         case LegacyPreset_Story:
             lo.poisonKills = false;
@@ -965,6 +999,9 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.sharedXp    = true;
             lo.wipeChoice  = true;
             lo.wakeOnHit   = true;
+            lo.armourBonus = Armour_Story;
+            lo.heavyHitters = true;
+            lo.ambushWakes = true;
             break;
     }
 }

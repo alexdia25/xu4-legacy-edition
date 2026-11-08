@@ -25,8 +25,16 @@ Playing:
 - **Party wipe**: the choice now offers the last save, an earlier save
   or Lord British's aid.  Load a Save is in the game menu.
 - **Ask Rules At New Game**: Story, Modern or Classic after choosing
-  Male or Female.  In Modern and Story a sleeper hit in a fight may
-  wake.
+  Male or Female.
+- **More Rules** (Rules & Saving), from the Ultima V port and on in
+  Modern and Story, off in Classic: Hit Wakes Sleepers (a sleeper hit in
+  a fight has an even chance to wake), Armour Bonus (Modern adds a tier
+  of armour to every member's defence, Story two while the party has
+  food), Heavy Hitters (daemons, dragons and balrons strike for at least
+  half their full blow) and Ambush Wakes Sleepers (once a camp's ambush
+  is over, nobody walks on asleep).
+- **Out Of Reach Is Free**: an attack with no foe in reach that way is
+  not made and spends no turn.
 - **Snap Attacks**: X (or Strike in the action menu) hits a foe in
   reach without aiming; Snap Target Mark shows which foe, and PgUp/PgDn
   or the shoulder buttons pick another.

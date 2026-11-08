@@ -104,6 +104,12 @@ enum LegacyStarvation {
     Starve_None
 };
 
+enum LegacyArmourBonus {
+    Armour_None,
+    Armour_Modern,          // +16 to defense.
+    Armour_Story            // +32 while there is food, else +16.
+};
+
 enum LegacyTurnTimer {
     TurnTimer_Fast,         // The original 20 second pass.
     TurnTimer_Slow,         // 60 seconds.
@@ -188,6 +194,7 @@ struct LegacyOptions {
     bool perCharacter;      // Keep Characters: each has their own options.
     bool mapPlaces;         // The world map names places visited or heard of.
     bool spoilerGuide;      // Books of Britannia has the Guide (walkthrough).
+    bool outOfReach;        // An attack with no foe in reach spends no turn.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
@@ -204,6 +211,9 @@ struct LegacyOptions {
     bool sharedXp;          // Kill experience is shared by the party.
     bool wipeChoice;        // A party wipe offers to load the last save.
     bool wakeOnHit;         // A sleeper who is hit has an even chance to wake.
+    uint8_t armourBonus;    // LegacyArmourBonus
+    bool heavyHitters;      // Daemons, dragons & balrons hit at least half.
+    bool ambushWakes;       // A camp's ambush fought, the sleepers wake.
 };
 
 struct MouseOptions {
@@ -274,6 +284,7 @@ public:
     static const char** battleDiffStrings();
     static const char** legacyPresetStrings();
     static const char** starvationStrings();
+    static const char** armourBonusStrings();
     static const char** turnTimerStrings();
     static const char** autoCombatStrings();
     static const char** dungeonMapStrings();

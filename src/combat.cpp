@@ -286,6 +286,14 @@ void CombatController::endCombat(bool adjustKarma) {
         /* need to get this here because when we exit to the parent map, all the monsters are cleared */
         bool won = isWon();
 
+        // The Ambush Wakes Sleepers rule: once a camp's ambush is over,
+        // nobody walks on asleep.
+        if (camping && xu4.settings->legacy.ambushWakes) {
+            for (int i = 0; i < c->party->size(); i++)
+                if (c->party->member(i)->getStatus() == STAT_SLEEPING)
+                    c->party->member(i)->wakeUp();
+        }
+
         xu4.game->exitToParentMap();
         musicPlayLocale();
 
@@ -1153,7 +1161,8 @@ bool CombatController::keyPressed(int key) {
         break;
 
     case 'a':
-        attack();
+        if (! attack())
+            endTurn = false;    // Nothing in reach (Out Of Reach option).
         break;
 
     case 'c':
@@ -1317,19 +1326,19 @@ bool CombatController::keyPressed(int key) {
 /**
  * Key handler for choosing an attack direction
  */
-void CombatController::attack(Direction dir, int presetRange) {
+bool CombatController::attack(Direction dir, int presetRange) {
     bool bump = (dir != DIR_NONE);  // Walked into a foe or auto combat.
     if (! bump) {
         screenMessage("Dir: ");
         dir = EventHandler::readDir();
         if (dir == DIR_NONE)
-            return;
+            return true;
     }
-    screenMessage("%s\n", getDirectionName(dir));
 
     PartyMember *attacker = getCurrentPlayer();
 
     const Weapon *weapon = attacker->getWeapon();
+    screenMessage("%s\n", getDirectionName(dir));
     int range = weapon->range;
     if (bump && weapon->canChooseDistance()) {
         range = presetRange ? presetRange : 1;
@@ -1337,14 +1346,9 @@ void CombatController::attack(Direction dir, int presetRange) {
         screenMessage("Range: ");
         range = EventHandler::readChoice("123456789") - '0';
         if (range < 1 || range > weapon->range)
-            return;
+            return true;
         screenMessage("%d\n", range);
     }
-
-    // the attack was already made, even if there is no valid target
-    // so play the attack sound
-    soundPlay(SOUND_PC_ATTACK);
-
 
     vector<Coords> path =
         gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
@@ -1352,6 +1356,26 @@ void CombatController::attack(Direction dir, int presetRange) {
                                 weapon->canAttackThroughObjects() ? NULL
                                                     : &Tile::canAttackOverTile,
                                 false);
+
+    // Out Of Reach: with no foe the weapon could reach that way, nothing
+    // is swung or thrown and the turn is not spent.
+    if (xu4.settings->legacy.outOfReach) {
+        bool foe = false;
+        for (size_t i = 0; i < path.size() && ! foe; ++i) {
+            if (weapon->rangeAbsolute() && int(i) + 1 != range)
+                continue;
+            if (map->creatureAt(path[i]))
+                foe = true;
+        }
+        if (! foe) {
+            screenMessage("Out of reach!\n");
+            return false;
+        }
+    }
+
+    // the attack was already made, even if there is no valid target
+    // so play the attack sound
+    soundPlay(SOUND_PC_ATTACK);
 
     int targetDistance = path.size();
     Coords targetCoords;
@@ -1443,6 +1467,7 @@ void CombatController::attack(Direction dir, int presetRange) {
     // does weapon returns to its owner? (e.g. magic axe)
     if (weapon->returns())
         returnWeaponToOwner(targetCoords, targetDistance, MASK_DIR(dir), weapon);
+    return true;
 }
 
 void CombatController::combatNotice(int sender, void* eventData, void* user) {

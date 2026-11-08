@@ -272,6 +272,7 @@ private:
         MI_MORE_PERCHAR,
         MI_MORE_PLACES,
         MI_MORE_GUIDE,
+        MI_MORE_REACH,
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
@@ -291,6 +292,10 @@ private:
         MI_RULES_07,
         MI_RULES_08,
         MI_RULES_09,
+        MI_RULES_10,
+        MI_RULES_11,
+        MI_RULES_12,
+        MI_RULES_MORE,
         MI_RULES_CHEATS,
         MI_RULES_STEAM,
         MI_CHEAT_HEAL,
@@ -337,6 +342,7 @@ private:
     Menu interfaceMenu;
     Menu legacyMenu;
     Menu rulesMenu;
+    Menu rulesMenu2;
     Menu moreMenu;
     Menu moreMenu2;
     Menu moreMenu3;

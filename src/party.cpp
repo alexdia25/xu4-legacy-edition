@@ -2,6 +2,7 @@
  * $Id$
  */
 
+#include <algorithm>
 #include <cstring>
 
 #include "party.h"
@@ -384,7 +385,19 @@ int PartyMember::getAttackBonus() const {
 }
 
 int PartyMember::getDefense() const {
-    return xu4.config->armor(player->armor)->defense;
+    int def = xu4.config->armor(player->armor)->defense;
+    // The Armour Bonus rule: Modern adds a tier of armour (16), Story two
+    // while the party has food.  It never passes the Mystic Robe's 248.
+    int bonus = 0;
+    switch (xu4.settings->legacy.armourBonus) {
+        case Armour_Modern: bonus = 16; break;
+        case Armour_Story:  bonus = (c && c->saveGame->food > 0) ? 32 : 16;
+                            break;
+        default: break;
+    }
+    if (bonus && def < 248)
+        def = std::min(def + bonus, 248);
+    return def;
 }
 
 bool PartyMember::dealDamage(Map* map, Creature *m, int damage) {

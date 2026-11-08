@@ -364,7 +364,7 @@ IntroController::IntroController() :
     rulesMenu.add(MI_RULES_03,     new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
     rulesMenu.add(MI_RULES_04,     new EnumMenuItem("  Turn Timer    %s",          2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
     rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
-    rulesMenu.add(MI_RULES_09,     new BoolMenuItem("  Hit Wakes Sleepers     %s", 2,  7,/*'h'*/  2, &lo.wakeOnHit));
+    rulesMenu.add(MI_RULES_MORE,                    "\010 More Rules",             2,  7,/*'m'*/  2);
     rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  8,/*'a'*/  0, &lo.autosave));
     rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  9,/*'k'*/  0, &lo.keepCharacters));
     rulesMenu.add(MI_RULES_STEAM,  new BoolMenuItem("Steam Cloud Saves        %s", 2, 10,/*'c'*/  6, &lo.steamSaves));
@@ -375,6 +375,18 @@ IntroController::IntroController() :
     rulesMenu.setClosesMenu(USE_SETTINGS);
     rulesMenu.setClosesMenu(CANCEL);
     ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
+
+    rulesMenu2.setTitle("More Rules:", 0, 0);
+    rulesMenu2.add(MI_RULES_09,    new BoolMenuItem("Hit Wakes Sleepers       %s", 2,  1,/*'h'*/  0, &lo.wakeOnHit));
+    rulesMenu2.add(MI_RULES_10,    new EnumMenuItem("Armour Bonus    %s",          2,  2,/*'a'*/  0, &lo.armourBonus, Settings::armourBonusStrings()));
+    rulesMenu2.add(MI_RULES_11,    new BoolMenuItem("Heavy Hitters            %s", 2,  3,/*'v'*/  3, &lo.heavyHitters));
+    rulesMenu2.add(MI_RULES_12,    new BoolMenuItem("Ambush Wakes Sleepers    %s", 2,  4,/*'w'*/  7, &lo.ambushWakes));
+    rulesMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    rulesMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    rulesMenu2.addShortcutKey(CANCEL, ' ');
+    rulesMenu2.addShortcutKey(CANCEL, U4_ESC);
+    rulesMenu2.setClosesMenu(USE_SETTINGS);
+    rulesMenu2.setClosesMenu(CANCEL);
 
     moreMenu.setTitle("More Legacy Options:", 0, 0);
     moreMenu.add(MI_MORE_HINTS,   new BoolMenuItem("Journal Hints            %s", 2,  1,/*'j'*/  0, &lo.journalHints));
@@ -420,6 +432,7 @@ IntroController::IntroController() :
     moreMenu3.add(MI_MORE_PERCHAR, new BoolMenuItem("Settings Per Character   %s", 2,  5,/*'p'*/  9, &lo.perCharacter));
     moreMenu3.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  6,/*'h'*/  0, &lo.mapPlaces));
     moreMenu3.add(MI_MORE_GUIDE,  new BoolMenuItem("Spoiler Guide            %s", 2,  7,/*'g'*/  8, &lo.spoilerGuide));
+    moreMenu3.add(MI_MORE_REACH,  new BoolMenuItem("Out Of Reach Is Free     %s", 2,  8,/*'o'*/  0, &lo.outOfReach));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -2073,6 +2086,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
         { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
         { &moreMenu3, MI_MORE_PLACES, "The map names the places visited, and those heard of in a box." },
+        { &moreMenu3, MI_MORE_REACH, "An attack with no foe in reach is not made and spends no turn." },
         { &moreMenu3, MI_MORE_GUIDE, "Adds the Guide, a walkthrough of the whole quest, to the Books." },
         { &moreMenu3, MI_MORE_PERCHAR, "With Keep Characters, each character keeps their own play options." },
         { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
@@ -2094,7 +2108,11 @@ void IntroController::initMenuHelp() {
         { &rulesMenu, MI_RULES_03, "The experience for a kill is shared by the whole party." },
         { &rulesMenu, MI_RULES_04, "How long the game waits before it passes a turn for you." },
         { &rulesMenu, MI_RULES_05, "A fallen party may go back to the last save or an earlier one." },
-        { &rulesMenu, MI_RULES_09, "A sleeper who is hit in a fight has an even chance to wake." },
+        { &rulesMenu, MI_RULES_MORE, "Hit Wakes Sleepers, Armour Bonus, Heavy Hitters, Ambush Wakes." },
+        { &rulesMenu2, MI_RULES_09, "A sleeper who is hit in a fight has an even chance to wake." },
+        { &rulesMenu2, MI_RULES_10, "Armour turns blows better: Modern +16, Story +32 while fed." },
+        { &rulesMenu2, MI_RULES_11, "Daemons, dragons and balrons strike for at least half their blow." },
+        { &rulesMenu2, MI_RULES_12, "When a camp's ambush is over, those still asleep wake up." },
         { &rulesMenu, MI_RULES_06, "Save on entering and leaving places, keeping the 8 saves before." },
         { &rulesMenu, MI_RULES_08, "A new game keeps the others; choose whose journey to take up." },
         { &rulesMenu, MI_RULES_STEAM, "Saves also go to the Steam release, so Steam Cloud carries them." },
@@ -2193,7 +2211,7 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateInterfaceMenu(event);
     else if (menu == &legacyMenu)
         updateLegacyMenu(event);
-    else if (menu == &rulesMenu)
+    else if (menu == &rulesMenu || menu == &rulesMenu2)
         updateRulesMenu(event);
     else if (menu == &moreMenu || menu == &moreMenu2 || menu == &moreMenu3)
         updateMoreMenu(event);
@@ -2605,7 +2623,13 @@ void IntroController::updateRulesMenu(MenuEvent &event) {
             case MI_RULES_04:
             case MI_RULES_05:
             case MI_RULES_09:
+            case MI_RULES_10:
+            case MI_RULES_11:
+            case MI_RULES_12:
                 lo.preset = LegacyPreset_Custom;
+                break;
+            case MI_RULES_MORE:
+                runMenu(&rulesMenu2, &extendedMenuArea, true);
                 break;
             case USE_SETTINGS:
                 xu4.settings->setData(settingsChanged);

@@ -61,7 +61,15 @@ bool Creature::isAttackable() const  {
 }
 
 int Creature::getDamage() const {
-    int x = xu4_random(basehp >> 2);
+    int max = basehp >> 2;
+    int x;
+    // The Heavy Hitters rule: a daemon, dragon or balron strikes for at
+    // least half of its full blow.
+    if (xu4.settings->legacy.heavyHitters && max > 1 &&
+        (id == DAEMON_ID || id == DRAGON_ID || id == BALRON_ID))
+        x = max / 2 + xu4_random(max - max / 2);
+    else
+        x = xu4_random(max);
     return (x >> 4) * 10 + (x % 10);
 }
 

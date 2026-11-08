@@ -225,10 +225,16 @@ pressed again (on by default).
 **Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
-turn timer, whether a sleeper hit in a fight has an even chance to wake,
-and whether a fallen party is raised by Lord British or may
+turn timer, and whether a fallen party is raised by Lord British or may
 reload: when the whole party falls, it then offers the last save, an
-earlier save or Lord British's aid).  It also turns on autosave with a history of saves to go back
+earlier save or Lord British's aid).  More Rules holds the combat rules
+of the Ultima V port: Hit Wakes Sleepers (a sleeper hit in a fight has
+an even chance to wake), Armour Bonus (Modern adds a tier of armour, 16,
+to every member's defence; Story two tiers while the party has food),
+Heavy Hitters (daemons, dragons and balrons strike for at least half of
+their full blow) and Ambush Wakes Sleepers (once a camp's ambush is
+over, nobody walks on asleep).  Classic has them all off, Modern and
+Story on.  It also turns on autosave with a history of saves to go back
 to and several characters each with their own saves (these start off).
 With the Steam release's game files it also has **Steam Cloud Saves**
 (see [Steam Cloud saves](#steam-cloud-saves)).
