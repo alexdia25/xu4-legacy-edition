@@ -227,6 +227,7 @@ private:
         MI_GAMEPLAY_04,
         MI_GAMEPLAY_05,
         MI_GAMEPLAY_06,
+        MI_GAMEPLAY_SNAP,
         MI_INTERFACE_01,
         MI_INTERFACE_02,
         MI_INTERFACE_03,

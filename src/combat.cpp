@@ -2,6 +2,7 @@
  * combat.cpp
  */
 
+#include <cstring>
 #include "combat.h"
 #include "legacy.h"
 
@@ -970,8 +971,8 @@ bool CombatController::keyPressed(int key) {
     case U4_ENTER:
         if (key != U4_ENTER || EventHandler::smsMenus()) {
             // Console style action menu for the current party member.
-            const char* items[8];
-            char keys[9];
+            const char* items[9];
+            char keys[10];
             int n = 0;
             int healSpell, healCaster, healSubject;
             char healName[24];
@@ -981,6 +982,16 @@ bool CombatController::keyPressed(int key) {
                 snprintf(healName, sizeof(healName), "Cast %s",
                          spellGetName(healSpell));
                 items[n] = healName; keys[n++] = '!';
+            }
+            Direction snapDir;
+            int snapDist;
+            Creature* snapFoe;
+            char snapName[24];
+            if (settings.legacy.snapAttacks &&
+                snapTarget(&snapDir, &snapDist, &snapFoe)) {
+                snprintf(snapName, sizeof(snapName), "Strike %s",
+                         snapFoe->getName());
+                items[n] = snapName; keys[n++] = 'x';
             }
             items[n] = "Attack";     keys[n++] = 'a';
             items[n] = "Cast Spell"; keys[n++] = 'c';
@@ -1178,8 +1189,17 @@ bool CombatController::keyPressed(int key) {
     case 'p':
     case 'q':
     case 's':
-    case 'w':
     case 'x':
+        if (settings.legacy.snapAttacks) {
+            if (! snapAttack()) {
+                announceActivePlayer();
+                endTurn = false;
+            }
+        } else
+            screenMessage("Not here!\n");
+        break;
+
+    case 'w':
     case 'y':
         screenMessage("Not here!\n");
         break;
@@ -1410,6 +1430,80 @@ PartyMember *CombatMap::partyMemberAt(Coords coords) {
     return NULL;
 }
 
+// The foe each member last struck, theirs to strike again while in reach.
+static const CombatMap* snapMap = NULL;
+static Creature* snapMemory[8];
+
+/*
+ * Find the foe the current member would strike with a snap attack: one
+ * within reach of the readied weapon in one of the four directions (the
+ * first in each line).  The foe they last struck comes first while still
+ * in reach, else the nearest.  Returns false if no foe is in reach.
+ */
+bool CombatController::snapTarget(Direction* dirOut, int* distOut,
+                                  Creature** foeOut) {
+    PartyMember* pm = getCurrentPlayer();
+    if (! pm)
+        return false;
+    if (snapMap != map) {
+        snapMap = map;
+        memset(snapMemory, 0, sizeof(snapMemory));
+    }
+    const Weapon* weapon = pm->getWeapon();
+    int range = weapon->range;
+    Creature* remembered = (focus >= 0 && focus < 8) ? snapMemory[focus]
+                                                     : NULL;
+    bool found = false;
+    int bestDist = 9999;
+
+    for (int dir = DIR_WEST; dir <= DIR_SOUTH; ++dir) {
+        vector<Coords> path =
+            gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
+                                pm->coords, 1, range,
+                                weapon->canAttackThroughObjects() ? NULL
+                                                : &Tile::canAttackOverTile,
+                                false);
+        for (size_t i = 0; i < path.size(); ++i) {
+            Creature* foe = map->creatureAt(path[i]);
+            if (! foe)
+                continue;
+            if (weapon->rangeAbsolute() && int(i + 1) != range)
+                break;
+            int dist = i + 1;
+            if (foe == remembered)
+                dist = 0;       // Stays the choice while in reach.
+            if (dist < bestDist) {
+                bestDist = dist;
+                *dirOut = (Direction) dir;
+                *distOut = i + 1;
+                *foeOut = foe;
+                found = true;
+            }
+            break;
+        }
+    }
+    return found;
+}
+
+/*
+ * Strike the foe snapTarget() picks (the Snap Attacks option).  Returns
+ * false, spending no turn, if no foe is in reach.
+ */
+bool CombatController::snapAttack() {
+    Direction dir;
+    int dist;
+    Creature* foe;
+    if (! snapTarget(&dir, &dist, &foe)) {
+        screenMessage("No foe in reach!\n");
+        return false;
+    }
+    if (focus >= 0 && focus < 8)
+        snapMemory[focus] = foe;
+    screenMessage("Strike: ");
+    attack(dir, dist);
+    return true;
+}
+
 /*
  * Return true if the member whose turn it is fights by itself
  * (the Auto Combat option).
@@ -1440,24 +1534,13 @@ bool CombatController::autoCombatTurn() {
     busy = true;
 
     PartyMember* pm = getCurrentPlayer();
-    const Weapon* weapon = pm->getWeapon();
-    int range = weapon->range;
-    int dir;
-
-    for (dir = DIR_WEST; dir <= DIR_SOUTH; ++dir) {
-        vector<Coords> path =
-            gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
-                                pm->coords, 1, range,
-                                weapon->canAttackThroughObjects() ? NULL
-                                                : &Tile::canAttackOverTile,
-                                false);
-        for (size_t i = 0; i < path.size(); ++i) {
-            if (! map->creatureAt(path[i]))
-                continue;
-            if (weapon->rangeAbsolute() && int(i + 1) != range)
-                break;
+    {
+        Direction dir;
+        int dist;
+        Creature* foe;
+        if (snapTarget(&dir, &dist, &foe)) {
             screenMessage("Attack: ");
-            attack((Direction) dir, i + 1);
+            attack(dir, dist);
             goto done;
         }
     }

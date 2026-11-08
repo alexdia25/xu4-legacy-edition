@@ -308,6 +308,7 @@ IntroController::IntroController() :
     gameplayMenu.add(MI_GAMEPLAY_03,   new BoolMenuItem("Gazer Spawns Insects       %s", 2,  4,/*'g'*/  0, &settingsChanged.enhancementsOptions.gazerSpawnsInsects));
     gameplayMenu.add(MI_GAMEPLAY_04,   new BoolMenuItem("Gem View Shows Objects     %s", 2,  5,/*'e'*/  1, &settingsChanged.enhancementsOptions.peerShowsObjects));
     gameplayMenu.add(MI_GAMEPLAY_05,   new BoolMenuItem("Slime Divides              %s", 2,  6,/*'s'*/  0, &settingsChanged.enhancementsOptions.slimeDivides));
+    gameplayMenu.add(MI_GAMEPLAY_SNAP, new BoolMenuItem("Snap Attacks               %s", 2,  7,/*'n'*/  2, &settingsChanged.legacy.snapAttacks));
     gameplayMenu.add(MI_GAMEPLAY_06,   new BoolMenuItem("Debug Mode (Cheats)        %s", 2,  8,/*'d'*/  0, &settingsChanged.debug));
     gameplayMenu.add(USE_SETTINGS,                      "\010 Use These Settings",       2, 11,/*'u'*/  2);
     gameplayMenu.add(CANCEL,                            "\010 Cancel",                   2, 12,/*'c'*/  2);
@@ -1899,6 +1900,7 @@ void IntroController::initMenuHelp() {
         { &gameplayMenu, MI_GAMEPLAY_03, "Gazers call up insect swarms in battle." },
         { &gameplayMenu, MI_GAMEPLAY_04, "A gem's view shows people, creatures and things as well as the land." },
         { &gameplayMenu, MI_GAMEPLAY_05, "Slimes split in two when they are hit." },
+        { &gameplayMenu, MI_GAMEPLAY_SNAP, "In battle X (or Strike in the action menu) hits a foe in reach, no aiming." },
         { &gameplayMenu, MI_GAMEPLAY_06, "Ctrl-C opens the developers' cheat commands." },
 
         { &interfaceMenu, MI_INTERFACE_01, "Open, Jimmy and the like pick their target when only one fits." },

@@ -288,6 +288,7 @@ bool Settings::read() {
     legacy.shopCompare  = true;
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
+    legacy.snapAttacks  = true;
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
@@ -432,6 +433,8 @@ bool Settings::read() {
             legacy.shopCompare = toInt(val);
         else if (VALUE("spellInfo="))
             legacy.spellInfo = toInt(val);
+        else if (VALUE("snapAttacks="))
+            legacy.snapAttacks = toInt(val);
         else if (VALUE("healShortcut="))
             legacy.healShortcut = toInt(val);
         else if (VALUE("pauseUnfocused="))
@@ -624,6 +627,7 @@ bool Settings::write() {
             "shopCompare=%d\n"
             "spellInfo=%d\n"
             "healShortcut=%d\n"
+            "snapAttacks=%d\n"
             "pauseUnfocused=%d\n"
             "autosave=%d\n"
             "keepCharacters=%d\n"
@@ -649,6 +653,7 @@ bool Settings::write() {
             legacy.shopCompare,
             legacy.spellInfo,
             legacy.healShortcut,
+            legacy.snapAttacks,
             legacy.pauseUnfocused,
             legacy.autosave,
             legacy.keepCharacters,

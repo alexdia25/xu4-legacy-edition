@@ -145,6 +145,7 @@ struct LegacyOptions {
     bool shopCompare;       // Shops compare arms with what is held.
     bool spellInfo;         // Spell lists show cost & effect.
     bool healShortcut;      // Action menu offers Cast Heal/Cure.
+    bool snapAttacks;       // X strikes a foe in reach (combat).
     bool pauseUnfocused;    // Pause while the window has no focus.
     bool autosave;          // Save on entering & leaving places, history.
     bool keepCharacters;    // New games keep the others; pick at Journey.
