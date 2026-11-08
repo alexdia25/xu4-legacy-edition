@@ -21,7 +21,8 @@ MenuItem::MenuItem(const char* t, short xpos, short ypos, int sc) :
     selected(false),
     visible(true),
     scOffset(sc),
-    closesMenu(false)
+    closesMenu(false),
+    help(NULL)
 {
     // if the sc/scOffset is outside the range of the text string, assert
     ASSERT(sc==-1 || (sc >= 0 && sc <= (int)text.length()), "sc value of %d out of range!", sc);

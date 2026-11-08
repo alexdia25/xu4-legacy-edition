@@ -155,6 +155,8 @@ private:
     void startGame(bool reload);
     int  chooseJourney();
     void drawListScreen(const char* title, const char* hint);
+    void initMenuHelp();
+    void drawMenuHelp(Menu* menu);
     void about();
 #ifdef GPU_RENDER
     void enableMap();

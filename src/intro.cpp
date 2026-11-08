@@ -383,6 +383,7 @@ IntroController::IntroController() :
     gameMenu.addShortcutKey(CANCEL, U4_ESC);
     gameMenu.addShortcutKey(CANCEL, U4_PAD_SELECT);
     gameMenu.setClosesMenu(CANCEL);
+    initMenuHelp();
 
     quitMenu.setTitle("Quit Game:", 0, 0);
     quitMenu.add(MI_QUIT_SAVE,    "\010 Save and Quit",        2,  2,/*'s'*/  2);
@@ -1836,6 +1837,162 @@ void IntroController::timerFired() {
     screenUploadToGPU();
 }
 
+/*
+ * What each setting does, shown over the subtitle of the options screen
+ * while the setting is highlighted.
+ */
+void IntroController::initMenuHelp() {
+    struct Help { Menu* menu; int id; const char* text; };
+    const Help help[] = {
+        { &confMenu, MI_CONF_VIDEO, "Scale, window or full screen, filter and gamma, and the game's graphics options." },
+        { &confMenu, MI_CONF_SOUND, "The music and sound effect volumes." },
+        { &confMenu, MI_CONF_INPUT, "Key repeat, the mouse and the gamepad buttons." },
+        { &confMenu, MI_CONF_SPEED, "How fast the game, battles, spells, rests and the moons go." },
+        { &confMenu, MI_CONF_MODULES, "Choose the graphics and the music: DOS, Upgrade, Apple II, C64, SMS." },
+        { &confMenu, MI_CONF_01, "Off plays as the DOS game did. On allows the enhanced options." },
+        { &confMenu, MI_CONF_GAMEPLAY, "Battle difficulty, chest traps, gazers, slimes and debug cheats." },
+        { &confMenu, MI_CONF_INTERFACE, "Automatic actions, Smart Enter, colours, Ultima V shrines & mixing." },
+        { &confMenu, MI_CONF_LEGACY, "This edition's conveniences, difficulty, saving and cheats." },
+
+        { &videoMenu, MI_VIDEO_CONF_GFX, "Tile backgrounds, map view, gems, line of sight, scanlines..." },
+        { &videoMenu, MI_VIDEO_04, "How many times the 320 by 200 screen is enlarged in a window." },
+        { &videoMenu, MI_VIDEO_05, "Play in a window or on the whole screen." },
+        { &videoMenu, MI_VIDEO_06, "How the picture is enlarged. Point keeps the pixels sharp." },
+        { &videoMenu, MI_VIDEO_08, "The brightness of the picture." },
+
+        { &gfxMenu, MI_GFX_TILE_TRANSPARENCY, "Transparent draws people and things over the ground; DOS Black on black." },
+        { &gfxMenu, MI_GFX_TILE_TRANSPARENCY_SHADOW_SIZE, "The shadow round people and things on transparent tiles." },
+        { &gfxMenu, MI_GFX_TILE_TRANSPARENCY_SHADOW_OPACITY, "How dark the shadow round people and things is." },
+        { &gfxMenu, MI_GFX_MAP_VIEW, "Fill Space shows more of the map when the tiles are smaller than DOS's." },
+        { &gfxMenu, MI_VIDEO_02, "How the map is drawn when peering at a gem." },
+        { &gfxMenu, MI_VIDEO_03, "How the places the party cannot see are hidden." },
+        { &gfxMenu, MI_VIDEO_07, "Shake the screen when the party is hit or the earth quakes." },
+        { &gfxMenu, MI_GFX_SCANLINES, "Dark lines between the rows of pixels, as on an old monitor." },
+        { &gfxMenu, MI_GFX_BATTERY, "Stop animating a minute after the last key, until the next one." },
+        { &gfxMenu, MI_LEGACY_09, "The game waits while its window is in the background." },
+
+        { &soundMenu, MI_SOUND_01, "How loud the music plays." },
+        { &soundMenu, MI_SOUND_02, "How loud the sound effects play." },
+        { &soundMenu, MI_SOUND_03, "The music fades out and in when it changes." },
+
+        { &inputMenu, MI_INPUT_01, "How long a held key waits before it repeats." },
+        { &inputMenu, MI_INPUT_02, "How quickly a held key repeats." },
+        { &inputMenu, MI_INPUT_03, "Play with the mouse or by touch: tap to walk, tap the party for the menu." },
+        { &inputMenu, MI_INPUT_PAD, "Choose what each gamepad button does in play." },
+
+        { &padMenu, MI_PAD_CLASSIC, "A the action menu, B back, X pass, Y Ztats, L map, R the obvious action." },
+        { &padMenu, MI_PAD_SMART, "A the obvious action, X the action menu, B pass." },
+
+        { &speedMenu, MI_SPEED_01, "How fast the world runs: how often everything moves." },
+        { &speedMenu, MI_SPEED_02, "How fast foes act in battle." },
+        { &speedMenu, MI_SPEED_03, "How long spell effects show." },
+        { &speedMenu, MI_SPEED_04, "How many seconds a camp lasts." },
+        { &speedMenu, MI_SPEED_05, "How many seconds a night at an inn lasts." },
+        { &speedMenu, MI_SPEED_06, "Seconds for each cycle of meditation at a shrine." },
+        { &speedMenu, MI_SPEED_07, "How fast the screen shakes." },
+        { &speedMenu, MI_SPEED_08, "How fast the moons and moongates turn. Normal is the DOS game's pace." },
+
+        { &gameplayMenu, MI_GAMEPLAY_01, "How strong foes are in battle." },
+        { &gameplayMenu, MI_GAMEPLAY_02, "Chest traps go off as in the C64 version." },
+        { &gameplayMenu, MI_GAMEPLAY_03, "Gazers call up insect swarms in battle." },
+        { &gameplayMenu, MI_GAMEPLAY_04, "A gem's view shows people, creatures and things as well as the land." },
+        { &gameplayMenu, MI_GAMEPLAY_05, "Slimes split in two when they are hit." },
+        { &gameplayMenu, MI_GAMEPLAY_06, "Ctrl-C opens the developers' cheat commands." },
+
+        { &interfaceMenu, MI_INTERFACE_01, "Open, Jimmy and the like pick their target when only one fits." },
+        { &interfaceMenu, MI_INTERFACE_02, "Choose one member to act for the party with the number keys." },
+        { &interfaceMenu, MI_INTERFACE_03, "Enter does the obvious action: board, klimb, descend, enter..." },
+        { &interfaceMenu, MI_INTERFACE_04, "Colour the status letters and the key letters of the menus." },
+        { &interfaceMenu, MI_INTERFACE_05, "Meditate at the shrines as in Ultima V." },
+        { &interfaceMenu, MI_INTERFACE_06, "Mix several of a spell at once, as in Ultima V." },
+        { &interfaceMenu, MI_INTERFACE_08, "Names coloured by state and hit points yellow or red when low." },
+
+        { &legacyMenu, MI_INTERFACE_07, "Menus and lists in place of letter keys, as in the Master System version." },
+        { &legacyMenu, MI_LEGACY_01, "Walking into someone talks, into a foe attacks, into a door opens it." },
+        { &legacyMenu, MI_LEGACY_02, "\"North (x5)\" in place of five lines; Blocked! and Pass fold too." },
+        { &legacyMenu, MI_LEGACY_03, "Backing out of a command costs no turn." },
+        { &legacyMenu, MI_LEGACY_04, "Shops show how arms compare with what each has, and offer to ready them." },
+        { &legacyMenu, MI_LEGACY_05, "Spell lists show what each spell costs; ? opens its page of Wisdom." },
+        { &legacyMenu, MI_LEGACY_06, "A Heal or Cure line in the action menu when someone needs it." },
+        { &legacyMenu, MI_LEGACY_07, "The party fights by itself. Companions leaves the Avatar to you." },
+        { &legacyMenu, MI_LEGACY_08, "A mini map beside the dungeon view, or a map from above in its place." },
+        { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters and cheats." },
+
+        { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
+        { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
+        { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },
+        { &rulesMenu, MI_RULES_03, "The experience for a kill is shared by the whole party." },
+        { &rulesMenu, MI_RULES_04, "How long the game waits before it passes a turn for you." },
+        { &rulesMenu, MI_RULES_05, "A fallen party may go back to the last save or an earlier one." },
+        { &rulesMenu, MI_RULES_06, "Save on entering and leaving places, keeping the 8 saves before." },
+        { &rulesMenu, MI_RULES_08, "A new game keeps the others; choose whose journey to take up." },
+        { &rulesMenu, MI_RULES_07, "The Cheats menu here and in the game menu." },
+        { &rulesMenu, MI_RULES_CHEATS, "Healing, gold, food, levels, quest items and more." },
+
+        { &gameMenu, MI_HUB_JOURNAL, "The virtues, the quest, the places found and the clues heard." },
+        { &gameMenu, MI_HUB_HELP, "A short guide for new players." },
+        { &gameMenu, MI_HUB_BOOKS, "The History, the Book of Mystic Wisdom, the Hints, the runes, the map." },
+        { &gameMenu, MI_HUB_MAP, "The parts of Britannia the party has explored." },
+        { &gameMenu, MI_HUB_SAVE, "Save the game here: outdoors or in a dungeon, not in towns or battles." },
+        { &gameMenu, MI_HUB_LOAD, "Go back to the last save, or an earlier one." },
+        { &gameMenu, MI_HUB_SETTINGS, "All the options, without leaving the game." },
+        { &gameMenu, MI_HUB_MODULES, "Choose the graphics and the music." },
+        { &gameMenu, MI_HUB_QUIT, "Back to the title, saving first if wanted." },
+    };
+    for (const Help& h : help) {
+        MenuItem* mi = h.menu->getItemById(h.id);
+        if (mi)
+            mi->setHelp(h.text);
+    }
+}
+
+#define HELP_Y      43      // The subtitle strip of the options screen.
+#define HELP_H      21
+
+/*
+ * Show what the highlighted item of an options menu does in place of the
+ * subtitle, or put the subtitle back.
+ */
+void IntroController::drawMenuHelp(Menu* menu) {
+    if (menu->getCurrent() == menu->end())
+        return;
+    const char* help = (*menu->getCurrent())->getHelp();
+    if (! help) {
+        const SubImage* sub;
+        ImageInfo* info = xu4.imageMgr->imageInfo(BKGD_OPTIONS_TOP, &sub);
+        if (info) {
+            int sx = sub ? sub->x : 0;
+            int sy = sub ? sub->y : 0;
+            info->image->drawSubRect(0, HELP_Y, sx, sy + HELP_Y,
+                                     U4_SCREEN_W, HELP_H);
+        }
+        return;
+    }
+
+    xu4.screenImage->fillRect(0, HELP_Y, U4_SCREEN_W, HELP_H, 0, 0, 0);
+    const int cols = U4_SCREEN_W / CHAR_WIDTH;
+    std::string text(help), lines[2];
+    size_t pos = 0;
+    for (int n = 0; n < 2 && pos < text.size(); ++n) {
+        size_t len = text.size() - pos;
+        if (len > size_t(cols)) {
+            len = text.rfind(' ', pos + cols);
+            len = (len == std::string::npos || len <= pos) ? cols : len - pos;
+        }
+        lines[n] = text.substr(pos, len);
+        pos += len;
+        while (pos < text.size() && text[pos] == ' ')
+            ++pos;
+    }
+    int nlines = lines[1].empty() ? 1 : 2;
+    int y = HELP_Y + (HELP_H - nlines * CHAR_HEIGHT) / 2;
+    for (int n = 0; n < nlines; ++n) {
+        TextView line((cols - lines[n].size()) * CHAR_WIDTH / 2,
+                      y + n * CHAR_HEIGHT, lines[n].size(), 1);
+        line.textAt(0, 0, lines[n].c_str());
+    }
+}
+
 /**
  * Update the screen when an observed menu is reset or has an item
  * activated.
@@ -1875,6 +2032,9 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateGameMenu(event);
     else if (menu == &quitMenu)
         updateQuitMenu(event);
+
+    if (menu != &cheatsMenu)
+        drawMenuHelp((Menu*) menu);
 
     // beasties are always visible on the menus
     drawBeasties();

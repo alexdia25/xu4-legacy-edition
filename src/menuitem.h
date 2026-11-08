@@ -58,6 +58,9 @@ public:
     void setVisible(bool v = true);
     void addShortcutKey(int shortcutKey);
     void setClosesMenu(bool closesMenu);
+    // One or two sentences on what the item does, shown while highlighted.
+    const char* getHelp() const { return help; }
+    void setHelp(const char* h) { help = h; }
 
 protected:
     int id;
@@ -69,6 +72,7 @@ protected:
     int scOffset;
     set<int> shortcutKeys;
     bool closesMenu;
+    const char* help;
 };
 
 /**
