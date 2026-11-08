@@ -99,6 +99,7 @@ public:
     void timerFired();
     void configureInGame();
     void gameMenuInGame();
+    bool loadSaveInGame();
     void openConfigure();
     bool gameMenuOpen() const { return inGameMenu; }
 
@@ -267,6 +268,7 @@ private:
         MI_HUB_BOOKS,
         MI_HUB_MAP,
         MI_HUB_SAVE,
+        MI_HUB_LOAD,
         MI_HUB_SETTINGS,
         MI_HUB_MODULES,
         MI_HUB_QUIT,

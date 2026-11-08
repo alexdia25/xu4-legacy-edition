@@ -373,9 +373,10 @@ IntroController::IntroController() :
     gameMenu.add(MI_HUB_BOOKS,    "\010 Books of Britannia",   2,  5,/*'b'*/  2);
     gameMenu.add(MI_HUB_MAP,      "\010 World Map",            2,  6,/*'w'*/  2);
     gameMenu.add(MI_HUB_SAVE,     "\010 Save Game",            2,  7,/*'s'*/  2);
-    gameMenu.add(MI_HUB_SETTINGS, "\010 Settings",             2,  8,/*'e'*/  3);
-    gameMenu.add(MI_HUB_MODULES,  "\010 Graphics & Music",     2,  9,/*'g'*/  2);
-    gameMenu.add(MI_HUB_QUIT,     "\010 Quit Game",            2, 10,/*'q'*/  2);
+    gameMenu.add(MI_HUB_LOAD,     "\010 Load a Save",          2,  8,/*'l'*/  2);
+    gameMenu.add(MI_HUB_SETTINGS, "\010 Settings",             2,  9,/*'e'*/  3);
+    gameMenu.add(MI_HUB_MODULES,  "\010 Graphics & Music",     2, 10,/*'g'*/  2);
+    gameMenu.add(MI_HUB_QUIT,     "\010 Quit Game",            2, 11,/*'q'*/  2);
     gameMenu.addShortcutKey(MI_HUB_MAP, 'm');
     gameMenu.addShortcutKey(MI_HUB_BOOKS, 'd');
     gameMenu.addShortcutKey(CANCEL, U4_ESC);
@@ -1746,6 +1747,62 @@ void IntroController::gameMenuInGame() {
     endInGame();
 }
 
+/*
+ * Go back to a save of the character being played: the last save or an
+ * earlier one kept in its history (Load a Save in the game menu, and the
+ * Party Wipe choice).  Returns true if the game will be reloaded from it.
+ */
+bool IntroController::loadSaveInGame() {
+    std::vector<LegacySaveInfo> saves = legacyLoadableSaves();
+    bool framed = ! inGame;
+    if (framed)
+        beginInGame();
+
+    bool chosen = false;
+    for (;;) {
+        backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+        backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+        extendedMenuArea.clear();
+        screenHideCursor();
+        if (saves.empty()) {
+            extendedMenuArea.textAt(1, 0, "No game is saved yet.");
+            EventHandler::waitAnyKey();
+            break;
+        }
+        extendedMenuArea.textAt(1, 0, "Load which save? (newest first)");
+        if (saves.size() == 1)
+            extendedMenuArea.textAt(1, 11, "Earlier saves: Autosave & History");
+        std::vector<const char*> items;
+        for (const LegacySaveInfo& sv : saves)
+            items.push_back(sv.label.c_str());
+        int pick = EventHandler::chooseList(&extendedMenuArea, 1, 2, 34, 8,
+                                            items.data(), items.size());
+        if (pick < 0)
+            break;
+
+        extendedMenuArea.clear();
+        extendedMenuArea.textAt(1, 0, saves[pick].label.c_str());
+        extendedMenuArea.textAt(1, 2, "Load it?  Play since the last");
+        extendedMenuArea.textAt(1, 3, "save is lost.");
+        static const char* noYes[2] = { "No", "Yes" };
+        if (EventHandler::chooseList(&extendedMenuArea, 1, 5, 10, 2,
+                                     noYes, 2) != 1)
+            continue;
+        if (pick > 0)
+            legacyRestoreSave(saves[pick]);
+        chosen = true;
+        break;
+    }
+
+    if (chosen && inGameMenu)
+        gameMenu.setClosed(true);
+    if (framed)
+        endInGame();
+    if (chosen)
+        legacyReloadLast();
+    return chosen;
+}
+
 /**
  * Timer callback for the intro sequence.  Handles animating the intro
  * map, the beasties, etc..
@@ -2238,6 +2295,10 @@ void IntroController::updateGameMenu(MenuEvent &event) {
             else
                 hubStatus = "The game could not be saved!";
             break;
+        case MI_HUB_LOAD:
+            if (loadSaveInGame())
+                return;
+            break;
         case MI_HUB_SETTINGS:
             settingsFromGameMenu();
             break;
@@ -2273,8 +2334,15 @@ void IntroController::updateQuitMenu(MenuEvent &event) {
     if (event.type == MenuEvent::ACTIVATE) {
         int id = event.item->getId();
         if (id == MI_QUIT_SAVE || id == MI_QUIT_NOSAVE) {
-            if (id == MI_QUIT_SAVE)
-                gameSave(xu4.settings->getUserPath().c_str());
+            if (id == MI_QUIT_SAVE &&
+                ! gameSave(xu4.settings->getUserPath().c_str())) {
+                // Not saved: stay in the game.
+                hubStatus = "Not saved!  The game goes on.";
+                quitMenu.setClosed(true);
+                backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+                backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+                return;
+            }
             musicFadeOut(500);
             gameMenu.setClosed(true);
             xu4.eventHandler->quitGame();

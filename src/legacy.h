@@ -41,6 +41,8 @@ void legacySaveDone(const char* userPath);
 void legacyCopySaveFiles(const std::string& from, const std::string& to);
 void legacyAutosave();
 bool legacyWipeChoice();
+void legacyReloadLast();
+std::vector<LegacySaveInfo> legacyLoadableSaves();
 std::vector<LegacySaveInfo> legacyCharacters();
 std::vector<LegacySaveInfo> legacySaveHistory(const LegacySaveInfo& ch);
 bool legacyParkActive();

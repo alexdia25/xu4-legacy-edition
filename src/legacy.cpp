@@ -27,6 +27,7 @@
 #include "savegame.h"
 #include "stats.h"
 #include "xu4.h"
+#include "intro.h"
 
 /*
  * Apply one of the cheats offered in the in-game settings.
@@ -264,6 +265,45 @@ static void copySaveFiles(const fs::path& from, const fs::path& to) {
     }
 }
 
+static bool sameFile(const fs::path& a, const fs::path& b) {
+    std::error_code ec;
+    bool ea = fs::exists(a, ec), eb = fs::exists(b, ec);
+    if (ea != eb)
+        return false;
+    if (! ea)
+        return true;
+    if (fs::file_size(a, ec) != fs::file_size(b, ec))
+        return false;
+    FILE* fa = fopen(a.string().c_str(), "rb");
+    FILE* fb = fopen(b.string().c_str(), "rb");
+    bool same = fa && fb;
+    char ba[4096], bb[4096];
+    while (same) {
+        size_t na = fread(ba, 1, sizeof(ba), fa);
+        size_t nb = fread(bb, 1, sizeof(bb), fb);
+        if (na != nb || memcmp(ba, bb, na) != 0)
+            same = false;
+        if (na < sizeof(ba))
+            break;
+    }
+    if (fa) fclose(fa);
+    if (fb) fclose(fb);
+    return same;
+}
+
+/*
+ * Return true if the save files in two folders are the same.
+ */
+static bool sameSaveFiles(const fs::path& a, const fs::path& b) {
+    std::error_code ec;
+    if (! fs::exists(b / PARTY_SAV, ec))
+        return false;
+    for (const char** fn = saveFiles; *fn; ++fn)
+        if (! sameFile(a / *fn, b / *fn))
+            return false;
+    return true;
+}
+
 void legacyCopySaveFiles(const std::string& from, const std::string& to) {
     copySaveFiles(fs::u8path(from), fs::u8path(to));
 }
@@ -379,6 +419,9 @@ void legacySaveDone(const char* userPath) {
 
     fs::path hist = base / "history" / fs::u8path(folder);
     fs::create_directories(hist, ec);
+    // A save of a game with nothing played since is not kept twice.
+    if (sameSaveFiles(base, hist / "1"))
+        return;
     fs::remove_all(hist / std::to_string(HISTORY_COUNT), ec);
     for (int i = HISTORY_COUNT - 1; i >= 1; --i) {
         fs::path from = hist / std::to_string(i);
@@ -406,28 +449,92 @@ void legacyAutosave() {
 
 /*
  * The party has fallen.  With the Party Wipe option, offer to go back to
- * the last save.  Returns true if the game will be reloaded.
+ * the last save or an earlier one, or Lord British's aid.  Returns true if
+ * the game will be reloaded.
  */
 bool legacyWipeChoice() {
     if (! xu4.settings->legacy.wipeChoice)
         return false;
     if (! fs::exists(userDir() / PARTY_SAV))
         return false;
-
-    screenMessage("\n\n%cThe party has fallen!%c\nTry again from the last save? ",
-                  FG_YELLOW, FG_WHITE);
-    static const char* const labels[] = { "Yes", "No", NULL, NULL };
-    int ch = EventHandler::readChoice("yn \033", labels);
-    if (ch != 'y') {
-        screenMessage("\n");
+    bool earlier = legacyLoadableSaves().size() > 1;
+    screenMessage("\n\n%cThe party has fallen!%c\n", FG_YELLOW, FG_WHITE);
+    for (;;) {
+        if (EventHandler::smsMenus())
+            ;   // The choices are listed in a picker.
+        else if (earlier)
+            screenMessage("L)ast save\nE)arlier save\nB)ritish's aid\n:");
+        else
+            screenMessage("L)ast save\nB)ritish's aid\n:");
+        static const char* const labels[] = {
+            "Last save", "Earlier save", "British's aid", NULL
+        };
+        static const char* const labels2[] = {
+            "Last save", NULL, "British's aid", NULL
+        };
+        int ch = EventHandler::readChoice(earlier ? "leb" : "lb",
+                                          earlier ? labels : labels2);
+        if (! EventHandler::smsMenus())
+            screenMessage("\n");
+        if (ch == U4_ESC)
+            continue;
+        if (ch == 'l') {
+            legacyReloadLast();
+            return true;
+        }
+        if (ch == 'e') {
+            if (xu4.intro && xu4.intro->loadSaveInGame())
+                return true;
+            continue;
+        }
         return false;
     }
+}
 
-    // Restart from the title, which loads the save straight away.
+/*
+ * Restart from the title, which loads the save straight away.
+ */
+void legacyReloadLast() {
     legacyReloadPending = true;
     xu4.gameReset = 1;
     xu4.eventHandler->quitGame();
-    return true;
+}
+
+/*
+ * List the saves of the character being played that can be gone back to:
+ * the last save, then the earlier ones kept in its history (newest first).
+ */
+std::vector<LegacySaveInfo> legacyLoadableSaves() {
+    std::vector<LegacySaveInfo> list;
+    std::string folder = activeFolder();
+    fs::path base = userDir();
+    std::error_code ec;
+    if (folder.empty() || ! fs::exists(base / PARTY_SAV, ec))
+        return list;
+
+    LegacySaveInfo last;
+    last.dir    = base.string();
+    last.folder = folder;
+    last.time   = fileTime(base / PARTY_SAV);
+    last.active = true;
+    std::string place = readText(base / "place.txt");
+    char when[32];
+    time_t t = (time_t) last.time;
+    strftime(when, sizeof(when), "%b %d %H:%M", localtime(&t));
+    last.label = std::string("Last save, ") + when +
+                 (place.empty() ? "" : " " + place);
+    list.push_back(last);
+
+    LegacySaveInfo ch;
+    ch.folder = folder;
+    ch.active = true;
+    for (const LegacySaveInfo& sv : legacySaveHistory(ch)) {
+        // The newest kept is usually a copy of the last save.
+        if (sameSaveFiles(base, fs::u8path(sv.dir)))
+            continue;
+        list.push_back(sv);
+    }
+    return list;
 }
 
 /*

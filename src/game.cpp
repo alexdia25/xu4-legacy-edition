@@ -2,6 +2,7 @@
  * game.cpp
  */
 
+#include <cstring>
 #include <filesystem>
 #include "game.h"
 #include "discourse.h"
@@ -456,25 +457,48 @@ bool GameController::initContext() {
  * Saves the game state into party.sav and monsters.sav.
  * For dungeons dngmap.sav & outmonst.sav are also created.
  */
+/*
+ * Write the save files as <name>.tmp, check them, then put them in place,
+ * so that a save which fails leaves the one before it as it was.
+ */
+static const char* const gameSaveFiles[] = {
+    PARTY_SAV, TALKWORDS_SAV, MONSTERS_SAV, DNGMAP_SAV, OUTMONST_SAV
+};
+#define GAME_SAVE_FILES (sizeof(gameSaveFiles) / sizeof(char*))
+
+static bool closeSaveFile(FILE* fp) {
+    bool ok = (fflush(fp) == 0) && ! ferror(fp);
+    if (fclose(fp) != 0)
+        ok = false;
+    return ok;
+}
+
 int gameSave(const char* userPath) {
     FILE *fp;
     string sbuf(userPath);
     size_t userPathLen = sbuf.size();
-    const char* basename;
+    const char* basename = PARTY_SAV;
     const Location* loc = c->location;
     const Map* map = loc->map;
     SaveGame save = *c->saveGame;
     MonstersSav mons;
+    bool written[GAME_SAVE_FILES] = { false };
+    size_t i;
 
-#define openSaveFile(FN) \
-    basename = FN; \
-    sbuf.erase(userPathLen, string::npos); \
-    sbuf.append(basename); \
-    fp = fopen(sbuf.c_str(), "wb"); \
-    if (!fp) { \
-        screenMessage("Error opening %s\n", basename); \
-        return 0; \
-    }
+#define SAVE_PATH(FN, EXT) \
+    (sbuf.erase(userPathLen, string::npos), sbuf.append(FN), \
+     sbuf.append(EXT), sbuf.c_str())
+
+#define openSaveFile(N) \
+    basename = gameSaveFiles[N]; \
+    fp = fopen(SAVE_PATH(basename, ".tmp"), "wb"); \
+    if (!fp) \
+        goto open_error; \
+    written[N] = true;
+
+#define closeSave() \
+    if (! closeSaveFile(fp)) \
+        goto close_error;
 
     /*************************************************/
     /* Make sure the savegame struct is accurate now */
@@ -499,49 +523,78 @@ int gameSave(const char* userPath) {
     /****************************************************/
 
 
-    openSaveFile(PARTY_SAV);
+    openSaveFile(0);    // PARTY_SAV
     if (! save.write(fp))
         goto write_error;
-    fclose(fp);
+    closeSave();
 
 
-    openSaveFile(TALKWORDS_SAV);
+    openSaveFile(1);    // TALKWORDS_SAV
     if (! talkWordsSave(fp))
         goto write_error;
-    fclose(fp);
+    closeSave();
 
 
-    openSaveFile(MONSTERS_SAV);
+    openSaveFile(2);    // MONSTERS_SAV
     if (map->type == Map::DUNGEON)
         map->fillMonsterTableDungeon(mons.table);
     else
         map->fillMonsterTable(mons.table);
     if (! saveGameMonstersWrite(mons.table, fp))
         goto write_error;
-    fclose(fp);
+    closeSave();
 
 
     /**
      * Write dngmap.sav & outmonst.sav
      */
     if (loc->context & CTX_DUNGEON) {
-        openSaveFile(DNGMAP_SAV);
+        openSaveFile(3);    // DNGMAP_SAV
         const uint8_t* data = static_cast<Dungeon*>((Map*) map)->fillRawMap();
         size_t dataLen = map->width * map->height * map->levels;
-        fwrite(data, 1, dataLen, fp);
-        fclose(fp);
+        if (fwrite(data, 1, dataLen, fp) != dataLen)
+            goto write_error;
+        closeSave();
 
 
-        openSaveFile(OUTMONST_SAV);
+        openSaveFile(4);    // OUTMONST_SAV
         loc->prev->map->fillMonsterTable(mons.table);
         if (! saveGameMonstersWrite(mons.table, fp))
             goto write_error;
+        closeSave();
+    }
+
+    // Read the party back before anything is replaced.
+    {
+        basename = PARTY_SAV;
+        fp = fopen(SAVE_PATH(PARTY_SAV, ".tmp"), "rb");
+        if (! fp)
+            goto open_error;
+        SaveGame check;
+        int ok = check.read(fp);
         fclose(fp);
+        if (! ok || check.members != save.members ||
+            check.moves != save.moves ||
+            strcmp(check.players[0].name, save.players[0].name) != 0)
+            goto check_error;
+    }
+
+    for (i = 0; i < GAME_SAVE_FILES; ++i) {
+        if (! written[i])
+            continue;
+        string tmp = SAVE_PATH(gameSaveFiles[i], ".tmp");
+        string dst = SAVE_PATH(gameSaveFiles[i], "");
+        remove(dst.c_str());
+        if (rename(tmp.c_str(), dst.c_str()) != 0) {
+            basename = gameSaveFiles[i];
+            goto check_error;
+        }
+        written[i] = false;
     }
 
     if (! legacyDungeonWrite(userPath)) {
-        screenMessage("Error writing to %s\n", "dngseen.sav/worldseen.sav");
-        return 0;
+        basename = "dngseen.sav";
+        goto check_error;
     }
 
     if (xu4.settings->legacy.autosave)
@@ -550,8 +603,18 @@ int gameSave(const char* userPath) {
 
 write_error:
     fclose(fp);
-    screenMessage("Error writing to %s\n", basename);
+close_error:
+check_error:
+open_error:
+    for (i = 0; i < GAME_SAVE_FILES; ++i) {
+        if (written[i])
+            remove(SAVE_PATH(gameSaveFiles[i], ".tmp"));
+    }
+    screenMessage("%cNot saved!%c (%s)\n", FG_YELLOW, FG_WHITE, basename);
     return 0;
+#undef SAVE_PATH
+#undef openSaveFile
+#undef closeSave
 }
 
 /**
