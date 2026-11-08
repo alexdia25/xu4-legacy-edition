@@ -2,6 +2,90 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.3-pre1
+
+A pre-release for testing.  Most of what is new is optional: the new
+options are in Settings, Legacy Edition Options, More Options (now three
+pages), and How to Play lists them all.
+
+Help and books:
+
+- **Tips**: a book of pointers on talking, virtue, food, healing,
+  magic, dungeons and what to do when stuck, in the game menu.
+- **Spoiler Guide** (off at first): turn it on to add the Guide, a
+  walkthrough of the whole quest, to the Books of Britannia.
+- **Journal**: the places found with how many of their clues were
+  heard, the clues by topic, and View on the World Map; Journal Hints
+  name who still knows more.
+- **Combat Tips** in the first fights, and a description of each option
+  in Settings.
+
+Playing:
+
+- **Party wipe**: the choice now offers the last save, an earlier save
+  or Lord British's aid.  Load a Save is in the game menu.
+- **Ask Rules At New Game**: Story, Modern or Classic after choosing
+  Male or Female.  In Modern and Story a sleeper hit in a fight may
+  wake.
+- **Snap Attacks**: X (or Strike in the action menu) hits a foe in
+  reach without aiming; Snap Target Mark shows which foe, and PgUp/PgDn
+  or the shoulder buttons pick another.
+- **Auto Combat**: any key takes the battle back, it stops when someone
+  is badly hurt or no foe is hurt for 30 turns, and it can be turned on
+  for one battle from the fight menu.
+- **Step Onto To Use** (off at first): with Walk Into To Act, a chest
+  or ladder stepped onto offers to be used.
+- **Quick Mixing**: a spell mixed before can be made again by recipe.
+- **Say What Blocks**: "Blocked by water!" in place of "Blocked!".
+- **Action menu**: torches, gems and keys left; a torch or Light first
+  in a dark dungeon; Steal Chest named in towns; each member's
+  experience against the next level.
+- **Settings Per Character**: with Keep Characters, each character keeps
+  their own play options.
+- **Steam Cloud Saves**: with the Steam release's game files, saves also
+  go to its folder for Steam Cloud (Rules & Saving).
+- New Word cheat (Ctrl-C N).
+
+Shops and spells:
+
+- **Shops Compare Arms** shows a panel, member by member; **Shop Buyer
+  First** asks who is buying and greys what they cannot use; **Grey Wares
+  Too Dear** greys what the gold cannot buy; **Shop Dials Stop At Gold**
+  stops the dials at what the party can afford and shows the cost.
+- **Spell Info In Lists** shows what the spell under the cursor does,
+  costs and is mixed from; **Spell Card Extras** add mana beside each
+  caster, castable spells first and the mixtures made.
+
+Maps and screen:
+
+- **Heard-Of Places On Map**: the world map names the places visited
+  (yellow) and those named in conversation (grey, boxed where not yet
+  explored).
+- **Map Opens Where You Are**: in a town, castle, shrine or dungeon the
+  map shows that place first.
+- **Moongates Say Where**: a gate names the town it led to last.
+- **Creatures On Mini Map** in dungeons.
+- **Smooth Motion** (Video Options): the map slides and everyone glides
+  from square to square.
+- **Party Colours**: names coloured by state, hit points by how low they
+  are.
+- **Frame Colour By Place**: the border turns gold at a shrine and grey
+  in a dungeon.
+- **Effects Don't Stop Play**: spell flashes are brief while the sound
+  plays on.
+- **Fold Repeated Moves** also folds Blocked!, Slow progress! and Pass.
+
+Input and system:
+
+- **Held Key Pace** (Input Options) and **Stop At New Scene** (Keyboard
+  Options): held keys repeat at a steady pace and stop at a fight, a new
+  map or a moongate.
+- **Update Notice**: release builds on Windows, macOS, Linux and Android
+  check once a day for a newer release and offer its download page
+  (not the Flatpak, which updates itself).
+- Web and Android: Import Saves, and an error box with Copy Details (on
+  Windows too).
+
 ## New in 1.2
 
 New platforms:
