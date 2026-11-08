@@ -200,6 +200,9 @@ Beside Rules & Saving, **More Options** holds these, all starting on:
 | Auto Combat Extras         | "Auto" shows over the party panel while Auto Combat fights, the fight menu has Auto Combat (for that battle, even with the option Off), and it hands the battle back after 30 turns with no foe hurt |
 | Spell Card Extras          | Picking a caster shows each member's mana, the spells the caster can afford come first, and the spell panel shows the mixtures made |
 | Grey Wares Too Dear        | Weapon and armour shop lists show in grey what your gold cannot buy |
+| Quick Mixing               | With console menus, Mix offers By Recipe for a spell already mixed once: pick it and dial how many, and the reagents are taken for you |
+| Say What Blocks            | "Blocked by water!", "Blocked by mountains!", "Blocked by someone!" and so on in place of "Blocked!" |
+| Ask Rules At New Game      | A new game asks which rules to play by (Story, Modern, Classic, or as set) after Male or Female |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is
@@ -208,7 +211,8 @@ pressed again (on by default).
 **Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
-turn timer, and whether a fallen party is raised by Lord British or may
+turn timer, whether a sleeper hit in a fight has an even chance to wake,
+and whether a fallen party is raised by Lord British or may
 reload: when the whole party falls, it then offers the last save, an
 earlier save or Lord British's aid).  It also turns on autosave with a history of saves to go back
 to and several characters each with their own saves (these start off).
