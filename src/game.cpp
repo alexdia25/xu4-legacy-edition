@@ -663,6 +663,7 @@ void gameUpdateScreen() {
 }
 
 void GameController::setMap(Map *map, bool saveLocation, const Portal *portal, TurnController *turnCompleter) {
+    EventHandler::sceneBreak();
     int viewMode;
     LocationContext context;
     int activePlayer = c->party->getActivePlayer();
@@ -725,6 +726,7 @@ void GameController::setMap(Map *map, bool saveLocation, const Portal *portal, T
  * such as the map, map position, etc. (such as exiting a city)
  */
 int GameController::exitToParentMap() {
+    EventHandler::sceneBreak();
     Location* loc = c->location;
     if (loc && loc->prev) {
         Map* currentMap = loc->map;
@@ -4050,6 +4052,8 @@ bool GameController::checkMoongates() {
                            c->saveGame->feluccaphase,
                            c->location->coords, dest))
         return false;
+
+    EventHandler::sceneBreak();
 
     // Default spell effect (screen inversion without 'spell' sound effects)
     gameSpellEffect(-1, -1, SOUND_MOONGATE);

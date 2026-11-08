@@ -1684,6 +1684,18 @@ bool EventHandler::defaultKeyHandler(int key) {
 int  EventHandler::cancelCount = 0;
 uint32_t EventHandler::lastInputTime = 0;
 uint32_t EventHandler::pressCount = 0;
+uint32_t EventHandler::sceneCount = 0;
+
+void EventHandler::sceneBreak() {
+    ++sceneCount;
+}
+
+/*
+ * Return true if a held input pressed at sceneAtPress must stop repeating.
+ */
+bool EventHandler::repeatStopped(uint32_t sceneAtPress) {
+    return sceneAtPress != sceneCount && xu4.settings->legacy.sceneStop;
+}
 bool EventHandler::cancelArmed = false;
 
 /*
@@ -2037,6 +2049,7 @@ void EventHandler::setPointerRepeat(Controller* con, int key, int delay)
         repeatCon  = con;
         repeatKey  = key;
         repeatTime = getTicks() + delay;
+        repeatScene = sceneCount;
     } else if (con == repeatCon) {
         repeatCon = NULL;
         repeatKey = 0;
@@ -2046,7 +2059,7 @@ void EventHandler::setPointerRepeat(Controller* con, int key, int delay)
 void EventHandler::pointerRepeat()
 {
     Controller* con = getController();
-    if (con != repeatCon) {
+    if (con != repeatCon || repeatStopped(repeatScene)) {
         repeatCon = NULL;
         repeatKey = 0;
         return;

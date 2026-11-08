@@ -15,6 +15,7 @@
 struct Gamepad {
     uint32_t held;          // Buttons (including stick directions) down.
     uint32_t repeatTime;    // When the held direction repeats next.
+    uint32_t scene;         // EventHandler::sceneCount at the press.
 };
 
 static Gamepad pad;
@@ -157,6 +158,7 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
                 sendPadKey(sendKey, key);
             if (PAD_BIT(b) & DIR_MASK) {
                 int delay;
+                pad.scene = EventHandler::sceneCount;
                 pad.repeatTime = msec + (xu4.settings->heldRepeat(&delay)
                                          ? delay : REPEAT_DELAY);
             }
@@ -165,7 +167,8 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
 
     // Repeat a held direction.
     uint32_t dir = buttons & DIR_MASK;
-    if (dir && ! (pressed & DIR_MASK) && (int32_t) (msec - pad.repeatTime) >= 0) {
+    if (dir && ! (pressed & DIR_MASK) && (int32_t) (msec - pad.repeatTime) >= 0 &&
+        ! EventHandler::repeatStopped(pad.scene)) {
         int delay, rate = xu4.settings->heldRepeat(&delay);
         pad.repeatTime = msec + (rate ? rate : REPEAT_RATE);
         for (int b = PAD_UP; b <= PAD_RIGHT; ++b) {

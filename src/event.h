@@ -191,6 +191,11 @@ public:
     static uint32_t lastInputTime;
     // Count of key, button & pointer presses (Auto Combat stops on one).
     static uint32_t pressCount;
+    // Counts scene changes (combat, a new map, a moongate).  With Stop At
+    // New Scene, a held key, direction or touch stops repeating at one.
+    static uint32_t sceneCount;
+    static void sceneBreak();
+    static bool repeatStopped(uint32_t sceneAtPress);
     static void noteCancel() { if (cancelArmed) ++cancelCount; }
     static int  chooseNumber(int maxValue);
     // Set by the dial-limit script function for the next chooseNumber.
@@ -295,6 +300,7 @@ protected:
     Controller* repeatCon;      // Controller sent repeatKey while held.
     int repeatKey;
     uint32_t repeatTime;
+    uint32_t repeatScene;
     char readStringBuf[33];
 };
 

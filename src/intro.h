@@ -205,6 +205,7 @@ private:
         MI_SOUND_03,
         MI_INPUT_01,
         MI_INPUT_PACE,
+        MI_INPUT_SCENE,
         MI_INPUT_02,
         MI_INPUT_03,
         MI_INPUT_PAD,

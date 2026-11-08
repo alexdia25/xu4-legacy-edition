@@ -625,6 +625,7 @@ void screenShowMouseCursor(bool visible)
 static SDL_KeyboardEvent heldKey;
 static bool heldDown = false;
 static uint32_t heldNext;
+static uint32_t heldScene;      // EventHandler::sceneCount at the press.
 
 void EventHandler::handleInputEvents(Controller* waitCon,
                                      updateScreenCallback update)
@@ -660,6 +661,11 @@ void EventHandler::handleInputEvents(Controller* waitCon,
             case SDL_EVENT_KEY_DOWN:
             {
                 int delay;
+                if (event.key.repeat) {
+                    if (EventHandler::repeatStopped(heldScene))
+                        break;      // Stop At New Scene.
+                } else
+                    heldScene = EventHandler::sceneCount;
                 if (xu4.settings->heldRepeat(&delay)) {
                     if (event.key.repeat)
                         break;
@@ -747,7 +753,7 @@ void EventHandler::handleInputEvents(Controller* waitCon,
     if (heldDown) {
         int delay, rate = xu4.settings->heldRepeat(&delay);
         uint32_t now = getTicks();
-        if (! rate)
+        if (! rate || EventHandler::repeatStopped(heldScene))
             heldDown = false;
         else if ((int32_t) (now - heldNext) >= 0) {
             heldNext = now + rate;

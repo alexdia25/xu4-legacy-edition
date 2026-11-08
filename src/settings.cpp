@@ -295,6 +295,7 @@ bool Settings::read() {
     legacy.lightFirst   = true;
     legacy.nameSteal    = true;
     legacy.capDials     = true;
+    legacy.sceneStop    = true;
     legacy.autoExtras   = true;
     legacy.snapMark     = true;
     legacy.mapCreatures = true;
@@ -483,6 +484,8 @@ bool Settings::read() {
             legacy.nameSteal = toInt(val);
         else if (VALUE("capDials="))
             legacy.capDials = toInt(val);
+        else if (VALUE("sceneStop="))
+            legacy.sceneStop = toInt(val);
         else if (VALUE("autoExtras="))
             legacy.autoExtras = toInt(val);
         else if (VALUE("snapMark="))
@@ -679,6 +682,7 @@ bool Settings::write() {
             "lightFirst=%d\n"
             "nameSteal=%d\n"
             "capDials=%d\n"
+            "sceneStop=%d\n"
             "autoExtras=%d\n"
             "snapMark=%d\n"
             "mapCreatures=%d\n"
@@ -718,6 +722,7 @@ bool Settings::write() {
             legacy.lightFirst,
             legacy.nameSteal,
             legacy.capDials,
+            legacy.sceneStop,
             legacy.autoExtras,
             legacy.snapMark,
             legacy.mapCreatures,

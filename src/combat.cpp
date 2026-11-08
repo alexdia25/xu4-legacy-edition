@@ -209,6 +209,7 @@ static void autoMarkShow(bool on) {
 }
 
 void CombatController::beginCombat() {
+    EventHandler::sceneBreak();
     bool partyIsReadyToFight = false;
 
     autoHalted = false;
