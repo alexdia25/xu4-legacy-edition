@@ -368,6 +368,12 @@ bool PartyMember::applyDamage(Map* map, int damage, bool) {
         return false;
     }
 
+    // Sleepers Wake When Hit: an even chance to come to in the fight.
+    if (damage > 0 && isCombatMap(map) && ! isDead() &&
+        getStatus() == STAT_SLEEPING &&
+        xu4.settings->legacy.wakeOnHit && xu4_random(2) == 0)
+        wakeUp();
+
     return true;
 }
 

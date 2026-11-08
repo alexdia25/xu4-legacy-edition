@@ -148,6 +148,7 @@ private:
     std::string getQuestion(int v1, int v2);
     void dispatchMenu(const Menu *menu, MenuEvent &event);
     void initiateNewGame();
+    void askNewGameRules();
     void finishInitiateGame(const string &nameBuffer, SexType sex);
     void startQuestions();
     void showStory();
@@ -268,6 +269,7 @@ private:
         MI_MORE_WARES,
         MI_MORE_MIX,
         MI_MORE_BLOCK,
+        MI_MORE_ASK,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,
@@ -277,6 +279,7 @@ private:
         MI_RULES_06,
         MI_RULES_07,
         MI_RULES_08,
+        MI_RULES_09,
         MI_RULES_CHEATS,
         MI_RULES_STEAM,
         MI_CHEAT_HEAL,

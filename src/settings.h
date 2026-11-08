@@ -177,6 +177,7 @@ struct LegacyOptions {
     bool shopColours;       // Shop lists grey the wares the party cannot pay for.
     bool quickMix;          // Console mixing: a known recipe by the number.
     bool blockReason;       // "Blocked by water!" in place of "Blocked!".
+    bool askRules;          // A new game asks which rules to play by.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
@@ -192,6 +193,7 @@ struct LegacyOptions {
     bool poisonKills;
     bool sharedXp;          // Kill experience is shared by the party.
     bool wipeChoice;        // A party wipe offers to load the last save.
+    bool wakeOnHit;         // A sleeper who is hit has an even chance to wake.
 };
 
 struct MouseOptions {

@@ -296,6 +296,7 @@ bool Settings::read() {
     legacy.nameSteal    = true;
     legacy.capDials     = true;
     legacy.blockReason  = true;
+    legacy.askRules     = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -490,6 +491,8 @@ bool Settings::read() {
             legacy.capDials = toInt(val);
         else if (VALUE("blockReason="))
             legacy.blockReason = toInt(val);
+        else if (VALUE("askRules="))
+            legacy.askRules = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -522,8 +525,12 @@ bool Settings::read() {
             legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
         else if (VALUE("mapView="))
             legacy.mapView = settingEnum(mapViewStrings(), val);
-        else if (VALUE("rules="))
+        else if (VALUE("rules=")) {
             legacy.preset = settingEnum(legacyPresetStrings(), val);
+            // Older files have no wakeOnHit line; it follows the preset.
+            legacy.wakeOnHit = (legacy.preset == LegacyPreset_Modern ||
+                                legacy.preset == LegacyPreset_Story);
+        }
         else if (VALUE("starvation="))
             legacy.starvation = settingEnum(starvationStrings(), val);
         else if (VALUE("turnTimer="))
@@ -534,6 +541,8 @@ bool Settings::read() {
             legacy.sharedXp = toInt(val);
         else if (VALUE("wipeChoice="))
             legacy.wipeChoice = toInt(val);
+        else if (VALUE("wakeOnHit="))
+            legacy.wakeOnHit = toInt(val);
 
         /* mouse options */
         else if (VALUE("mouseEnabled="))
@@ -695,6 +704,7 @@ bool Settings::write() {
             "nameSteal=%d\n"
             "capDials=%d\n"
             "blockReason=%d\n"
+            "askRules=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -714,7 +724,8 @@ bool Settings::write() {
             "turnTimer=%s\n"
             "poisonKills=%d\n"
             "sharedXp=%d\n"
-            "wipeChoice=%d\n",
+            "wipeChoice=%d\n"
+            "wakeOnHit=%d\n",
             legacy.bumpToAct,
             legacy.foldMoves,
             legacy.freeCancel,
@@ -739,6 +750,7 @@ bool Settings::write() {
             legacy.nameSteal,
             legacy.capDials,
             legacy.blockReason,
+            legacy.askRules,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,
@@ -758,7 +770,8 @@ bool Settings::write() {
             turnTimerStrings()[ legacy.turnTimer ],
             legacy.poisonKills,
             legacy.sharedXp,
-            legacy.wipeChoice);
+            legacy.wipeChoice,
+            legacy.wakeOnHit);
 
     for (int i = 0; i < PadMap_Count; ++i)
         fprintf(settingsFile, "pad%s=%s\n", padButtonNames[i],
@@ -842,6 +855,7 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.turnTimer   = TurnTimer_Fast;
             lo.sharedXp    = false;
             lo.wipeChoice  = false;
+            lo.wakeOnHit   = false;
             break;
         case LegacyPreset_Modern:
             lo.poisonKills = false;
@@ -849,6 +863,7 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.turnTimer   = TurnTimer_Slow;
             lo.sharedXp    = true;
             lo.wipeChoice  = true;
+            lo.wakeOnHit   = true;
             break;
         case LegacyPreset_Story:
             lo.poisonKills = false;
@@ -856,6 +871,7 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.turnTimer   = TurnTimer_Off;
             lo.sharedXp    = true;
             lo.wipeChoice  = true;
+            lo.wakeOnHit   = true;
             break;
     }
 }

@@ -363,9 +363,10 @@ IntroController::IntroController() :
     rulesMenu.add(MI_RULES_03,     new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
     rulesMenu.add(MI_RULES_04,     new EnumMenuItem("  Turn Timer    %s",          2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
     rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
-    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  7,/*'a'*/  0, &lo.autosave));
-    rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  8,/*'k'*/  0, &lo.keepCharacters));
-    rulesMenu.add(MI_RULES_STEAM,  new BoolMenuItem("Steam Cloud Saves        %s", 2,  9,/*'c'*/  6, &lo.steamSaves));
+    rulesMenu.add(MI_RULES_09,     new BoolMenuItem("  Hit Wakes Sleepers     %s", 2,  7,/*'h'*/  2, &lo.wakeOnHit));
+    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  8,/*'a'*/  0, &lo.autosave));
+    rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  9,/*'k'*/  0, &lo.keepCharacters));
+    rulesMenu.add(MI_RULES_STEAM,  new BoolMenuItem("Steam Cloud Saves        %s", 2, 10,/*'c'*/  6, &lo.steamSaves));
     rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu.addShortcutKey(CANCEL, ' ');
@@ -398,6 +399,7 @@ IntroController::IntroController() :
     moreMenu2.add(MI_MORE_WARES,  new BoolMenuItem("Grey Wares Too Dear      %s", 2,  3,/*'g'*/  0, &lo.shopColours));
     moreMenu2.add(MI_MORE_MIX,    new BoolMenuItem("Quick Mixing             %s", 2,  4,/*'q'*/  0, &lo.quickMix));
     moreMenu2.add(MI_MORE_BLOCK,  new BoolMenuItem("Say What Blocks          %s", 2,  5,/*'w'*/  4, &lo.blockReason));
+    moreMenu2.add(MI_MORE_ASK,    new BoolMenuItem("Ask Rules At New Game    %s", 2,  6,/*'r'*/  4, &lo.askRules));
     moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu2.addShortcutKey(CANCEL, ' ');
@@ -1173,7 +1175,44 @@ void IntroController::initiateNewGame() {
     screenUploadToGPU();
     EventHandler::wait_msecs(250);
 
+    if (xu4.settings->legacy.askRules)
+        askNewGameRules();
+
     finishInitiateGame(nameBuffer, sex);
+}
+
+/*
+ * Ask which rules the new journey is played by (Ask Rules At New Game).
+ * The choice is kept in the settings, as if made in Rules & Saving.
+ */
+void IntroController::askNewGameRules()
+{
+    static const char* rules[4] = {
+        "Story", "Modern", "Classic", "As Set"
+    };
+    static const int presets[3] = {
+        LegacyPreset_Story, LegacyPreset_Modern, LegacyPreset_Classic
+    };
+    const char* setName =
+        Settings::legacyPresetStrings()[ xu4.settings->legacy.preset ];
+
+    menuArea.textAt(3, 5, "Which rules?");
+    menuArea.textAtFmt(3, 10, "As Set is %s.", setName);
+    drawBeasties();
+    int n = EventHandler::chooseList(&menuArea, 16, 5, 8, 4, rules, 4);
+    for (int y = 5; y < 11; ++y)
+        menuArea.textAtFmt(3, y, "%-30s", "");
+
+    if (n >= 0 && n < 3) {
+        SettingsData data(*xu4.settings);
+        Settings::applyLegacyPreset(data, presets[n]);
+        xu4.settings->setData(data);
+        xu4.settings->write();
+    }
+    menuArea.textAtFmt(3, 5, "Rules: %s",
+        Settings::legacyPresetStrings()[ xu4.settings->legacy.preset ]);
+    screenUploadToGPU();
+    EventHandler::wait_msecs(250);
 }
 
 void IntroController::finishInitiateGame(const string &nameBuffer, SexType sex)
@@ -2012,6 +2051,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu2, MI_MORE_WARES, "Shop lists show in grey what thy gold cannot buy." },
         { &moreMenu2, MI_MORE_MIX, "With menus, a recipe mixed before is made again by the number." },
         { &moreMenu2, MI_MORE_BLOCK, "\"Blocked by water!\" in place of \"Blocked!\"." },
+        { &moreMenu2, MI_MORE_ASK, "A new game asks which rules to play by: Story, Modern or Classic." },
         { &moreMenu2, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
@@ -2019,6 +2059,7 @@ void IntroController::initMenuHelp() {
         { &rulesMenu, MI_RULES_03, "The experience for a kill is shared by the whole party." },
         { &rulesMenu, MI_RULES_04, "How long the game waits before it passes a turn for you." },
         { &rulesMenu, MI_RULES_05, "A fallen party may go back to the last save or an earlier one." },
+        { &rulesMenu, MI_RULES_09, "A sleeper who is hit in a fight has an even chance to wake." },
         { &rulesMenu, MI_RULES_06, "Save on entering and leaving places, keeping the 8 saves before." },
         { &rulesMenu, MI_RULES_08, "A new game keeps the others; choose whose journey to take up." },
         { &rulesMenu, MI_RULES_STEAM, "Saves also go to the Steam release, so Steam Cloud carries them." },
@@ -2525,6 +2566,7 @@ void IntroController::updateRulesMenu(MenuEvent &event) {
             case MI_RULES_03:
             case MI_RULES_04:
             case MI_RULES_05:
+            case MI_RULES_09:
                 lo.preset = LegacyPreset_Custom;
                 break;
             case USE_SETTINGS:
