@@ -288,6 +288,7 @@ bool Settings::read() {
     legacy.shopCompare  = true;
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
+    legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
     gamepad_defaultMap(legacy.padMap);
@@ -448,6 +449,8 @@ bool Settings::read() {
             legacy.batterySaver = toInt(val);
         else if (VALUE("scanlines="))
             legacy.scanlines = toInt(val);
+        else if (VALUE("partyColours="))
+            legacy.partyColours = toInt(val);
         else if (VALUE("cheatsMenu="))
             legacy.cheatsMenu = toInt(val);
         else if (VALUE("autoCombat="))
@@ -625,6 +628,7 @@ bool Settings::write() {
             "readerSize=%d\n"
             "batterySaver=%d\n"
             "scanlines=%d\n"
+            "partyColours=%d\n"
             "cheatsMenu=%d\n"
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
@@ -648,6 +652,7 @@ bool Settings::write() {
             legacy.readerSize,
             legacy.batterySaver,
             legacy.scanlines,
+            legacy.partyColours,
             legacy.cheatsMenu,
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],

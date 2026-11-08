@@ -150,6 +150,7 @@ struct LegacyOptions {
     bool keepCharacters;    // New games keep the others; pick at Journey.
     bool batterySaver;      // Stop animating after a minute idle.
     bool scanlines;
+    bool partyColours;      // Party panel names & hit points coloured.
     bool cheatsMenu;        // Cheats in the in-game settings.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

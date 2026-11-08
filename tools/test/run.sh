@@ -32,7 +32,7 @@ for SESSION in ${SESSIONS}; do
 
     # Settings: enable the debug (cheat) commands.
     # The Legacy Edition conveniences are off so that play is as it was.
-    printf "debug=1\nbumpToAct=0\nfoldMoves=0\nfreeCancel=0\nshopCompare=0\nspellInfo=0\nhealShortcut=0\ndungeonMap=Off\n" > ${TEST_HOME}/.config/xu4/xu4rc
+    printf "debug=1\nbumpToAct=0\nfoldMoves=0\nfreeCancel=0\nshopCompare=0\nspellInfo=0\nhealShortcut=0\npartyColours=0\ndungeonMap=Off\n" > ${TEST_HOME}/.config/xu4/xu4rc
 
     ARGS=""
     MODULE=$(sed -n 's/^#! *module *//p' ${SESSION})

@@ -267,6 +267,35 @@ void StatsArea::showPartyView() {
 
     for (int i = 0; i < count; i++) {
         p = c->party->member(i);
+        if (xu4.settings->legacy.partyColours) {
+            // Party Colours: the name by state (blue when Lord British
+            // would raise a level), the hit points yellow when low and red
+            // when nearly gone.
+            char nameColor = FG_WHITE;
+            switch (p->getStatus()) {
+                case STAT_POISONED: nameColor = FG_GREEN;  break;
+                case STAT_SLEEPING: nameColor = FG_PURPLE; break;
+                case STAT_DEAD:     nameColor = FG_GREY;   break;
+                default:
+                    if (p->getMaxLevel() > p->getRealLevel())
+                        nameColor = FG_BLUE;
+                    break;
+            }
+            int hp = p->getHp(), hpMax = p->getMaxHp();
+            char hpColor = FG_WHITE;
+            if (p->getStatus() != STAT_DEAD && hpMax > 0) {
+                if (hp * 4 < hpMax)
+                    hpColor = FG_RED;
+                else if (hp * 2 < hpMax)
+                    hpColor = FG_YELLOW;
+            }
+            mainArea.textAtFmt(0, i, "%d%c%c%-9.8s%c%3d%c%s", i+1,
+                               (i==activePlayer) ? CHARSET_BULLET : '-',
+                               nameColor, p->getName(), hpColor, hp,
+                               FG_WHITE,
+                               mainArea.colorizeStatus(p->getStatus()).c_str());
+            continue;
+        }
         mainArea.textAtFmt(0, i, format, i+1,
                            (i==activePlayer) ? CHARSET_BULLET : '-',
                            p->getName(), p->getHp(),
