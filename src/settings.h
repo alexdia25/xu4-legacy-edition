@@ -168,6 +168,7 @@ struct LegacyOptions {
     bool menuCounts;        // Action menu: torches, gems & keys left.
     bool lightFirst;        // Action menu: torch or Light first if dark.
     bool nameSteal;         // Action menu: a town chest is "Steal Chest".
+    bool xpOnZtats;         // Action menu: Ztats shows each member's XP.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

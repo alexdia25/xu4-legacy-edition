@@ -295,6 +295,7 @@ bool Settings::read() {
     legacy.lightFirst   = true;
     legacy.nameSteal    = true;
     legacy.capDials     = true;
+    legacy.xpOnZtats    = true;
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
@@ -479,6 +480,8 @@ bool Settings::read() {
             legacy.nameSteal = toInt(val);
         else if (VALUE("capDials="))
             legacy.capDials = toInt(val);
+        else if (VALUE("xpOnZtats="))
+            legacy.xpOnZtats = toInt(val);
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
         else if (VALUE("moonSpeed="))
@@ -667,6 +670,7 @@ bool Settings::write() {
             "lightFirst=%d\n"
             "nameSteal=%d\n"
             "capDials=%d\n"
+            "xpOnZtats=%d\n"
 
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
@@ -702,6 +706,7 @@ bool Settings::write() {
             legacy.lightFirst,
             legacy.nameSteal,
             legacy.capDials,
+            legacy.xpOnZtats,
 
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],

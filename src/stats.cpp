@@ -168,6 +168,9 @@ void StatsArea::redraw() {
     case STATS_SPELL:
         showSpellView();
         break;
+    case STATS_EXPERIENCE:
+        showExperience();
+        break;
     }
 
     /*
@@ -438,6 +441,28 @@ void StatsArea::showSpellView() {
         if (mask & (1 << r))
             mainArea.textAtFmt(0, line++, "%c%s", CHARSET_BULLET,
                                getReagentName((Reagent) r));
+    }
+}
+
+/*
+ * Experience: each member's XP against what the next level needs.
+ */
+void StatsArea::showExperience() {
+    setTitle("Experience");
+    int count = c->party->size();
+    for (int i = 0; i < count && i < STATS_AREA_HEIGHT; ++i) {
+        const PartyMember* pm = c->party->member(i);
+        int xp = c->saveGame->players[i].xp;
+        int maxLevel = pm->getMaxLevel();
+        // Blue when a level waits for a visit to Lord British.
+        char color = (pm->getRealLevel() < maxLevel) ? FG_BLUE : FG_WHITE;
+        if (maxLevel >= 8)
+            mainArea.textAtFmt(0, i, "%c%-6.6s%4d max%c", color,
+                               pm->getName(), xp, FG_WHITE);
+        else
+            mainArea.textAtFmt(0, i, "%c%-6.6s%4d/%-4d%c", color,
+                               pm->getName(), xp, 100 << (maxLevel - 1),
+                               FG_WHITE);
     }
 }
 

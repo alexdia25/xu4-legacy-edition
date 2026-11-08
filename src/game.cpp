@@ -1209,6 +1209,17 @@ static int castHealShortcut(int spell, int caster, int subject) {
     return CAST_DONE_KEY;
 }
 
+// Experience On Ztats: the action menu's keys & the view to go back to.
+static const int* actionMenuKeys;
+static StatsView actionMenuView;
+
+static void actionMenuHighlight(int sel) {
+    StatsView want = (actionMenuKeys[sel] == 'z') ? STATS_EXPERIENCE
+                                                  : actionMenuView;
+    if (c->stats->getView() != want)
+        c->stats->setView(want);
+}
+
 static int smsActionMenu() {
     struct Action {
         int key;
@@ -1386,7 +1397,17 @@ static int smsActionMenu() {
         }
     }
 
-    int pick = EventHandler::chooseItem(items, n);
+    int pick;
+    if (lo.xpOnZtats) {
+        actionMenuKeys = keys;
+        actionMenuView = c->stats->getView();
+        if (actionMenuView == STATS_EXPERIENCE)
+            actionMenuView = STATS_PARTY_OVERVIEW;
+        pick = EventHandler::chooseItem(items, n, 0, 8, NULL,
+                                        actionMenuHighlight);
+        c->stats->setView(actionMenuView);
+    } else
+        pick = EventHandler::chooseItem(items, n);
     if (pick < 0)
         return -1;
     if (keys[pick] == QUIT_KEY) {

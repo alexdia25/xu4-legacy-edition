@@ -33,7 +33,8 @@ enum StatsView {
     STATS_MIXTURES,
     MIX_REAGENTS,
     STATS_COMPARE,      // A weapon or armour in a shop, member by member.
-    STATS_SPELL         // What a spell does, costs & is mixed from.
+    STATS_SPELL,        // What a spell does, costs & is mixed from.
+    STATS_EXPERIENCE    // Each member's XP against the next level.
 };
 
 class StatsArea {
@@ -71,6 +72,7 @@ private:
     void showMixtures();
     void showCompareView();
     void showSpellView();
+    void showExperience();
     void setTitle(const char* s);
     void redrawAura();
 
