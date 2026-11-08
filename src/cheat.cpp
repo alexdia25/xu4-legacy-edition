@@ -4,6 +4,7 @@
 
 #include "cheat.h"
 #include "config.h"
+#include "discourse.h"
 #include "game.h"
 #include "portal.h"
 #include "party.h"
@@ -166,6 +167,7 @@ bool CheatMenuController::keyPressed(int key) {
                       "k - Show Karma\n"
                       "l - Location\n"
                       "m - Mixtures\n"
+                      "n - New Word\n"
                       "o - Opacity\n"
                       "p - Peer\n"
                       "r - Reagents\n"
@@ -235,6 +237,18 @@ bool CheatMenuController::keyPressed(int key) {
         screenMessage("Mixtures!\n");
         for (i = 0; i < SPELL_MAX; i++)
             c->saveGame->mixtures[i] = 99;
+        break;
+
+    case 'n':
+        screenMessage("New Word!\nWhat? ");
+        {
+            const char* word = gameGetInput(12);
+            screenMessage("\n");
+            if (talkWordAdd(word))
+                screenMessage("%s can now be asked.\n", word);
+            else
+                screenMessage("Not a word!\n");
+        }
         break;
 
     case 'o':

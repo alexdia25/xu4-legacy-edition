@@ -319,6 +319,25 @@ bool talkWordHeard(const char* word)
     return talkHeardWords.count(plural) != 0;
 }
 
+/*
+ * The New Word cheat: the word can be asked of anyone who knows it, as if
+ * heard, and opens it in the talk menu whatever the unlock rules say.
+ * Returns false if word is too short.
+ */
+bool talkWordAdd(const char* word)
+{
+    std::string w;
+    for (const char* cp = word; *cp; ++cp) {
+        if (! isspace((unsigned char) *cp))
+            w += tolower((unsigned char) *cp);
+    }
+    if (w.size() < 3)
+        return false;
+    talkHeardWords.insert(w);
+    talkHeardWords.insert("+" + w);
+    return true;
+}
+
 static void talkHeard(SmsTalk* st, const char* text)
 {
     if (! text)
@@ -517,6 +536,17 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
     const char* stub = func(ts, DS_TOPIC1 + k, NULL);
     if (! stub || ! stub[0] || smsPlaceholder(stub))
         return false;
+    {
+        // Opened by the New Word cheat.
+        std::string added("+");
+        added += stub;
+        while (added.size() > 1 && added.back() == ' ')
+            added.pop_back();
+        if (added.size() > 1 && heardPrefix(talkHeardWords, added.c_str(), NULL)) {
+            *display = st->word[k];
+            return true;
+        }
+    }
     if (st->ruled[k]) {
         *display = st->word[k];
         return smsRuleUnlocked(st->rule, k, st->askedMask);

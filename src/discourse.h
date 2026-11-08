@@ -50,5 +50,6 @@ void talkWordsLoad(FILE*);
 void talkFlagSet(int flag);
 bool talkFlagIsSet(int flag);
 bool talkWordHeard(const char* word);
+bool talkWordAdd(const char* word);
 
 #endif
