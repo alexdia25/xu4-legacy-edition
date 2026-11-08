@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "tileset.h"
 #include "u4file.h"
+#include "steam.h"
 #include "utils.h"
 #include "xu4.h"
 
@@ -311,6 +312,8 @@ IntroController::IntroController() :
     gameplayMenu.add(MI_GAMEPLAY_05,   new BoolMenuItem("Slime Divides              %s", 2,  6,/*'s'*/  0, &settingsChanged.enhancementsOptions.slimeDivides));
     gameplayMenu.add(MI_GAMEPLAY_SNAP, new BoolMenuItem("Snap Attacks               %s", 2,  7,/*'n'*/  2, &settingsChanged.legacy.snapAttacks));
     gameplayMenu.add(MI_GAMEPLAY_06,   new BoolMenuItem("Debug Mode (Cheats)        %s", 2,  8,/*'d'*/  0, &settingsChanged.debug));
+    gameplayMenu.add(MI_RULES_07,      new BoolMenuItem("Cheats In Settings         %s", 2,  9,/*'i'*/  7, &settingsChanged.legacy.cheatsMenu));
+    gameplayMenu.add(MI_RULES_CHEATS,                   "\010 Cheats",                   2, 10,/*'h'*/  3);
     gameplayMenu.add(USE_SETTINGS,                      "\010 Use These Settings",       2, 11,/*'u'*/  2);
     gameplayMenu.add(CANCEL,                            "\010 Cancel",                   2, 12,/*'c'*/  2);
     gameplayMenu.addShortcutKey(CANCEL, ' ');
@@ -343,7 +346,7 @@ IntroController::IntroController() :
     legacyMenu.add(MI_LEGACY_06,  new BoolMenuItem("Heal In Action Menu      %s", 2,  7,/*'h'*/  0, &lo.healShortcut));
     legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  8,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
     legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  9,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
-    legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules, Saving & Cheats", 2, 10,/*'r'*/  2);
+    legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules & Saving",         2, 10,/*'r'*/  2);
     legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     legacyMenu.addShortcutKey(CANCEL, ' ');
@@ -360,8 +363,7 @@ IntroController::IntroController() :
     rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
     rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  7,/*'a'*/  0, &lo.autosave));
     rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  8,/*'k'*/  0, &lo.keepCharacters));
-    rulesMenu.add(MI_RULES_07,     new BoolMenuItem("Cheats In Settings       %s", 2,  9,/*'i'*/  7, &lo.cheatsMenu));
-    rulesMenu.add(MI_RULES_CHEATS,                  "\010 Cheats",                 2, 10,/*'h'*/  3);
+    rulesMenu.add(MI_RULES_STEAM,  new BoolMenuItem("Steam Cloud Saves        %s", 2,  9,/*'c'*/  6, &lo.steamSaves));
     rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu.addShortcutKey(CANCEL, ' ');
@@ -1440,11 +1442,45 @@ void IntroController::journeyOnward() {
             return;
         }
         if (choice > 0) {
+            offerSteamSave();
             startGame(true);
             return;
         }
     }
-    startGame(false);
+    startGame(offerSteamSave());
+}
+
+/*
+ * Steam Cloud Saves: if the Steam release's folder has a newer save (one
+ * made on another computer, brought by Steam Cloud), offer to take it up.
+ * Returns true if it replaced the save here.
+ */
+bool IntroController::offerSteamSave() {
+    if (! xu4.settings->legacy.steamSaves || ! steamGameFilesUsed())
+        return false;
+    std::string user = xu4.settings->getUserPath();
+    SteamSaveInfo info;
+    if (! steamSavesNewer(user, &info))
+        return false;
+
+    drawListScreen("Steam has a newer save:",
+                   "Yours is kept in before-steam.");
+    char line[64];
+    snprintf(line, sizeof(line), "%s, level %d", info.name.c_str(),
+             info.level);
+    menuArea.textAt(3, 2, line);
+    if (! info.when.empty())
+        menuArea.textAt(3, 3, info.when.c_str());
+    static const char* items[2] = { "Use the Steam save", "Keep this one" };
+    int n = EventHandler::chooseList(&menuArea, 1, 5, 30, 2, items, 2);
+    updateScreen();
+    if (n != 0)
+        return false;
+    if (! steamSavesImport(user)) {
+        xu4.errorMessage = "The Steam save could not be copied!";
+        return false;
+    }
+    return true;
 }
 
 /*
@@ -1853,7 +1889,7 @@ void IntroController::initMenuHelp() {
         { &confMenu, MI_CONF_SPEED, "How fast the game, battles, spells, rests and the moons go." },
         { &confMenu, MI_CONF_MODULES, "Choose the graphics and the music: DOS, Upgrade, Apple II, C64, SMS." },
         { &confMenu, MI_CONF_01, "Off plays as the DOS game did. On allows the enhanced options." },
-        { &confMenu, MI_CONF_GAMEPLAY, "Battle difficulty, chest traps, gazers, slimes and debug cheats." },
+        { &confMenu, MI_CONF_GAMEPLAY, "Battle difficulty, chest traps, gazers, slimes, snap attacks and cheats." },
         { &confMenu, MI_CONF_INTERFACE, "Automatic actions, Smart Enter, colours, Ultima V shrines & mixing." },
         { &confMenu, MI_CONF_LEGACY, "This edition's conveniences, difficulty, saving and cheats." },
 
@@ -1904,6 +1940,8 @@ void IntroController::initMenuHelp() {
         { &gameplayMenu, MI_GAMEPLAY_05, "Slimes split in two when they are hit." },
         { &gameplayMenu, MI_GAMEPLAY_SNAP, "In battle X (or Strike in the action menu) hits a foe in reach, no aiming." },
         { &gameplayMenu, MI_GAMEPLAY_06, "Ctrl-C opens the developers' cheat commands." },
+        { &gameplayMenu, MI_RULES_07, "The Cheats menu here and in the game menu." },
+        { &gameplayMenu, MI_RULES_CHEATS, "Healing, gold, food, levels, quest items and more." },
 
         { &interfaceMenu, MI_INTERFACE_01, "Open, Jimmy and the like pick their target when only one fits." },
         { &interfaceMenu, MI_INTERFACE_02, "Choose one member to act for the party with the number keys." },
@@ -1922,7 +1960,7 @@ void IntroController::initMenuHelp() {
         { &legacyMenu, MI_LEGACY_06, "A Heal or Cure line in the action menu when someone needs it." },
         { &legacyMenu, MI_LEGACY_07, "The party fights by itself. Companions leaves the Avatar to you." },
         { &legacyMenu, MI_LEGACY_08, "A mini map beside the dungeon view, or a map from above in its place." },
-        { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters and cheats." },
+        { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters, Steam saves." },
 
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
@@ -1932,8 +1970,7 @@ void IntroController::initMenuHelp() {
         { &rulesMenu, MI_RULES_05, "A fallen party may go back to the last save or an earlier one." },
         { &rulesMenu, MI_RULES_06, "Save on entering and leaving places, keeping the 8 saves before." },
         { &rulesMenu, MI_RULES_08, "A new game keeps the others; choose whose journey to take up." },
-        { &rulesMenu, MI_RULES_07, "The Cheats menu here and in the game menu." },
-        { &rulesMenu, MI_RULES_CHEATS, "Healing, gold, food, levels, quest items and more." },
+        { &rulesMenu, MI_RULES_STEAM, "Saves also go to the Steam release, so Steam Cloud carries them." },
 
         { &gameMenu, MI_HUB_JOURNAL, "The virtues, the quest, the places found and the clues heard." },
         { &gameMenu, MI_HUB_HELP, "A short guide for new players." },
@@ -2076,6 +2113,8 @@ void IntroController::updateConfMenu(MenuEvent &event) {
             runMenu(&speedMenu, &extendedMenuArea, true);
             break;
         case MI_CONF_GAMEPLAY:
+            gameplayMenu.getItemById(MI_RULES_CHEATS)->setVisible(
+                            inGame && settingsChanged.legacy.cheatsMenu);
             runMenu(&gameplayMenu, &extendedMenuArea, true);
             break;
         case MI_CONF_INTERFACE:
@@ -2308,6 +2347,13 @@ void IntroController::updateGameplayMenu(MenuEvent &event) {
         event.type == MenuEvent::DECREMENT) {
 
         switch(event.item->getId()) {
+        case MI_RULES_07:
+            gameplayMenu.getItemById(MI_RULES_CHEATS)->setVisible(
+                            inGame && settingsChanged.legacy.cheatsMenu);
+            break;
+        case MI_RULES_CHEATS:
+            runMenu(&cheatsMenu, &extendedMenuArea, true);
+            break;
         case USE_SETTINGS:
             // save settings
             xu4.settings->setData(settingsChanged);
@@ -2360,8 +2406,9 @@ void IntroController::updateLegacyMenu(MenuEvent &event) {
 
         switch(event.item->getId()) {
             case MI_LEGACY_RULES:
-                rulesMenu.getItemById(MI_RULES_CHEATS)->setVisible(
-                                inGame && settingsChanged.legacy.cheatsMenu);
+                // Only for the Steam release's game files.
+                rulesMenu.getItemById(MI_RULES_STEAM)->setVisible(
+                                steamGameFilesUsed());
                 runMenu(&rulesMenu, &extendedMenuArea, true);
                 break;
             case USE_SETTINGS:
@@ -2399,13 +2446,6 @@ void IntroController::updateRulesMenu(MenuEvent &event) {
             case MI_RULES_04:
             case MI_RULES_05:
                 lo.preset = LegacyPreset_Custom;
-                break;
-            case MI_RULES_07:
-                rulesMenu.getItemById(MI_RULES_CHEATS)->setVisible(
-                                inGame && lo.cheatsMenu);
-                break;
-            case MI_RULES_CHEATS:
-                runMenu(&cheatsMenu, &extendedMenuArea, true);
                 break;
             case USE_SETTINGS:
                 xu4.settings->setData(settingsChanged);

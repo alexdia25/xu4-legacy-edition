@@ -459,6 +459,8 @@ bool Settings::read() {
             legacy.partyColours = toInt(val);
         else if (VALUE("cheatsMenu="))
             legacy.cheatsMenu = toInt(val);
+        else if (VALUE("steamSaves="))
+            legacy.steamSaves = toInt(val);
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
         else if (VALUE("moonSpeed="))
@@ -640,6 +642,7 @@ bool Settings::write() {
             "partyColours=%d\n"
             "smoothMotion=%d\n"
             "cheatsMenu=%d\n"
+            "steamSaves=%d\n"
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
             "mapView=%s\n"
@@ -667,6 +670,7 @@ bool Settings::write() {
             legacy.partyColours,
             legacy.smoothMotion,
             legacy.cheatsMenu,
+            legacy.steamSaves,
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
             mapViewStrings()[ legacy.mapView ],

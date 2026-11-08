@@ -166,16 +166,17 @@ static const char helpText[] =
 "                         badly hurt.\n"
 "  Dungeon Map            A mini map or a top-down view of dungeons.\n"
 "\n"
-"Rules, Saving & Cheats sets the difficulty (Classic is the game as it\n"
-"was, Modern and Story are gentler), autosave with a history of saves,\n"
-"several characters with their own saves, and what happens when the\n"
-"party falls.  Scanlines, Battery Saver, Pause Unfocused (the game\n"
+"Rules & Saving sets the difficulty (Classic is the game as it was,\n"
+"Modern and Story are gentler), autosave with a history of saves,\n"
+"several characters with their own saves, what happens when the party\n"
+"falls and, with the Steam release, Steam Cloud Saves.  Scanlines, Battery Saver, Pause Unfocused (the game\n"
 "waits while you are away) and Map View (Fill Space shows more of the\n"
 "map with the smaller SMS tiles) are in the Graphics options, and\n"
 "Smooth Motion (the map slides and everyone glides as they move) is in\n"
 "Video Options.  Snap Attacks (X, or Strike in the action menu, hits a\n"
-"foe in reach without aiming) is in Enhanced Gameplay Options, and Held\n"
-"Key Pace (how fast a held key or direction repeats) in Input Options.\n";
+"foe in reach without aiming) and the Cheats menu are in Enhanced\n"
+"Gameplay Options, and Held Key Pace (how fast a held key or\n"
+"direction repeats) in Input Options.\n";
 
 std::string legacyHelpText()
 {

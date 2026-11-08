@@ -156,6 +156,13 @@ int parseOptions(Options* opt, int argc, char** argv) {
             opt->flags |= OPT_NO_AUDIO;
             opt->used  |= OPT_NO_AUDIO;
         }
+        else if (strEqual(argv[i], "--steam"))
+        {
+            // Started by Steam in place of the Steam release's DOSBox
+            // (launch options "<xu4> --steam %command%"): its command
+            // follows & is ignored.
+            break;
+        }
         else if (strEqualAlt(argv[i], "-h", "--help"))
         {
             printf("xu4: Ultima IV Recreated\n"
@@ -173,6 +180,8 @@ int parseOptions(Options* opt, int argc, char** argv) {
             "  -p, --profile <string>  Use another set of settings and save files.\n"
             "  -q, --quiet             Disable audio.\n"
             "  -s, --scale <int>       Specify display scaling factor (1-5).\n"
+            "      --steam ...         Ignore the arguments after this (Steam\n"
+            "                          launch options: <xu4> --steam %%command%%).\n"
             "  -v, --verbose           Enable verbose console output.\n"
 #ifdef DEBUG
             "\nDEBUG Options:\n"

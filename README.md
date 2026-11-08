@@ -174,24 +174,27 @@ edition.  Each can be switched off for the game as it was.
 | Auto Combat            | The party fights on its own; any key or button takes the battle back, and it stops when someone is badly hurt | Off |
 | Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
 
-**Rules, Saving & Cheats** sets the difficulty: Classic is the game as
+**Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
 turn timer, and whether a fallen party is raised by Lord British or may
 reload: when the whole party falls, it then offers the last save, an
 earlier save or Lord British's aid).  It also turns on autosave with a history of saves to go back
-to, several characters each with their own saves, and a Cheats menu
-(these three start off).
+to and several characters each with their own saves (these start off).
+With the Steam release's game files it also has **Steam Cloud Saves**
+(see [Steam Cloud saves](#steam-cloud-saves)).
 
 Enhanced Gameplay Options adds **Snap Attacks** (on at first): in
 combat, X (or Strike in the action menu) hits a foe in reach without
 aiming, the one last struck if it is still there, else the nearest.
-With no foe in reach it says so and spends no turn.  Input Options adds
+With no foe in reach it says so and spends no turn.  It also holds
+Cheats In Settings, which adds a Cheats menu there and in the game menu
+(off at first).  Input Options adds
 **Held Key Pace**: a held key, gamepad direction or touch repeats at a
 steady pace set by the game (Slow, Medium or Fast), or at the system's
 key repeat rate (System).  Medium is the default.
 
-![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
+![Rules & Saving](doc/screenshots/rules-saving.png)
 
 The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
 (the game waits while its window is in the background).  Video Options
@@ -355,6 +358,33 @@ folder.
 The [Steam release](https://store.steampowered.com/app/3067510/) is found
 in every Steam library (`steamapps/common/Ultima IV`), on Windows and on
 Linux or a Steam Deck where Steam installed it through Proton.
+
+### Steam Cloud Saves
+
+With the Steam release's game files in use, Settings > Legacy Edition
+Options > Rules & Saving has **Steam Cloud Saves** (off at first).  The
+Steam release runs the DOS game, which keeps its save (`PARTY.SAV`,
+`MONSTERS.SAV`, and `DNGMAP.SAV` & `OUTMONST.SAV` in a dungeon) in its
+install folder, and Steam Cloud carries that save between computers.
+XU4 saves in the same format, so with the option on every save made
+outdoors or in a dungeon is also written there.  At Journey Onward, a
+newer save found there (made on another computer, or in the DOS game) is
+offered; taking it keeps the save it replaces in the `before-steam`
+folder of the saved games.  The journal, talk words and maps of explored
+places stay on each computer.  The DOS game and XU4 share this one save,
+so the DOS game can carry on a journey begun in XU4 and the other way
+round.
+
+Steam only syncs when it starts the game itself, so let Steam start
+XU4 in place of DOSBox: in the game's Properties > General > Launch
+Options, put the path of XU4 followed by `--steam %command%`, e.g.
+
+    "C:\Games\xu4-legacy\xu4.exe" --steam %command%
+
+(on Linux or a Steam Deck, the path of `xu4`, or
+`flatpak run io.github.alexdia25.xu4_legacy_edition --steam %command%`).
+XU4 ignores the DOSBox command after `--steam`.  Started this way, Steam
+fetches the cloud save before XU4 opens and uploads it after XU4 quits.
 
 On macOS the folder is `~/Library/Application Support/xu4`, which also
 holds the settings and saved games.

@@ -154,6 +154,7 @@ private:
     void journeyOnward();
     void startGame(bool reload);
     int  chooseJourney();
+    bool offerSteamSave();
     void drawListScreen(const char* title, const char* hint);
     void initMenuHelp();
     void drawMenuHelp(Menu* menu);
@@ -259,6 +260,7 @@ private:
         MI_RULES_07,
         MI_RULES_08,
         MI_RULES_CHEATS,
+        MI_RULES_STEAM,
         MI_CHEAT_HEAL,
         MI_CHEAT_GOLD,
         MI_CHEAT_FOOD,

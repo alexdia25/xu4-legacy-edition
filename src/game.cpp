@@ -30,6 +30,7 @@
 #include "portal.h"
 #include "progress_bar.h"
 #include "savegame.h"
+#include "steam.h"
 #include "screen.h"
 #include "settings.h"
 #include "spell.h"
@@ -596,6 +597,11 @@ int gameSave(const char* userPath) {
         basename = "dngseen.sav";
         goto check_error;
     }
+
+    // Steam Cloud Saves: the Steam release's DOS game gets the save too.
+    if (xu4.settings->legacy.steamSaves && steamGameFilesUsed() &&
+        ! steamSavesExport(userPath, (loc->context & CTX_DUNGEON) != 0))
+        screenMessage("%cNot copied to Steam!%c\n", FG_YELLOW, FG_WHITE);
 
     if (xu4.settings->legacy.autosave)
         legacySaveDone(userPath);   // Keep a copy in the save history.

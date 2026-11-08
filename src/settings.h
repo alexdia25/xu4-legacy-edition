@@ -162,6 +162,7 @@ struct LegacyOptions {
     bool smoothMotion;      // The map slides from square to square.
     bool partyColours;      // Party panel names & hit points coloured.
     bool cheatsMenu;        // Cheats in the in-game settings.
+    bool steamSaves;        // Saves also go to the Steam release's folder.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).
