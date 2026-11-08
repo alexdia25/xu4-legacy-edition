@@ -241,6 +241,7 @@ void CombatController::beginCombat() {
  * Transition back to parent map/controller and delete this controller.
  */
 void CombatController::endCombat(bool adjustKarma) {
+    screenSetTargetMark(NULL, NULL);
     // Other code paths use autoDelete, but we manually delete below.
     setDeleteOnPop(false);
     xu4.eventHandler->popController();
@@ -496,6 +497,7 @@ bool CombatController::setActivePlayer(int player) {
 
         announceActivePlayer();
         c->stats->highlightPlayer(focus);
+        snapMarkUpdate();
         return true;
     }
 
@@ -781,6 +783,7 @@ void CombatController::finishTurn() {
     /* return to party overview */
     c->stats->setView(STATS_PARTY_OVERVIEW);
     c->stats->highlightPlayer(-1);
+    screenSetTargetMark(NULL, NULL);
 
     if (isWon() && winOrLose) {
         endCombat(true);
@@ -980,6 +983,15 @@ bool CombatController::keyPressed(int key) {
 
     case ' ':
         screenMessage("Pass\n");
+        break;
+
+    case U4_PAGE_UP:
+    case U4_PAGE_DOWN:
+        // Snap Targets: pick another foe in reach to strike.
+        if (! settings.legacy.snapAttacks || ! settings.legacy.snapMark ||
+            ! snapCycle((key == U4_PAGE_DOWN) ? 1 : -1))
+            screenMessage("%cNo other foe in reach!%c\n", FG_GREY, FG_WHITE);
+        endTurn = false;
         break;
 
     case U4_ACTIONS:            // Gamepad A, Tab, or a tap on the fighter.
@@ -1452,27 +1464,17 @@ static const CombatMap* snapMap = NULL;
 static Creature* snapMemory[8];
 
 /*
- * Find the foe the current member would strike with a snap attack: one
- * within reach of the readied weapon in one of the four directions (the
- * first in each line).  The foe they last struck comes first while still
- * in reach, else the nearest.  Returns false if no foe is in reach.
+ * List the foes within reach of the current member's readied weapon, the
+ * first in each of the four directions.  Returns how many were found.
  */
-bool CombatController::snapTarget(Direction* dirOut, int* distOut,
-                                  Creature** foeOut) {
-    PartyMember* pm = getCurrentPlayer();
+static int snapCandidates(CombatController* cc, CombatMap* map,
+                          Creature** foes, Direction* dirs, int* dists) {
+    PartyMember* pm = cc->getCurrentPlayer();
     if (! pm)
-        return false;
-    if (snapMap != map) {
-        snapMap = map;
-        memset(snapMemory, 0, sizeof(snapMemory));
-    }
+        return 0;
     const Weapon* weapon = pm->getWeapon();
     int range = weapon->range;
-    Creature* remembered = (focus >= 0 && focus < 8) ? snapMemory[focus]
-                                                     : NULL;
-    bool found = false;
-    int bestDist = 9999;
-
+    int n = 0;
     for (int dir = DIR_WEST; dir <= DIR_SOUTH; ++dir) {
         vector<Coords> path =
             gameGetDirectionalActionPath(MASK_DIR(dir), MASK_DIR_ALL,
@@ -1486,20 +1488,105 @@ bool CombatController::snapTarget(Direction* dirOut, int* distOut,
                 continue;
             if (weapon->rangeAbsolute() && int(i + 1) != range)
                 break;
-            int dist = i + 1;
-            if (foe == remembered)
-                dist = 0;       // Stays the choice while in reach.
-            if (dist < bestDist) {
-                bestDist = dist;
-                *dirOut = (Direction) dir;
-                *distOut = i + 1;
-                *foeOut = foe;
-                found = true;
-            }
+            foes[n]  = foe;
+            dirs[n]  = (Direction) dir;
+            dists[n] = i + 1;
+            ++n;
             break;
         }
     }
-    return found;
+    return n;
+}
+
+/*
+ * Find the foe the current member would strike with a snap attack: one
+ * within reach of the readied weapon in one of the four directions (the
+ * first in each line).  The foe they last struck (or picked with Snap
+ * Targets) comes first while still in reach, else the nearest.  Returns
+ * false if no foe is in reach.
+ */
+bool CombatController::snapTarget(Direction* dirOut, int* distOut,
+                                  Creature** foeOut) {
+    if (snapMap != map) {
+        snapMap = map;
+        memset(snapMemory, 0, sizeof(snapMemory));
+    }
+    Creature* foes[4];
+    Direction dirs[4];
+    int dists[4];
+    int n = snapCandidates(this, map, foes, dirs, dists);
+    Creature* remembered = (focus >= 0 && focus < 8) ? snapMemory[focus]
+                                                     : NULL;
+    int best = -1;
+    int bestDist = 9999;
+    for (int i = 0; i < n; ++i) {
+        int dist = (foes[i] == remembered) ? 0 : dists[i];
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+        }
+    }
+    if (best < 0)
+        return false;
+    *dirOut  = dirs[best];
+    *distOut = dists[best];
+    *foeOut  = foes[best];
+    return true;
+}
+
+/*
+ * Snap Targets: pick the next (step 1) or previous (step -1) foe in reach
+ * as the one to strike.  Returns false if there is no other to pick.
+ */
+bool CombatController::snapCycle(int step) {
+    Creature* foes[4];
+    Direction dirs[4];
+    int dists[4];
+    int n = snapCandidates(this, map, foes, dirs, dists);
+    Direction dir;
+    int dist;
+    Creature* cur;
+    if (n < 2 || ! snapTarget(&dir, &dist, &cur) || focus < 0 || focus > 7)
+        return false;
+    int i = 0;
+    while (i < n && foes[i] != cur)
+        ++i;
+    i = (i + step + n) % n;
+    snapMemory[focus] = foes[i];
+    screenMessage("Target: %s\n\020", foes[i]->getName());
+    snapMarkUpdate();
+    return true;
+}
+
+/*
+ * Mark the foe a snap attack would strike (Snap Targets option).
+ */
+void CombatController::snapMarkUpdate() {
+    const Settings& settings = *xu4.settings;
+    Direction dir;
+    int dist;
+    Creature* foe;
+    if (settings.legacy.snapAttacks && settings.legacy.snapMark &&
+        getCurrentPlayer() && ! isAutoTurn(false) &&
+        snapTarget(&dir, &dist, &foe))
+        screenSetTargetMark(map, &foe->coords);
+    else
+        screenSetTargetMark(NULL, NULL);
+}
+
+/*
+ * The shoulder buttons pick among the foes in reach with Snap Targets.
+ */
+bool CombatController::padPreempt(int key) {
+    const Settings& settings = *xu4.settings;
+    if ((key != U4_PAD_L && key != U4_PAD_R) ||
+        ! settings.legacy.snapAttacks || ! settings.legacy.snapMark ||
+        isAutoTurn(false))
+        return false;
+    if (! snapCycle((key == U4_PAD_R) ? 1 : -1))
+        return false;
+    gameUpdateScreen();
+    return true;
 }
 
 /*

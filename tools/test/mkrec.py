@@ -36,7 +36,7 @@ NAMES = {
     'enter': 13, 'esc': 27, 'space': 32, 'tab': 9, 'backspace': 8,
     'pad-start': 0x1F0, 'pad-b': 0x1F1, 'pad-select': 0x1F2,
     'pad-l': 0x1F3, 'pad-r': 0x1F4, 'pad-y': 0x1F7, 'pad-a': 0x1F9,
-    'pad-x': 0x1FA,
+    'pad-x': 0x1FA, 'pgup': 0x14b, 'pgdn': 0x14e,
     'snap': 0x1FE,
 }
 

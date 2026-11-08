@@ -55,6 +55,7 @@ public:
     void drawTile(const MapTile &mapTile, int x, int y);
     void drawTile(std::vector<MapTile> &tiles, int x, int y);
     void drawFocus(int x, int y);
+    void drawTargetMark(int x, int y);
     void loadTile(const MapTile &mapTile);
 
 #ifdef GPU_RENDER

@@ -260,6 +260,7 @@ private:
         MI_MORE_DIALS,
         MI_MORE_XP,
         MI_MORE_FOES,
+        MI_MORE_SNAP,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,

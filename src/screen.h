@@ -147,6 +147,7 @@ bool screenTileUpdate(TileView *view, const Coords &coords);
 void screenDisableMap();
 void screenUpdateMap(TileView* view, const Map* map, const Coords& center);
 #endif
+void screenSetTargetMark(const Map* map, const Coords* co);
 void screenUpdate(TileView *view, bool showmap, bool blackout);
 void screenUpdateMoons(void);
 void screenUpdateWind(void);

@@ -28,6 +28,8 @@ Controller::~Controller() {
  */
 bool Controller::notifyKeyPressed(int key) {
     if (handlesPadB()) {
+        if (padPreempt(key))
+            return true;
         // On the map and in combat each button does what the Gamepad
         // Buttons settings give it.
         int pk = gamepad_playKey(key, xu4.settings->legacy.padMap);

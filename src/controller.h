@@ -33,6 +33,8 @@ public:
     virtual void timerFired();
     virtual bool isCombatController() const { return false; }
     virtual bool handlesPadB() const { return false; }
+    // A gamepad button the controller uses before the Gamepad Buttons map.
+    virtual bool padPreempt(int key) { return false; }
 
 protected:
     void setDeleteOnPop(bool enable = true) { autoDelete = enable; }

@@ -884,6 +884,16 @@ static void screenGlideCancel();
 static void screenGlideViewDrawn(TileView*, Map*, const Coords&, bool);
 #endif
 
+// The tile of the foe a Snap Attack would strike (Snap Targets option).
+static const Map* targetMarkMap = NULL;
+static Coords targetMarkCoords;
+
+void screenSetTargetMark(const Map* map, const Coords* co) {
+    targetMarkMap = co ? map : NULL;
+    if (co)
+        targetMarkCoords = *co;
+}
+
 /**
  * Redraw the map & stats views.
  *
@@ -969,6 +979,21 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
         }
         if (focusX >= 0)
             view->drawFocus(focusX, focusY);
+
+        if (targetMarkMap && targetMarkMap == c->location->map) {
+            // The same centring as screenViewportTile().
+            const Map* map = targetMarkMap;
+            Coords center = c->location->coords;
+            if (map->width <= (unsigned) vw && map->height <= (unsigned) vh) {
+                center.x = map->width / 2;
+                center.y = map->height / 2;
+            }
+            int mx = targetMarkCoords.x - center.x + vw / 2;
+            int my = targetMarkCoords.y - center.y + vh / 2;
+            if (mx >= 0 && mx < vw && my >= 0 && my < vh &&
+                XU4_SCREEN->screenLos[my * vw + mx])
+                view->drawTargetMark(mx, my);
+        }
 
         {
         Map* map = c->location->map;

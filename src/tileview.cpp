@@ -270,6 +270,27 @@ void TileView::drawFocus(int x, int y) {
     }
 }
 
+/*
+ * Mark the tile of a chosen target with red corner brackets.
+ */
+void TileView::drawTargetMark(int x, int y) {
+    Image* screen = xu4.screenImage;
+    int left = x * tileWidth + originX;
+    int top  = y * tileHeight + originY;
+    int right  = left + tileWidth - 2;
+    int bottom = top + tileHeight - 2;
+    int len = tileWidth / 4;
+    const int r = 0xff, g = 0x40, b = 0x40;
+    screen->fillRect(left,  top,    len, 2, r, g, b);
+    screen->fillRect(left,  top,    2, len, r, g, b);
+    screen->fillRect(right + 2 - len, top, len, 2, r, g, b);
+    screen->fillRect(right, top,    2, len, r, g, b);
+    screen->fillRect(left,  bottom, len, 2, r, g, b);
+    screen->fillRect(left,  bottom + 2 - len, 2, len, r, g, b);
+    screen->fillRect(right + 2 - len, bottom, len, 2, r, g, b);
+    screen->fillRect(right, bottom + 2 - len, 2, len, r, g, b);
+}
+
 #ifdef GPU_RENDER
 static void stopEffectAnim(VisualEffect* it) {
     if (it->anim != ANIM_UNUSED) {

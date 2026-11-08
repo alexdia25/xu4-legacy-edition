@@ -68,6 +68,9 @@ public:
     bool isAutoTurn(bool checkHalt = true);
     bool snapTarget(Direction* dir, int* dist, Creature** foe);
     bool snapAttack();
+    bool snapCycle(int step);
+    void snapMarkUpdate();
+    virtual bool padPreempt(int key);
     void movePartyMember(MoveEvent &event);
 
 protected:

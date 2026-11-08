@@ -382,6 +382,7 @@ IntroController::IntroController() :
     moreMenu.add(MI_MORE_DIALS,   new BoolMenuItem("Shop Dials Stop At Gold  %s", 2,  6,/*'d'*/  5, &lo.capDials));
     moreMenu.add(MI_MORE_XP,      new BoolMenuItem("Experience On Ztats      %s", 2,  7,/*'x'*/  0, &lo.xpOnZtats));
     moreMenu.add(MI_MORE_FOES,    new BoolMenuItem("Creatures On Mini Map    %s", 2,  8,/*'m'*/ 13, &lo.mapCreatures));
+    moreMenu.add(MI_MORE_SNAP,    new BoolMenuItem("Snap Target Mark         %s", 2,  9,/*'k'*/ 15, &lo.snapMark));
     moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu.addShortcutKey(CANCEL, ' ');
@@ -1989,6 +1990,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_DIALS, "Shop number dials stop at what thy gold buys, and show the cost." },
         { &moreMenu, MI_MORE_XP, "Ztats in the action menu shows XP against the next level." },
         { &moreMenu, MI_MORE_FOES, "The dungeon mini map marks a creature the party can see." },
+        { &moreMenu, MI_MORE_SNAP, "With Snap Attacks, the foe X strikes is marked; PgUp/PgDn or L/R pick another." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
         { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },

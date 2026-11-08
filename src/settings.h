@@ -170,6 +170,7 @@ struct LegacyOptions {
     bool nameSteal;         // Action menu: a town chest is "Steal Chest".
     bool xpOnZtats;         // Action menu: Ztats shows each member's XP.
     bool mapCreatures;      // Dungeon mini map marks creatures in sight.
+    bool snapMark;          // Snap Attacks: mark the target, PgUp/PgDn or L/R pick another.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
