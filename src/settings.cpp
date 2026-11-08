@@ -299,6 +299,7 @@ bool Settings::read() {
     legacy.askRules     = true;
     legacy.mapHere      = true;
     legacy.gateNotes    = true;
+    legacy.shopBuyer    = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -499,6 +500,8 @@ bool Settings::read() {
             legacy.mapHere = toInt(val);
         else if (VALUE("gateNotes="))
             legacy.gateNotes = toInt(val);
+        else if (VALUE("shopBuyer="))
+            legacy.shopBuyer = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -713,6 +716,7 @@ bool Settings::write() {
             "askRules=%d\n"
             "mapHere=%d\n"
             "gateNotes=%d\n"
+            "shopBuyer=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -761,6 +765,7 @@ bool Settings::write() {
             legacy.askRules,
             legacy.mapHere,
             legacy.gateNotes,
+            legacy.shopBuyer,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

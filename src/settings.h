@@ -180,6 +180,7 @@ struct LegacyOptions {
     bool askRules;          // A new game asks which rules to play by.
     bool mapHere;           // The map opens on the town or dungeon level.
     bool gateNotes;         // The map names where each moongate led.
+    bool shopBuyer;         // Arms shops ask who is buying first.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

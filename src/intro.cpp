@@ -402,6 +402,7 @@ IntroController::IntroController() :
     moreMenu2.add(MI_MORE_ASK,    new BoolMenuItem("Ask Rules At New Game    %s", 2,  6,/*'r'*/  4, &lo.askRules));
     moreMenu2.add(MI_MORE_HERE,   new BoolMenuItem("Map Opens Where You Are  %s", 2,  7,/*'m'*/  0, &lo.mapHere));
     moreMenu2.add(MI_MORE_GATES,  new BoolMenuItem("Moongates Say Where      %s", 2,  8,/*'o'*/  1, &lo.gateNotes));
+    moreMenu2.add(MI_MORE_BUYER,  new BoolMenuItem("Shop Buyer First         %s", 2,  9,/*'b'*/  5, &lo.shopBuyer));
     moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu2.addShortcutKey(CANCEL, ' ');
@@ -2055,6 +2056,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu2, MI_MORE_BLOCK, "\"Blocked by water!\" in place of \"Blocked!\"." },
         { &moreMenu2, MI_MORE_HERE, "In a town or dungeon the map shows it first; W or Here for Britannia." },
         { &moreMenu2, MI_MORE_GATES, "Zoomed in, the map names the town each moongate last led to." },
+        { &moreMenu2, MI_MORE_BUYER, "Arms shops ask who is buying; what they cannot use shows in grey." },
         { &moreMenu2, MI_MORE_ASK, "A new game asks which rules to play by: Story, Modern or Classic." },
         { &moreMenu2, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },

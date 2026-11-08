@@ -502,12 +502,38 @@ CFUNC(cf_dialLimit)
     The name as a shop list shows it: grey when the party cannot pay for
     one (Shop Colours option).
 */
+static void armsForItem(int id, const Weapon** w, const Armor** a);
+
+// The member a weapon or armour shop is buying for (Shop Buyer First), or -1.
+static int shopBuyer = -1;
+
+/*
+ * Return true if the shop buyer can ready or wear the item (or none was
+ * picked, or it is not arms).
+ */
+static bool buyerCanUse(const UCell* item)
+{
+    if (shopBuyer < 0 || shopBuyer >= c->party->size() ||
+        ! ur_is(item, UT_WORD))
+        return true;
+    const Weapon* w;
+    const Armor* a;
+    armsForItem(xu4.config->scriptItemId(ur_atom(item)), &w, &a);
+    ClassType klass = c->party->member(shopBuyer)->getClass();
+    if (w)
+        return w->canReady(klass);
+    if (a)
+        return a->canWear(klass);
+    return true;
+}
+
 CFUNC(cf_wareLabel)
 {
     USeriesIter si;
     ur_seriesSlice(ut, &si, a1);
     std::string name(si.buf->ptr.c + si.it, si.end - si.it);
-    if (xu4.settings->legacy.shopColours && c->saveGame->gold < ur_int(a1+1))
+    if ((xu4.settings->legacy.shopColours && c->saveGame->gold < ur_int(a1+1))
+        || ! buyerCanUse(a1+2))
         name.insert(name.begin(), (char) FG_GREY);
     UBuffer* buf = ur_makeStringCell(ut, UR_ENC_LATIN1, name.size(), res);
     ur_strAppendCStr(buf, name.c_str());
@@ -572,6 +598,36 @@ CFUNC(cf_inputText)
         ur_strAppendCStr(buf, str.c_str());
         ur_strLowercase(buf, 0, buf->used);
     }
+    return UR_OK;
+}
+
+/*-cf-
+    shop-buyer
+    return: unset!
+
+    With the Shop Buyer First option, ask which member a weapon or armour
+    shop is buying for.  The list then greys what they cannot use, and a
+    purchase is offered to them.
+*/
+CFUNC(cf_shopBuyer)
+{
+    (void) ut;
+    (void) a1;
+    ur_setId(res, UT_UNSET);
+    shopBuyer = -1;
+    if (! xu4.settings->legacy.shopBuyer)
+        return UR_OK;
+    if (c->party->size() == 1) {
+        shopBuyer = 0;
+        return UR_OK;
+    }
+    screenMessage("\nFor whom? ");
+    int player = EventHandler::choosePlayer();
+    if (player >= 0) {
+        shopBuyer = player;
+        screenMessage("%s", c->party->member(player)->getName());
+    }
+    screenCrLf();
     return UR_OK;
 }
 
@@ -1056,13 +1112,19 @@ CFUNC(cf_offerReady)
         return UR_OK;
 
     int i;
-    for (i = 0; i < c->party->size(); i++) {
-        ClassType klass = c->party->member(i)->getClass();
-        if (w ? w->canReady(klass) : a->canWear(klass))
-            break;
+    bool forBuyer = (shopBuyer >= 0 && shopBuyer < c->party->size());
+    if (forBuyer) {
+        if (! buyerCanUse(a1))
+            return UR_OK;
+    } else {
+        for (i = 0; i < c->party->size(); i++) {
+            ClassType klass = c->party->member(i)->getClass();
+            if (w ? w->canReady(klass) : a->canWear(klass))
+                break;
+        }
+        if (i == c->party->size())
+            return UR_OK;   // Nobody can use it.
     }
-    if (i == c->party->size())
-        return UR_OK;   // Nobody can use it.
 
     screenMessage(w ? "\nReady it now? " : "\nWear it now? ");
     static const char* const labels[] = { "Yes", "No", NULL, NULL };
@@ -1071,14 +1133,17 @@ CFUNC(cf_offerReady)
         screenMessage("\n");
         return UR_OK;
     }
-    screenMessage("\nWho? ");
-    int player = EventHandler::choosePlayer();
-    if (player < 0) {
-        screenMessage("\n");
-        return UR_OK;
+    int player = shopBuyer;
+    if (! forBuyer) {
+        screenMessage("\nWho? ");
+        player = EventHandler::choosePlayer();
+        if (player < 0) {
+            screenMessage("\n");
+            return UR_OK;
+        }
     }
     PartyMember* pm = c->party->member(player);
-    screenMessage("%s\n", pm->getName());
+    screenMessage("%s\n", forBuyer ? "" : pm->getName());
 
     EquipError err = w ? pm->setWeapon(w) : pm->setArmor(a);
     if (err == EQUIP_SUCCEEDED)
@@ -1108,6 +1173,7 @@ static const BoronCFunc pfFuncs[] = {
     cf_wareLabel,
     cf_inputText,
     cf_inputPlayer,
+    cf_shopBuyer,
     cf_party,
     cf_pcAttr,
     cf_pcNeedsQ,
@@ -1136,9 +1202,10 @@ static const char pfFuncSpecs[] =
     "input-choice spec string!/block!\n"
     "input-number limit int!\n"
     "dial-limit max int! price int!\n"
-    "ware-label name string! price int!\n"
+    "ware-label name string! price int! item word!\n"
     "input-text limit int!/block!\n"
     "input-player\n"
+    "shop-buyer\n"
     "party a word!\n"
     "pc-attr n int! 'a word!\n"
     "pc-needs? n int! a word!\n"

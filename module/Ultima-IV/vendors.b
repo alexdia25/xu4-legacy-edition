@@ -99,7 +99,7 @@ build-items: func [
         append inventory rejoin [uppercase key ' ' name '^/']
 
         append items mark-sol key
-        append items ware-label name cost   ; Label for the console menus.
+        append items ware-label name cost type  ; Label for console menus.
         append/block items reduce [
            to-set-word 'type  to-lit-word type
            to-set-word 'name  name
@@ -125,7 +125,7 @@ weapons: context [
             Buy or Sell? 
         }}
         [
-            'b' "Buy"  [vo 2 >> "^/Very Good!" show_inventory]
+            'b' "Buy"  [vo 2 >> "^/Very Good!" shop-buyer show_inventory]
             's' "Sell" [vo 3 >> "^/Excellent! Which^/wouldst " you_sell]
             adieu
         ]
@@ -379,7 +379,7 @@ armor: context [
             Sell? 
         }}
         [
-            'b' "Buy"  [>> "^/Well then," show_inventory]
+            'b' "Buy"  [>> "^/Well then," shop-buyer show_inventory]
             's' "Sell" [>> "^/What will" you_sell]
             adieu
         ]

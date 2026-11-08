@@ -205,6 +205,7 @@ Beside Rules & Saving, **More Options** holds these, all starting on:
 | Ask Rules At New Game      | A new game asks which rules to play by (Story, Modern, Classic, or as set) after Male or Female |
 | Map Opens Where You Are    | In a town, castle, shrine or dungeon the map shows that place first (a dungeon level shows the cells seen); W, Y or the World button switches to Britannia and Here back |
 | Moongates Say Where        | Zoomed in on the world map, a moongate the party has gone through names the town it led to last |
+| Shop Buyer First           | Weapon and armour shops ask who is buying (the Avatar alone is never asked); the list greys what they cannot use, and a purchase is offered to them to ready or wear |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is
