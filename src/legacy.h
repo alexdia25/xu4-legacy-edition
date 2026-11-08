@@ -72,6 +72,18 @@ bool legacyDungeonSeen(int mapId, int level, int x, int y);
 void legacyWorldSee(int x, int y, int radius);
 bool legacyWorldSeen(int x, int y);
 
+// Heard-Of Places: the towns, castles, villages & dungeons of Britannia,
+// whether the party has been there or heard them named.
+struct LegacyMapPlace {
+    std::string name;
+    int x, y;               // Entrance on the world map.
+    bool visited;
+    bool heard;
+};
+std::vector<LegacyMapPlace> legacyMapPlaces();
+void legacyPlaceVisited(int mapId);
+void legacyHearPlaces(const char* text);
+
 // Moongates: the gate each one led to last (by moon phase), or -1.
 void legacyGateUsed(int from, int to);
 int  legacyGateLed(int from);

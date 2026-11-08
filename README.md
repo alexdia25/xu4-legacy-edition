@@ -214,8 +214,9 @@ Its **Next Page** holds:
 | Frame Colour By Place      | The blue border turns gold at a shrine and grey in a dungeon, darker on each level down (with the DOS border picture) |
 | Effects Don't Stop Play    | A spell's screen flash is brief while its sound plays on, and a storm or whirlpool doesn't hold the game for its sound |
 | Update Notice              | On Windows, macOS and Linux (not the Flatpak, which updates itself), once a day the game asks GitHub for the latest release and offers its download page when a newer one is out; Not This One skips that release |
-| Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it |
+| Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
 | Settings Per Character     | With Keep Characters, each character keeps their own play options (the Legacy Edition options, rules, console menus and battle difficulty); display, sound, gamepad and saving settings stay the device's |
+| Heard-Of Places On Map     | The in-game world map (not the books' cloth map) names in yellow the towns, castles, villages and dungeons the party has been to, and in grey, with a box where the land is still unexplored, those someone has named in conversation |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is

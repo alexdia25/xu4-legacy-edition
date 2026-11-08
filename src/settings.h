@@ -186,6 +186,7 @@ struct LegacyOptions {
     bool updateNotice;      // Desktop: say when a newer release is out.
     bool stepOnto;          // Walk Into To Act: chests & ladders stepped on.
     bool perCharacter;      // Keep Characters: each has their own options.
+    bool mapPlaces;         // The world map names places visited or heard of.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

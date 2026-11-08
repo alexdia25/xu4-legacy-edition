@@ -858,6 +858,7 @@ static std::vector<std::string> journalLines() {
  * Returns true if it was new to the journal (which then says so).
  */
 bool legacyNoteClue(const char* place, const char* who, const char* text) {
+    legacyHearPlaces(text);
     if (! text || ! isClue(text))
         return false;
     std::string line = std::string(place ? place : "") + "\t" +
@@ -1393,6 +1394,12 @@ static uint8_t dngSeen[8][8][8];
 // The moongate each gate led to last (0xff if not used), kept after dngSeen.
 static uint8_t gateLed[8];
 
+// Bit n of placeVisited/placeHeard is set for map id n (Heard-Of Places),
+// kept after gateLed.
+static uint8_t placeBits[16];
+#define placeVisitedBits  (placeBits)
+#define placeHeardBits    (placeBits + 8)
+
 static uint8_t* seenRow(int mapId, int level, int y) {
     int dng = mapId - MAP_DECEIT;
     if (dng < 0 || dng > 7 || level < 0 || level > 7 || y < 0 || y > 7)
@@ -1404,11 +1411,14 @@ void legacyDungeonLoad() {
     memset(dngSeen, 0, sizeof(dngSeen));
     FILE* fp = fopen((userDir() / DNGSEEN_SAV).string().c_str(), "rb");
     memset(gateLed, 0xff, sizeof(gateLed));
+    memset(placeBits, 0, sizeof(placeBits));
     if (fp) {
         if (fread(dngSeen, 1, sizeof(dngSeen), fp) != sizeof(dngSeen))
             memset(dngSeen, 0, sizeof(dngSeen));
         else if (fread(gateLed, 1, sizeof(gateLed), fp) != sizeof(gateLed))
             memset(gateLed, 0xff, sizeof(gateLed));
+        else if (fread(placeBits, 1, sizeof(placeBits), fp) != sizeof(placeBits))
+            memset(placeBits, 0, sizeof(placeBits));
         fclose(fp);
     }
 
@@ -1429,7 +1439,8 @@ bool legacyDungeonWrite(const char* userPath) {
     if (! fp)
         return false;
     bool ok = fwrite(dngSeen, 1, sizeof(dngSeen), fp) == sizeof(dngSeen) &&
-              fwrite(gateLed, 1, sizeof(gateLed), fp) == sizeof(gateLed);
+              fwrite(gateLed, 1, sizeof(gateLed), fp) == sizeof(gateLed) &&
+              fwrite(placeBits, 1, sizeof(placeBits), fp) == sizeof(placeBits);
     fclose(fp);
     if (! ok)
         return false;
@@ -1459,6 +1470,112 @@ void legacyWorldSee(int x, int y, int radius) {
 
 bool legacyWorldSeen(int x, int y) {
     return worldSeen[y & 255][(x & 255) >> 3] & (1 << (x & 7));
+}
+
+static bool placeBit(const uint8_t* bits, int id) {
+    return id >= 0 && id < 64 && (bits[id >> 3] & (1 << (id & 7)));
+}
+
+static void setPlaceBit(uint8_t* bits, int id) {
+    if (id >= 0 && id < 64)
+        bits[id >> 3] |= 1 << (id & 7);
+}
+
+/*
+ * List the towns, castles, villages & dungeons with entrances on the world
+ * map.
+ */
+std::vector<LegacyMapPlace> legacyMapPlaces() {
+    std::vector<LegacyMapPlace> list;
+    const Map* world = xu4.config->mapInfo(MAP_WORLD);
+    if (! world)
+        return list;
+    for (const Portal* portal : world->portals) {
+        const Map* m = xu4.config->mapInfo(portal->destid);
+        if (! m || (m->type != Map::CITY && m->type != Map::DUNGEON))
+            continue;
+        const char* name = m->getName();
+        if (! name || ! *name)
+            continue;
+        bool dup = false;
+        for (const LegacyMapPlace& o : list)
+            if (o.name == name)
+                dup = true;
+        if (dup)
+            continue;
+        LegacyMapPlace mp;
+        mp.name = name;
+        mp.x = portal->coords.x;
+        mp.y = portal->coords.y;
+        mp.visited = placeBit(placeVisitedBits, m->id);
+        mp.heard   = placeBit(placeHeardBits, m->id);
+        list.push_back(mp);
+    }
+    return list;
+}
+
+void legacyPlaceVisited(int mapId) {
+    setPlaceBit(placeVisitedBits, mapId);
+}
+
+/*
+ * Return true if name is in text as a word of its own.  Apostrophes are
+ * skipped in text ("Serpent's Hold" names Serpents Hold).  A name which is
+ * also a plain word (Shame, Wrong...) must begin with a capital.
+ */
+static bool namesPlace(const std::string& text, const std::string& name) {
+    std::string t;
+    for (char ch : text)
+        if (ch != '\'')
+            t += ch;
+    size_t n = name.size();
+    for (size_t pos = 0; pos + n <= t.size(); ++pos) {
+        size_t i = 0;
+        while (i < n && tolower((unsigned char) t[pos + i]) ==
+                        tolower((unsigned char) name[i]))
+            ++i;
+        if (i < n)
+            continue;
+        if (pos && isalpha((unsigned char) t[pos - 1]))
+            continue;
+        if (pos + n < t.size() && isalpha((unsigned char) t[pos + n]))
+            continue;
+        if (t[pos] == name[0])
+            return true;
+    }
+    return false;
+}
+
+/*
+ * Heard-Of Places: note the places named in what someone says.
+ */
+void legacyHearPlaces(const char* text) {
+    if (! text)
+        return;
+    std::string str(text);
+    const Map* world = xu4.config->mapInfo(MAP_WORLD);
+    if (! world)
+        return;
+    for (const Portal* portal : world->portals) {
+        const Map* m = xu4.config->mapInfo(portal->destid);
+        if (! m || (m->type != Map::CITY && m->type != Map::DUNGEON))
+            continue;
+        const char* name = m->getName();
+        if (name && *name && namesPlace(str, name)) {
+            // A dungeon named for a plain word must be called a dungeon.
+            if (m->type == Map::DUNGEON &&
+                (strcmp(name, "Deceit") == 0 || strcmp(name, "Despise") == 0 ||
+                 strcmp(name, "Wrong") == 0 || strcmp(name, "Shame") == 0)) {
+                std::string low = lowerCase(str);
+                std::string n = lowerCase(name);
+                if (low.find("dungeon " + n) == std::string::npos &&
+                    low.find(n + " dungeon") == std::string::npos &&
+                    low.find("dungeon of " + n) == std::string::npos)
+                    continue;
+            }
+            setPlaceBit(placeHeardBits, m->id);
+        }
+    }
 }
 
 void legacyGateUsed(int from, int to) {

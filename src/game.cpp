@@ -781,6 +781,8 @@ void gameUpdateScreen() {
 
 void GameController::setMap(Map *map, bool saveLocation, const Portal *portal, TurnController *turnCompleter) {
     EventHandler::sceneBreak();
+    if (map->type == Map::CITY || map->type == Map::DUNGEON)
+        legacyPlaceVisited(map->id);
     int viewMode;
     LocationContext context;
     int activePlayer = c->party->getActivePlayer();

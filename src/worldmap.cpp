@@ -53,7 +53,7 @@ enum MapRegions {
     REGION_COUNT
 };
 
-static const int regionQuads[REGION_COUNT] = { 300, 1200, 16 };
+static const int regionQuads[REGION_COUNT] = { 300, 2400, 16 };
 
 // Rune font codes for the combined runes (see tools/rune-glyphs.py).
 #define TH  "\x7f"
@@ -716,6 +716,52 @@ void WorldMapView::generateLabels()
             text += len;
             if (*text)
                 ++text;
+        }
+    }
+
+    // Heard-Of Places: the towns & dungeons the party has been to, or has
+    // heard named, are labelled; one not yet seen is marked with a box.
+    if (! showHere && ! wholeMap && xu4.settings->legacy.mapPlaces) {
+        float ps = psize * 0.75f;
+        float sh = ps * 0.05f + 1.0f;
+        txf_begin(&ds, english ? FONT_LATIN : FONT_RUNES, ps, 0.0f, 0.0f);
+        for (const LegacyMapPlace& mp : legacyMapPlaces()) {
+            if (! mp.visited && ! mp.heard)
+                continue;
+            float cx = rect[0] + (mp.x + 0.5f) * scale;
+            float cy = rect[1] + (mapH - mp.y - 0.5f) * scale;
+            float mark = markSize(2.0f);
+
+            if (! explored(mp.x, mp.y)) {
+                float t = fitScale * 0.4f + 1.0f;
+                float box[4];
+                markRect(mp.x, mp.y, mark, box);
+                attr = emitOutline(attr, box, t, COL_BLACK);
+                box[0] += t * 0.5f;
+                box[1] += t * 0.5f;
+                box[2] -= t;
+                box[3] -= t;
+                attr = emitOutline(attr, box, t * 0.5f,
+                                   mp.visited ? COL_WHITE : COL_LT_GRAY);
+            }
+
+            std::string name = mp.name;
+            if (! english)
+                for (char& ch : name)
+                    ch = toupper((unsigned char) ch);
+            int len = name.size();
+            float w = txf_emWidth(ds.tf, (const uint8_t*) name.c_str(), len)
+                      * ps;
+            float x = cx - w * 0.5f;
+            float y = cy - mark * 0.5f - ps * 0.75f;
+            for (int pass = 0; pass < 2; ++pass) {
+                ds.x = ds.marginL = x + (pass ? 0.0f : sh);
+                ds.y = y - (pass ? 0.0f : sh);
+                ds.prev = NULL;
+                ds.colorIndex = pass ? (mp.visited ? COL_YELLOW : COL_LT_GRAY)
+                                     : COL_TX_BLACK;
+                attr = gui_emitText(&ds, attr, name.c_str(), len);
+            }
         }
     }
     gpu_endRegion(work, REGION_LABELS, attr);
