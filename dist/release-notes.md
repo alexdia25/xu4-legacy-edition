@@ -118,6 +118,13 @@ Other changes and fixes:
 - Fixed: in Magincia, asking Nate the Snake about the Rune now opens
   the Rune with Barren in Paws, as Nate says.  The Master System
   version opened it when Nate was asked about the Stone instead.
+- Fixed: the game could start small in a corner of the screen, partly
+  cut off, when the system gave the window another size (filling the
+  screen, high DPI scaling).  It is now fitted and centered in the window
+  whatever its size, and the window is larger on Windows screens scaled
+  to 175% or more.
+- Fixed: on Android, pieces of menus were left in the black borders
+  beside the game; the game also keeps clear of camera cutouts.
 
 ## New in 1.1.5
 
