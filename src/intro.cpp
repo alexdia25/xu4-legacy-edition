@@ -1995,7 +1995,7 @@ void IntroController::initMenuHelp() {
         { &legacyMenu, MI_LEGACY_08, "A mini map beside the dungeon view, or a map from above in its place." },
         { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters, Steam saves." },
 
-        { &legacyMenu, MI_LEGACY_MORE, "Journal hints, combat tips and other small helps." },
+        { &legacyMenu, MI_LEGACY_MORE, "Journal hints, combat tips, menu, shop & combat helps (two pages)." },
         { &moreMenu, MI_MORE_HINTS, "A place's journal page names who still knows more, not what." },
         { &moreMenu, MI_MORE_TIPS, "A tip in the log at the start of each of the first six fights." },
         { &moreMenu, MI_MORE_COUNTS, "The action menu shows the torches, gems and keys left." },
@@ -2325,7 +2325,7 @@ void IntroController::updateInputMenu(MenuEvent &event) {
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 
     // after drawing the menu, extra menu text can be added here
-    extendedMenuArea.textAt(0, 5, "Mouse Options:");
+    extendedMenuArea.textAt(0, 6, "Mouse Options:");
 }
 
 void IntroController::updatePadMenu(MenuEvent &event) {

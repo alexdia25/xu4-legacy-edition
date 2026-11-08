@@ -191,6 +191,19 @@ Beside Rules & Saving, **More Options** holds these, all starting on:
 | Shop Dials Stop At Gold    | A shop's number dial stops at what the party can pay for (and carry, for food) and shows the cost |
 | Experience On Ztats        | With Ztats under the cursor in the action menu, the party panel shows each member's XP against the next level, blue when Lord British would raise a level |
 | Creatures On Mini Map      | The dungeon mini map marks a creature in a cell the party can see |
+| Snap Target Mark           | With Snap Attacks, the foe X would strike is marked in red; Page Up/Page Down or the shoulder buttons pick another foe in reach |
+
+**Next Page** holds more:
+
+| Option                     | What it does |
+|----------------------------|--------------|
+| Auto Combat Extras         | "Auto" shows over the party panel while Auto Combat fights, the fight menu has Auto Combat (for that battle, even with the option Off), and it hands the battle back after 30 turns with no foe hurt |
+| Spell Card Extras          | Picking a caster shows each member's mana, the spells the caster can afford come first, and the spell panel shows the mixtures made |
+| Grey Wares Too Dear        | Weapon and armour shop lists show in grey what your gold cannot buy |
+
+Keyboard Options also has **Stop At New Scene**: a held key, direction or
+touch stops repeating at a fight, a new map or a moongate until it is
+pressed again (on by default).
 
 **Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
