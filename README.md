@@ -179,10 +179,18 @@ edition.  Each can be switched off for the game as it was.
 | Auto Combat            | The party fights on its own; any key or button takes the battle back, and it stops when someone is badly hurt | Off |
 | Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
 
-Beside Rules & Saving, **More Options** holds **Journal Hints** (a place's
-journal page names who still has clues to tell, never what) and
-**Combat Tips** (a tip in the log at the start of each of the first six
-fights, once per character); both start on.
+Beside Rules & Saving, **More Options** holds these, all starting on:
+
+| Option                     | What it does |
+|----------------------------|--------------|
+| Journal Hints              | A place's journal page names who still has clues to tell, never what |
+| Combat Tips                | A tip in the log at the start of each of the first six fights, once per character |
+| Counts In Action Menu      | The action menu shows the torches, gems and keys left ("Ignite x3") |
+| Light In The Dark          | In a dark dungeon the action menu offers a torch, or the Light spell, first |
+| Name Stealing              | A chest in a town is offered as Steal Chest, since taking it costs virtue |
+| Shop Dials Stop At Gold    | A shop's number dial stops at what the party can pay for (and carry, for food) and shows the cost |
+| Experience On Ztats        | With Ztats under the cursor in the action menu, the party panel shows each member's XP against the next level, blue when Lord British would raise a level |
+| Creatures On Mini Map      | The dungeon mini map marks a creature in a cell the party can see |
 
 **Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
@@ -712,6 +720,7 @@ Cheat list:
         k     show karma (shows your virtues)
         l     location (displays current map and coordinates)
         m     mixtures (gives the party 99 mixtures of all spells)
+        n     new word (type a keyword, e.g. from a guide; the talk menu then offers it)
         o     opacity (lets you see through opaque tiles)
         p     peer (switches between normal and gem view)
         r     reagents (gives the party 99 of all reagents)
