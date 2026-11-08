@@ -1191,6 +1191,9 @@ void gameShowJournal() {
  * Cast the spell picked by the heal shortcut.  Returns ' ' so that the
  * turn ends (as a Pass that prints nothing).
  */
+static void moveMessage(const char* fmt, const char* dir,
+                        const char* follow);
+
 static int castHealShortcut(int spell, int caster, int subject) {
     screenMessage("Cast Spell!\n%s: %s\n%s on %s\n",
                   c->saveGame->players[caster].name, spellGetName(spell),
@@ -1513,7 +1516,7 @@ bool GameController::keyPressed(int key) {
             break;
 
         case ' ':
-            screenMessage("Pass\n");
+            moveMessage("%s", "Pass", NULL);
             break;
 
         case CAST_DONE_KEY:
@@ -2944,25 +2947,79 @@ void GameController::updateMoons(bool showmoongates)
  * same move made again replaces the previous line with "North (x2)" and so
  * on, as long as nothing but the prompt was printed in between.
  */
-static void moveMessage(const char* fmt, const char* dir) {
-    static char lastMove[24];
+/*
+ * Fold Repeated Moves: a step (or a pass) that prints what the one before
+ * it printed is counted on the lines already there - "North (x6)" with
+ * "Blocked! (x6)" under it - instead of being printed again.
+ */
+static bool moveFollowPrinted;
+
+static void foldLine(char prompt, const char* text, int count, int color) {
+    char buf[40];
+    int width = TEXT_AREA_W - (prompt ? 1 : 0);
+    if (count > 1) {
+        char suffix[12];
+        snprintf(suffix, sizeof(suffix), " (x%d)", count);
+        int room = width - (int) strlen(suffix);
+        int len = (int) strlen(text);
+        if (len > room) {
+            // Cut at the last whole word that fits.
+            len = room;
+            while (len > 0 && text[len] != ' ')
+                --len;
+            if (len == 0)
+                len = room;
+            while (len > 0 && text[len - 1] == ' ')
+                --len;
+        }
+        snprintf(buf, sizeof(buf), "%.*s%s", len, text, suffix);
+    } else
+        snprintf(buf, sizeof(buf), "%s", text);
+    // Pad to the width so a longer line folded over is cleared.
+    int pad = width - (int) strlen(buf);
+    if (pad < 0)
+        pad = 0;
+    if (prompt) {
+        if (color)
+            screenMessage("%c%c%s%*s%c\n", prompt, color, buf, pad, "", FG_WHITE);
+        else
+            screenMessage("%c%s%*s\n", prompt, buf, pad, "");
+    } else {
+        if (color)
+            screenMessage("%c%s%*s%c\n", color, buf, pad, "", FG_WHITE);
+        else
+            screenMessage("%s%*s\n", buf, pad, "");
+    }
+}
+
+static void moveMessage(const char* fmt, const char* dir,
+                        const char* follow) {
+    static char lastKey[64];
     static uint32_t lastSerial;
-    static int count;
+    static int count, lastLines;
     char text[24];
+    char key[64];
 
     snprintf(text, sizeof(text), fmt, dir);
-    if (xu4.settings->legacy.foldMoves && c->line > 0 && c->col == 1 &&
-        screenMessageSerial() == lastSerial + 1 &&
-        strcmp(text, lastMove) == 0) {
+    snprintf(key, sizeof(key), "%s\n%s", text, follow ? follow : "");
+    int lines = follow ? 2 : 1;
+    if (xu4.settings->legacy.foldMoves && c->line >= lastLines &&
+        c->col == 1 && screenMessageSerial() == lastSerial + 1 &&
+        strcmp(key, lastKey) == 0) {
         ++count;
-        c->line--;
+        c->line -= lastLines;
         c->col = 0;
-        screenMessage("%c%s (x%d)\n", CHARSET_PROMPT, text, count);
+        foldLine(CHARSET_PROMPT, text, count, 0);
     } else {
         count = 1;
-        strcpy(lastMove, text);
+        strcpy(lastKey, key);
         screenMessage("%s\n", text);
     }
+    if (follow) {
+        foldLine(0, follow, count, FG_GREY);
+        moveFollowPrinted = true;
+    }
+    lastLines = lines;
     lastSerial = screenMessageSerial();
 }
 
@@ -2971,7 +3028,7 @@ static void moveMessage(const char* fmt, const char* dir) {
  * counter), attack a hostile creature, open or unlock a door.
  * Returns true if something was done.
  */
-static bool bumpAction(Direction dir) {
+static bool bumpAction(Direction dir, bool act = true) {
     Map* map = c->location->map;
     Coords pos = c->location->coords;
     map_move(pos, dir, map);
@@ -2985,6 +3042,8 @@ static bool bumpAction(Direction dir) {
         int dist = 1;
         for (vector<Coords>::iterator i = path.begin(); i != path.end(); i++) {
             if (talkablePersonAt(city, *i, dist)) {
+                if (! act)
+                    return true;
                 screenMessage("Talk\n");
                 talkAt(*i, dist);
                 return true;
@@ -2997,16 +3056,22 @@ static bool bumpAction(Direction dir) {
     if (m && m->isAttackable() && ! m->isGood() &&
         (m->objType != Object::PERSON ||
          m->movement == MOVEMENT_ATTACK_AVATAR)) {
+        if (! act)
+            return true;
         screenMessage("Attack\n");
         return attackAt(pos);
     }
 
     const Tile* tile = map->tileTypeAt(pos, WITH_OBJECTS);
     if (tile->isDoor()) {
+        if (! act)
+            return true;
         screenMessage("Open\n");
         return openAt(pos);
     }
     if (tile->isLockedDoor()) {
+        if (! act)
+            return true;
         screenMessage("Jimmy\n");
         return jimmyAt(pos);
     }
@@ -3017,14 +3082,33 @@ static bool bumpAction(Direction dir) {
  * Handles feedback after avatar moved during normal 3rd-person view.
  */
 void GameController::avatarMoved(MoveEvent &event) {
+    // What will be said under the step, so the two can be folded.
+    const char* follow = NULL;
+    moveFollowPrinted = false;
     if (event.userEvent) {
+        if (event.result & MOVE_BLOCKED) {
+            Coords ahead = c->location->coords;
+            map_move(ahead, event.dir, c->location->map);
+            const Tile* tile =
+                c->location->map->tileTypeAt(ahead, WITH_OBJECTS);
+            bool acts =
+                (xu4.settings->shortcutCommands &&
+                 (tile->isDoor() || tile->isLockedDoor())) ||
+                (xu4.settings->legacy.bumpToAct &&
+                 (c->transportContext & TRANSPORT_FOOT_OR_HORSE) &&
+                 bumpAction(event.dir, false));
+            if (! acts)
+                follow = "Blocked!";
+        } else if ((event.result & MOVE_SLOWED) &&
+                   (c->transportContext & TRANSPORT_FOOT_OR_HORSE))
+            follow = "Slow progress!";
 
         // is filterMoveMessages even used?  it doesn't look like the option is hooked up in the configuration menu
         if (!xu4.settings->filterMoveMessages) {
             switch (c->transportContext) {
                 case TRANSPORT_FOOT:
                 case TRANSPORT_HORSE:
-                    moveMessage("%s", getDirectionName(event.dir));
+                    moveMessage("%s", getDirectionName(event.dir), follow);
                     break;
                 case TRANSPORT_SHIP:
                     if (event.result & MOVE_TURNED)
@@ -3032,7 +3116,8 @@ void GameController::avatarMoved(MoveEvent &event) {
                     else if (event.result & MOVE_SLOWED)
                         screenMessage("%cSlow progress!%c\n", FG_GREY, FG_WHITE);
                     else
-                        moveMessage("Sail %s!", getDirectionName(event.dir));
+                        moveMessage("Sail %s!", getDirectionName(event.dir),
+                                    follow);
                     break;
                 case TRANSPORT_BALLOON:
                     screenMessage("%cDrift Only!%c\n", FG_GREY, FG_WHITE);
@@ -3076,7 +3161,8 @@ horse_moved:
             /* if we're still blocked */
             if ((event.result & MOVE_BLOCKED) && !xu4.settings->filterMoveMessages) {
                 soundPlay(SOUND_BLOCKED);
-                screenMessage("%cBlocked!%c\n", FG_GREY, FG_WHITE);
+                if (! moveFollowPrinted)
+                    screenMessage("%cBlocked!%c\n", FG_GREY, FG_WHITE);
             }
         }
         else if (c->transportContext == TRANSPORT_FOOT ||
@@ -3084,7 +3170,8 @@ horse_moved:
             /* movement was slowed */
             if (event.result & MOVE_SLOWED) {
                 soundPlay(SOUND_WALK_SLOWED);
-                screenMessage("%cSlow progress!%c\n", FG_GREY, FG_WHITE);
+                if (! moveFollowPrinted)
+                    screenMessage("%cSlow progress!%c\n", FG_GREY, FG_WHITE);
             }
             else {
                 soundPlay(SOUND_WALK_NORMAL);
@@ -3137,7 +3224,7 @@ void GameController::avatarMovedInDungeon(MoveEvent &event) {
                 /* show 'Advance' or 'Retreat' in dungeons */
                 msg = (realDir == orientation) ? "Advance" : "Retreat";
             }
-            moveMessage("%s", msg);
+            moveMessage("%s", msg, NULL);
         }
 
         if (event.result & MOVE_BLOCKED) {
