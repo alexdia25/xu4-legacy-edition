@@ -296,6 +296,19 @@ void DungeonView::drawMiniMap(const Dungeon* dungeon) {
         }
     }
 
+    // Map Creatures: a creature in sight is marked.
+    if (xu4.settings->legacy.mapCreatures) {
+        for (const Object* obj : dungeon->objects) {
+            const Coords& oc = obj->coords;
+            if (obj->objType != Object::CREATURE || oc.z != pos.z ||
+                oc.x < 0 || oc.x > 7 || oc.y < 0 || oc.y > 7 ||
+                ! (seenNow[oc.y] & (1 << oc.x)))
+                continue;
+            img->fillRect(left + oc.x * cell + 1, top + oc.y * cell + 1,
+                          cell - 2, cell - 2, 255, 255, 255);
+        }
+    }
+
     // The party, with a mark on the side it faces.
     int px = left + (pos.x & 7) * cell;
     int py = top  + (pos.y & 7) * cell;

@@ -295,6 +295,7 @@ bool Settings::read() {
     legacy.lightFirst   = true;
     legacy.nameSteal    = true;
     legacy.capDials     = true;
+    legacy.mapCreatures = true;
     legacy.xpOnZtats    = true;
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
@@ -480,6 +481,8 @@ bool Settings::read() {
             legacy.nameSteal = toInt(val);
         else if (VALUE("capDials="))
             legacy.capDials = toInt(val);
+        else if (VALUE("mapCreatures="))
+            legacy.mapCreatures = toInt(val);
         else if (VALUE("xpOnZtats="))
             legacy.xpOnZtats = toInt(val);
         else if (VALUE("autoCombat="))
@@ -670,6 +673,7 @@ bool Settings::write() {
             "lightFirst=%d\n"
             "nameSteal=%d\n"
             "capDials=%d\n"
+            "mapCreatures=%d\n"
             "xpOnZtats=%d\n"
 
             "autoCombat=%s\n"
@@ -706,6 +710,7 @@ bool Settings::write() {
             legacy.lightFirst,
             legacy.nameSteal,
             legacy.capDials,
+            legacy.mapCreatures,
             legacy.xpOnZtats,
 
             autoCombatStrings()[ legacy.autoCombat ],
