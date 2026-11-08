@@ -155,12 +155,15 @@ static const char helpText[] =
 "                         attacks, into a locked door opens it.\n"
 "  Fold Repeated Moves    \"North (x5)\" instead of five lines.\n"
 "  Cancel Spends No Turn  Backing out of a command costs nothing.\n"
-"  Shops Compare Arms     Shops show how gear compares with what each\n"
-"                         member has, and offer to equip it.\n"
-"  Spell Info In Lists    Spell lists say what each spell does, and\n"
-"                         ? opens the spell in the Book of Wisdom.\n"
+"  Shops Compare Arms     The party panel shows how gear compares with\n"
+"                         what each member has; shops offer to equip it.\n"
+"  Spell Info In Lists    The party panel shows what the spell does,\n"
+"                         costs and needs; ? opens it in the Book of\n"
+"                         Wisdom.\n"
 "  Heal In Action Menu    A Heal shortcut when someone is hurt.\n"
-"  Auto Combat            The party fights on its own.\n"
+"  Auto Combat            The party fights on its own.  Any key takes\n"
+"                         the battle back, and it stops when someone is\n"
+"                         badly hurt.\n"
 "  Dungeon Map            A mini map or a top-down view of dungeons.\n"
 "\n"
 "Rules, Saving & Cheats sets the difficulty (Classic is the game as it\n"
@@ -169,7 +172,10 @@ static const char helpText[] =
 "party falls.  Scanlines, Battery Saver, Pause Unfocused (the game\n"
 "waits while you are away) and Map View (Fill Space shows more of the\n"
 "map with the smaller SMS tiles) are in the Graphics options, and\n"
-"Smooth Motion (the map slides as you walk) is in Video Options.\n";
+"Smooth Motion (the map slides and everyone glides as they move) is in\n"
+"Video Options.  Snap Attacks (X, or Strike in the action menu, hits a\n"
+"foe in reach without aiming) is in Enhanced Gameplay Options, and Held\n"
+"Key Pace (how fast a held key or direction repeats) in Input Options.\n";
 
 std::string legacyHelpText()
 {

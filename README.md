@@ -168,10 +168,10 @@ edition.  Each can be switched off for the game as it was.
 | Walk Into To Act       | Walking into someone talks, into a foe attacks, into a locked door opens it | Off |
 | Fold Repeated Moves    | "North (x5)" instead of five lines, and the same for Blocked!, Slow progress! and Pass | On |
 | Cancel Spends No Turn  | Backing out of a command costs nothing             | On     |
-| Shops Compare Arms     | Shops show how gear compares with what each member has, and offer to equip it | On |
-| Spell Info In Lists    | Spell lists show what each spell does and costs, and ? opens its Wisdom page | On |
+| Shops Compare Arms     | Shops show, in the party panel, how gear compares with what each member has, and offer to equip it | On |
+| Spell Info In Lists    | Spell lists show in the party panel what the spell under the cursor does, costs and is mixed from, and ? opens its Wisdom page | On |
 | Heal In Action Menu    | A Heal or Cure shortcut when someone needs it      | On     |
-| Auto Combat            | The party fights on its own                        | Off    |
+| Auto Combat            | The party fights on its own; any key or button takes the battle back, and it stops when someone is badly hurt | Off |
 | Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
 
 **Rules, Saving & Cheats** sets the difficulty: Classic is the game as
@@ -183,12 +183,21 @@ earlier save or Lord British's aid).  It also turns on autosave with a history o
 to, several characters each with their own saves, and a Cheats menu
 (these three start off).
 
+Enhanced Gameplay Options adds **Snap Attacks** (on at first): in
+combat, X (or Strike in the action menu) hits a foe in reach without
+aiming, the one last struck if it is still there, else the nearest.
+With no foe in reach it says so and spends no turn.  Input Options adds
+**Held Key Pace**: a held key, gamepad direction or touch repeats at a
+steady pace set by the game (Slow, Medium or Fast), or at the system's
+key repeat rate (System).  Medium is the default.
+
 ![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
 
 The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
 (the game waits while its window is in the background).  Video Options
 adds **Smooth Motion**: the map slides from square to square as the
-party walks, instead of jumping (off at first).  Enhanced Interface
+party walks, and creatures, people and party members glide from square
+to square too, instead of jumping (off at first).  Enhanced Interface
 Options adds **Party Colours**: hit points turn yellow below half and red
 below a quarter, names are green when poisoned, purple asleep, grey when
 dead and blue when a level is due at Lord British (on at first).  **Map View**
@@ -290,7 +299,10 @@ wherever Steam installed it.
    zip, or imports such a zip (from this or the web version).  Files can
    also be copied over USB to
    `Android/data/io.github.alexdia25.xu4_legacy_edition/files`.  The game
-   is played with touch or a gamepad; Back opens the game menu.
+   is played with touch or a gamepad; Back opens the game menu.  Once a
+   day it asks GitHub for the latest release, and offers its download
+   page when a newer one is out (Not This One skips that release); this
+   is the only use of the internet permission.
  - **Web browser, iPhone and iPad**: [play in the browser], on a
    computer, phone or tablet.  It asks for the game files the first time
    and keeps them, with the settings and saved games, in the browser.
