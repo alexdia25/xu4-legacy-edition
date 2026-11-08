@@ -1158,6 +1158,7 @@ static void smsQuitMenu() {
 #define MAP_KEY     -3
 #define HEAL_KEY    -4
 #define JOURNAL_KEY -5
+#define LIGHT_KEY   -6
 #define CAST_DONE_KEY 0x1f   // A command already done; just end the turn.
 
 /*
@@ -1253,6 +1254,42 @@ static int smsActionMenu() {
     int keys[count + 1];
     int n = 0;
 
+    const LegacyOptions& lo = xu4.settings->legacy;
+
+    // Light In The Dark: in a dark dungeon, a torch or the Light spell
+    // comes first.
+    const int SP_LIGHT = 'l' - 'a';
+    int lightCaster = -1;
+    if (lo.lightFirst && dungeon && sg->torchduration == 0) {
+        if (sg->torches > 0) {
+            if (guess != 'i') {
+                if (second == 0)
+                    second = guess;
+                guess = 'i';
+            }
+        } else if (sg->mixtures[SP_LIGHT] > 0) {
+            int need = spellGetRequiredMP(SP_LIGHT);
+            for (int i = 0; i < c->party->size(); ++i) {
+                PartyMember* pm = c->party->member(i);
+                if (! pm->isDisabled() && pm->getMp() >= need &&
+                    (lightCaster < 0 ||
+                     pm->getMp() > c->party->member(lightCaster)->getMp()))
+                    lightCaster = i;
+            }
+            if (lightCaster >= 0) {
+                items[n] = "Cast Light";
+                keys[n++] = LIGHT_KEY;
+            }
+        }
+    }
+
+    // Counts In Action Menu: how many torches, gems & keys are left.
+    char torchName[24], gemName[24], keyName[24];
+    // (The list is 14 characters wide.)
+    snprintf(torchName, sizeof(torchName), "Ignite x%d", sg->torches);
+    snprintf(gemName, sizeof(gemName), "Peer at Gem x%d", sg->gems);
+    snprintf(keyName, sizeof(keyName), "Jimmy Lock x%d", sg->keys);
+
     // Heal In Action Menu: a heal or cure for whoever needs it most.
     int healSpell, healCaster, healSubject;
     char healName[24];
@@ -1332,6 +1369,17 @@ static int smsActionMenu() {
                 name = "Land";
             else if (k == 'k' && c->transportContext == TRANSPORT_BALLOON)
                 name = "Ascend";
+            else if (k == 'g' && lo.nameSteal &&
+                     c->location->map->type == Map::CITY)
+                name = "Steal Chest";   // Taking it costs virtue.
+            else if (lo.menuCounts) {
+                if (k == 'i')
+                    name = torchName;
+                else if (k == 'p')
+                    name = gemName;
+                else if (k == 'j')
+                    name = keyName;
+            }
             items[n] = name;
             keys[n] = k;
             ++n;
@@ -1355,6 +1403,13 @@ static int smsActionMenu() {
     }
     if (keys[pick] == HEAL_KEY)
         return castHealShortcut(healSpell, healCaster, healSubject);
+    if (keys[pick] == LIGHT_KEY) {
+        screenMessage("Cast Spell!\n%s: %s\n",
+                      c->saveGame->players[lightCaster].name,
+                      spellGetName(SP_LIGHT));
+        gameCastSpell(SP_LIGHT, lightCaster, 0);
+        return CAST_DONE_KEY;
+    }
     return keys[pick];
 }
 

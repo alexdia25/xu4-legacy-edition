@@ -165,6 +165,9 @@ struct LegacyOptions {
     bool steamSaves;        // Saves also go to the Steam release's folder.
     bool journalHints;      // Journal place pages name who to ask.
     bool combatTips;        // A tip in the log during the first fights.
+    bool menuCounts;        // Action menu: torches, gems & keys left.
+    bool lightFirst;        // Action menu: torch or Light first if dark.
+    bool nameSteal;         // Action menu: a town chest is "Steal Chest".
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).

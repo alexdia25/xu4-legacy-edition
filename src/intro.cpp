@@ -376,6 +376,9 @@ IntroController::IntroController() :
     moreMenu.setTitle("More Legacy Options:", 0, 0);
     moreMenu.add(MI_MORE_HINTS,   new BoolMenuItem("Journal Hints            %s", 2,  1,/*'j'*/  0, &lo.journalHints));
     moreMenu.add(MI_MORE_TIPS,    new BoolMenuItem("Combat Tips              %s", 2,  2,/*'t'*/  7, &lo.combatTips));
+    moreMenu.add(MI_MORE_COUNTS,  new BoolMenuItem("Counts In Action Menu    %s", 2,  3,/*'o'*/  1, &lo.menuCounts));
+    moreMenu.add(MI_MORE_LIGHT,   new BoolMenuItem("Light In The Dark        %s", 2,  4,/*'l'*/  0, &lo.lightFirst));
+    moreMenu.add(MI_MORE_STEAL,   new BoolMenuItem("Name Stealing            %s", 2,  5,/*'s'*/  5, &lo.nameSteal));
     moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu.addShortcutKey(CANCEL, ' ');
@@ -1977,6 +1980,9 @@ void IntroController::initMenuHelp() {
         { &legacyMenu, MI_LEGACY_MORE, "Journal hints, combat tips and other small helps." },
         { &moreMenu, MI_MORE_HINTS, "A place's journal page names who still knows more, not what." },
         { &moreMenu, MI_MORE_TIPS, "A tip in the log at the start of each of the first six fights." },
+        { &moreMenu, MI_MORE_COUNTS, "The action menu shows the torches, gems and keys left." },
+        { &moreMenu, MI_MORE_LIGHT, "In a dark dungeon, a torch or the Light spell is offered first." },
+        { &moreMenu, MI_MORE_STEAL, "A chest in a town is offered as Steal Chest: taking it costs virtue." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
         { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },

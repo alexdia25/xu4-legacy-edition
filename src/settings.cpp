@@ -291,6 +291,9 @@ bool Settings::read() {
     legacy.snapAttacks  = true;
     legacy.journalHints = true;
     legacy.combatTips   = true;
+    legacy.menuCounts   = true;
+    legacy.lightFirst   = true;
+    legacy.nameSteal    = true;
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
@@ -467,6 +470,12 @@ bool Settings::read() {
             legacy.journalHints = toInt(val);
         else if (VALUE("combatTips="))
             legacy.combatTips = toInt(val);
+        else if (VALUE("menuCounts="))
+            legacy.menuCounts = toInt(val);
+        else if (VALUE("lightFirst="))
+            legacy.lightFirst = toInt(val);
+        else if (VALUE("nameSteal="))
+            legacy.nameSteal = toInt(val);
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
         else if (VALUE("moonSpeed="))
@@ -651,6 +660,9 @@ bool Settings::write() {
             "steamSaves=%d\n"
             "journalHints=%d\n"
             "combatTips=%d\n"
+            "menuCounts=%d\n"
+            "lightFirst=%d\n"
+            "nameSteal=%d\n"
 
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
@@ -682,6 +694,9 @@ bool Settings::write() {
             legacy.steamSaves,
             legacy.journalHints,
             legacy.combatTips,
+            legacy.menuCounts,
+            legacy.lightFirst,
+            legacy.nameSteal,
 
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
