@@ -3,8 +3,10 @@
  *
  * Finds the Steam release of Ultima IV (app 3067510), which installs to
  * <library>/steamapps/common/Ultima IV with the game run by DOSBox.  The
+ * DOS game files (the same as the GOG release's) and ULTIMA4.TXT are at the
+ * top of that folder, with DOSBOX/ & Extras/ (PDFs) beside them.  The
  * folder holding AVATAR.EXE (or ultima4.zip) is searched for a few levels
- * down, so the layout inside the install folder does not matter.
+ * down in case a later build moves them.
  */
 
 #if !defined(__EMSCRIPTEN__) && !defined(ANDROID)

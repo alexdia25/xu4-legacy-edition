@@ -15,19 +15,9 @@
  */
 
 #include <windows.h>
+#define XU4_SDL_FATAL
 
-void errorFatal(const char *fmt, ...) {
-    char buffer[1000];
-    va_list args;
-
-    va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
-
-    MessageBox(NULL, buffer, "XU4 Error", MB_OK | MB_ICONERROR);
-
-    exit(1);
-}
+// errorFatal shows the SDL box with Copy Details (see the end of this file).
 
 void errorWarning(const char *fmt, ...) {
     char buffer[1000];
@@ -101,11 +91,28 @@ void errorWarning(const char *fmt, ...) {
 
 #else
 
+#define XU4_SDL_FATAL
+
 /*
  * Errors go to the standard error stream; a fatal error is also shown in an
  * SDL message box, as a game started from a launcher (Finder, Steam, a
  * desktop menu) has no terminal.
  */
+
+
+void errorWarning(const char *fmt, ...) {
+    va_list args;
+
+    fprintf(stderr, "xu4: warning: ");
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fprintf(stderr, "\n");
+}
+
+#endif
+
+#ifdef XU4_SDL_FATAL
 
 #include <SDL3/SDL.h>
 #ifdef __EMSCRIPTEN__
@@ -156,16 +163,6 @@ void errorFatal(const char *fmt, ...) {
 #endif
 
     exit(1);
-}
-
-void errorWarning(const char *fmt, ...) {
-    va_list args;
-
-    fprintf(stderr, "xu4: warning: ");
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fprintf(stderr, "\n");
 }
 
 #endif
