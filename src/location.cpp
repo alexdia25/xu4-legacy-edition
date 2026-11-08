@@ -483,6 +483,31 @@ void locationFree(Location **stack) {
 /**
  * Append the entire stack of objects at the given location to a vector.
  */
+/*
+ * Get the tiles under any creature, object or the party at coords: the
+ * lasting annotations and the terrain (for Smooth Motion).
+ */
+void Location::getGroundTilesAt(std::vector<MapTile>& tiles,
+                                const Coords& coords) {
+    std::list<Annotation *> annot = map->annotations.ptrsToAllAt(coords);
+    std::list<Annotation *>::const_iterator i;
+    for (i = annot.begin(); i != annot.end(); i++) {
+        if (!(*i)->visualOnly) {
+            tiles.push_back((*i)->tile);
+            if ((*i)->coverUp)
+                return;
+        }
+    }
+    MapTile terrainTile(map->getTileFromData(coords));
+    tiles.push_back(terrainTile);
+    const Tile* tileType = terrainTile.getTileType();
+    if (tileType->isLandForeground() ||
+        tileType->isWaterForeground() ||
+        tileType->isLivingObject()) {
+        tiles.push_back(getReplacementTile(coords, tileType));
+    }
+}
+
 void Location::getTilesAt(std::vector<MapTile>& tiles,
                           const Coords& coords, bool& focus) {
     const Object *obj = map->objectAt(coords);

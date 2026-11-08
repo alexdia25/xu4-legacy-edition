@@ -54,6 +54,7 @@ public:
 
     void getTilesAt(std::vector<MapTile>& tiles, const Coords& coords,
                     bool& focus);
+    void getGroundTilesAt(std::vector<MapTile>& tiles, const Coords& coords);
     TileId getReplacementTile(const Coords& atCoords, Tile const * forTile);
     int getCurrentPosition(Coords * pos);
     MoveResult move(Direction dir, bool userEvent);

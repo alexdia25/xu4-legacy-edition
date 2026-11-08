@@ -742,11 +742,19 @@ vector<MapTile> screenViewportTile(unsigned int width, unsigned int height, int 
 /*
  * Return true if coords is visible and tiles were drawn.
  */
+#ifndef GPU_RENDER
+static void screenGlideSettle();
+#endif
+
 bool screenTileUpdate(TileView *view, const Coords &coords)
 {
     Location* loc = c->location;
     if (loc->map->flags & FIRST_PERSON)
         return false;
+#ifndef GPU_RENDER
+    // A hit or a spell flashed on a square: show it, not a glide.
+    screenGlideSettle();
+#endif
 
     // Get the screen coordinates
     int x = coords.x;
@@ -873,8 +881,7 @@ void screenUpdateMap(TileView* view, const Map* map, const Coords& center) {
 
 #ifndef GPU_RENDER
 static void screenGlideCancel();
-static void screenGlideViewDrawn(TileView*, const Map*, const Coords&,
-                                 std::vector<MapTile>&, int, int);
+static void screenGlideViewDrawn(TileView*, Map*, const Coords&, bool);
 #endif
 
 /**
@@ -964,12 +971,10 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
             view->drawFocus(focusX, focusY);
 
         {
-        const Map* map = c->location->map;
-        if (xu4.settings->legacy.smoothMotion &&
-            (map->width > (unsigned) vw || map->height > (unsigned) vh) &&
-            focusX < 0)
+        Map* map = c->location->map;
+        if (xu4.settings->legacy.smoothMotion)
             screenGlideViewDrawn(view, map, c->location->coords,
-                                 viewTiles[vw/2][vh/2], vw/2, vh/2);
+                    map->width > (unsigned) vw || map->height > (unsigned) vh);
         else
             screenGlideCancel();
         }
@@ -1009,36 +1014,49 @@ static void screenUploadCursor(Screen* sp, uint32_t stex) {
 
 #ifndef GPU_RENDER
 /*
- * Smooth Motion: when the party steps to the next square, the map slides
- * under the party instead of jumping.  The game still draws whole squares
- * on the screenImage; this keeps a copy of each view drawn (and of the view
- * with the party's square drawn without the party) and, for a moment after
- * a step, uploads the view slid between the last two over the screenImage
- * picture, with the party held still at the center.
+ * Smooth Motion: the map slides under the party as it steps to the next
+ * square, and the creatures, people & party members that step glide from
+ * their square to the next.  The game still draws whole squares on the
+ * screenImage; each view drawn is kept as its ground (the view with no one
+ * on it) and the picture of each walker, and for a moment after a step the
+ * view as it is between the squares is uploaded over the screenImage
+ * picture.
  */
 extern uint32_t getTicks();
 
 #define GLIDE_MS        125     // A step's slide (the held key repeat & a bit).
 #define GLIDE_MIN_MS    30
 
+struct GlideWalker {
+    const Object* obj;          // NULL for the party (Britannia & towns).
+    int wx, wy;                 // Map square.
+    int px, py;                 // Square's top left in the view (pixels).
+    std::vector<uint32_t> sprite;   // Its pixels over the ground; 0 = none.
+};
+
+struct GlideTrack {
+    const Object* obj;
+    int lagX, lagY;             // Drawn this far from its square at start.
+    uint32_t start, ms;
+};
+
 struct ViewGlide {
-    std::vector<uint32_t> lastBare;     // View drawn last, party removed.
-    std::vector<uint32_t> fromBare;     // The view slid away from.
-    std::vector<uint32_t> toBare;       // The view slid to.
-    std::vector<uint32_t> toFull;       // The view slid to, with the party.
+    std::vector<uint32_t> ground;       // View drawn last, no one on it.
+    std::vector<uint32_t> fromGround;   // The view slid away from.
+    std::vector<GlideWalker> walkers;   // Who was in the view drawn last.
+    std::vector<GlideTrack> tracks;     // Walkers still gliding.
     std::vector<uint32_t> frame;        // The view as shown this frame.
     int mapId, cx, cy;                  // Last view drawn (mapId -1 if none).
     int vx, vy, vw, vh;                 // Its screenImage rectangle.
     int tileW, tileH;
-    int partyX, partyY;                 // The party square's top left in view.
-    int dx, dy;                         // Direction of the step glided.
-    uint32_t start, ms, lastStep;
+    int camX, camY;                     // The slide of the map at start.
+    uint32_t camStart, camMs, lastStep;
     bool active;
     bool restore;                       // Upload the screenImage once more.
 };
 
-static ViewGlide glide = { {}, {}, {}, {}, {}, -1, 0, 0, 0, 0, 0, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 0, false, false };
+static ViewGlide glide;
+static bool glideInit = false;
 
 static void glideCopy(std::vector<uint32_t>& dst) {
     const Image* img = xu4.screenImage;
@@ -1063,30 +1081,63 @@ static void screenGlideCancel() {
         glide.active = false;
         glide.restore = true;
     }
+    glide.tracks.clear();
+    glide.walkers.clear();
     glide.mapId = -1;
 }
 
+// Stop gliding at once (something is drawn over the view).
+static void screenGlideSettle() {
+    if (glide.active) {
+        glide.active = false;
+        glide.restore = true;
+        glide.tracks.clear();
+        glide.camMs = 0;
+    }
+}
+
+// Return how far (-1, 0 or 1) a step moved, or 2 if it was a jump.
+static int glideStep(int d, int size, bool wrap) {
+    if (wrap) {
+        if (d >  1) d -= size;
+        if (d < -1) d += size;
+    }
+    return (d < -1 || d > 1) ? 2 : d;
+}
+
+// The lag still left on a track at time now.
+static void glideLag(const GlideTrack& tr, uint32_t now, int* lx, int* ly) {
+    uint32_t t = now - tr.start;
+    if (t >= tr.ms) {
+        *lx = *ly = 0;
+        return;
+    }
+    *lx = (int) (tr.lagX * (int) (tr.ms - t) / (int) tr.ms);
+    *ly = (int) (tr.lagY * (int) (tr.ms - t) / (int) tr.ms);
+}
+
 /*
- * Called after the map view was drawn on the screenImage centered on the
- * party.  partyTiles is the stack drawn at the party's square.
+ * Called after the map view was drawn on the screenImage.  centered is
+ * true when the view follows the party (Britannia, towns & castles).
  */
-static void screenGlideViewDrawn(TileView* view, const Map* map,
-                                 const Coords& center,
-                                 std::vector<MapTile>& partyTiles,
-                                 int px, int py) {
+static void screenGlideViewDrawn(TileView* view, Map* map,
+                                 const Coords& center, bool centered) {
+    if (! glideInit) {
+        glideInit = true;
+        glide.mapId = -1;
+        glide.active = glide.restore = false;
+        glide.lastStep = 0;
+    }
     bool same = glide.mapId == (int) map->id &&
                 glide.vx == view->x && glide.vy == view->y &&
                 glide.vw == view->width && glide.vh == view->height &&
                 glide.tileW == view->tileWidth &&
                 glide.tileH == view->tileHeight;
-    int dx = center.x - glide.cx;
-    int dy = center.y - glide.cy;
-    if (map->border_behavior == Map::BORDER_WRAP) {
-        if (dx >  1) dx -= map->width;
-        if (dx < -1) dx += map->width;
-        if (dy >  1) dy -= map->height;
-        if (dy < -1) dy += map->height;
-    }
+    bool wrap = map->border_behavior == Map::BORDER_WRAP;
+    int camDX = glideStep(center.x - glide.cx, map->width, wrap);
+    int camDY = glideStep(center.y - glide.cy, map->height, wrap);
+    if (! centered)
+        camDX = camDY = 0;
 
     glide.mapId = map->id;
     glide.cx = center.x;
@@ -1097,59 +1148,143 @@ static void screenGlideViewDrawn(TileView* view, const Map* map,
     glide.vh = view->height;
     glide.tileW = view->tileWidth;
     glide.tileH = view->tileHeight;
-    glide.partyX = view->originX + px * view->tileWidth - view->x;
-    glide.partyY = view->originY + py * view->tileHeight - view->y;
+    const int T = view->tileWidth;
+    const int TH = view->tileHeight;
+    const int vw = view->columns;
+    const int vh = view->rows;
 
-    // The view with the party, then without (the party's square redrawn
-    // with only what is under them), and the party put back.
+    // The view as drawn, then each square with someone on it drawn again
+    // with only its ground, and the view put back.
     std::vector<uint32_t> full;
     glideCopy(full);
-    if (partyTiles.size() > 1) {
-        std::vector<MapTile> under(partyTiles.begin() + 1, partyTiles.end());
-        view->drawTile(under, px, py);
+
+    Coords origin = center;
+    if (map->width <= (unsigned) vw && map->height <= (unsigned) vh) {
+        origin.x = map->width / 2;
+        origin.y = map->height / 2;
     }
-    std::vector<uint32_t> bare;
-    glideCopy(bare);
+    std::vector<GlideWalker> walkers;
+    const uint8_t* los = XU4_SCREEN->screenLos;
+    std::vector<MapTile> tiles;
+    for (int y = 0; y < vh; ++y) {
+        for (int x = 0; x < vw; ++x) {
+            if (! los[y * vw + x])
+                continue;
+            Coords tc = origin;
+            tc.x += x - vw / 2;
+            tc.y += y - vh / 2;
+            map_wrap(tc, map);
+            if (MAP_IS_OOB(map, tc))
+                continue;
+            const Object* obj = map->objectAt(tc);
+            bool party = centered && (map->flags & SHOW_AVATAR) &&
+                         tc.x == center.x && tc.y == center.y;
+            if (! obj && ! party)
+                continue;
+            tiles.clear();
+            c->location->getGroundTilesAt(tiles, tc);
+            view->drawTile(tiles, x, y);
+
+            GlideWalker w;
+            w.obj = party ? NULL : obj;
+            w.wx = tc.x;
+            w.wy = tc.y;
+            w.px = view->originX + x * T - view->x;
+            w.py = view->originY + y * TH - view->y;
+            walkers.push_back(w);
+        }
+    }
+    std::vector<uint32_t> ground;
+    glideCopy(ground);
     glidePaste(full);
 
-    if (! same || (dx == 0 && dy == 0) || dx < -1 || dx > 1 ||
-        dy < -1 || dy > 1) {
-        if (! same && glide.active) {
-            glide.active = false;
-            glide.restore = true;
+    // Each walker's pixels: where the view differs from its ground.
+    for (GlideWalker& w : walkers) {
+        w.sprite.assign(T * TH, 0);
+        for (int y = 0; y < TH; ++y) {
+            int py = w.py + y;
+            if (py < 0 || py >= glide.vh)
+                continue;
+            for (int x = 0; x < T; ++x) {
+                int px = w.px + x;
+                if (px < 0 || px >= glide.vw)
+                    continue;
+                int i = py * glide.vw + px;
+                if (full[i] != ground[i])
+                    w.sprite[y * T + x] = full[i];
+            }
         }
-        // A redraw while sliding (animation, others moving) is slid to.
-        if (glide.active && same && dx == 0 && dy == 0) {
-            glide.toBare = bare;
-            glide.toFull = full;
-        } else if (glide.active) {
-            glide.active = false;
-            glide.restore = true;
-        }
-        glide.lastBare.swap(bare);
-        return;
     }
 
-    // A step: slide from the last view to this one.
     uint32_t now = getTicks();
-    uint32_t pace = now - glide.lastStep;
-    glide.lastStep = now;
-    glide.ms = (pace < GLIDE_MS) ? pace : GLIDE_MS;
-    if (glide.ms < GLIDE_MIN_MS)
-        glide.ms = GLIDE_MIN_MS;
-    glide.start = now;
-    glide.dx = dx;
-    glide.dy = dy;
-    glide.fromBare.swap(glide.lastBare);
-    glide.toBare = bare;
-    glide.toFull = full;
-    glide.lastBare.swap(bare);
-    glide.active = xu4.settings->legacy.smoothMotion &&
-                   glide.fromBare.size() == glide.toBare.size();
+    if (! same || camDX == 2 || camDY == 2) {
+        // A new place, or a jump: nothing glides.
+        if (glide.active)
+            glide.restore = true;
+        glide.active = false;
+        glide.tracks.clear();
+        glide.camMs = 0;
+    } else {
+        // The map slides when the party steps.
+        if (camDX || camDY) {
+            uint32_t pace = now - glide.lastStep;
+            glide.lastStep = now;
+            glide.camMs = (pace < GLIDE_MS) ? pace : GLIDE_MS;
+            if (glide.camMs < GLIDE_MIN_MS)
+                glide.camMs = GLIDE_MIN_MS;
+            glide.camStart = now;
+            glide.camX = camDX * T;
+            glide.camY = camDY * TH;
+            glide.fromGround.swap(glide.ground);
+        }
+
+        // Those who stepped glide from their last square.
+        for (const GlideWalker& w : walkers) {
+            if (! w.obj)
+                continue;
+            const GlideWalker* old = NULL;
+            for (const GlideWalker& o : glide.walkers)
+                if (o.obj == w.obj) {
+                    old = &o;
+                    break;
+                }
+            if (! old)
+                continue;
+            int dx = glideStep(w.wx - old->wx, map->width, wrap);
+            int dy = glideStep(w.wy - old->wy, map->height, wrap);
+            if (dx == 2 || dy == 2 || (dx == 0 && dy == 0))
+                continue;
+
+            GlideTrack tr;
+            tr.obj = w.obj;
+            tr.lagX = -dx * T;
+            tr.lagY = -dy * TH;
+            // A step while still gliding goes on from where it is drawn.
+            for (size_t i = 0; i < glide.tracks.size(); ++i) {
+                if (glide.tracks[i].obj == w.obj) {
+                    int lx, ly;
+                    glideLag(glide.tracks[i], now, &lx, &ly);
+                    tr.lagX += lx;
+                    tr.lagY += ly;
+                    glide.tracks.erase(glide.tracks.begin() + i);
+                    break;
+                }
+            }
+            tr.start = now;
+            tr.ms = GLIDE_MS;
+            glide.tracks.push_back(tr);
+        }
+        if (glide.camMs || ! glide.tracks.empty())
+            glide.active = true;
+    }
+    glide.ground.swap(ground);
+    glide.walkers.swap(walkers);
+    if (glide.fromGround.size() != glide.ground.size())
+        glide.camMs = 0;
 }
 
 /*
- * Make the view as shown this frame.  Returns false if not sliding.
+ * Make the view as shown this frame.  Returns false if nothing glides.
  */
 static bool screenGlideFrame() {
     if (! glide.active)
@@ -1158,19 +1293,37 @@ static bool screenGlideFrame() {
         glide.active = false;
         return false;
     }
-    uint32_t t = getTicks() - glide.start;
-    if (t >= glide.ms) {
+    uint32_t now = getTicks();
+
+    // How far the map still lags behind the party, in pixels.
+    int lagX = 0, lagY = 0;
+    if (glide.camMs) {
+        uint32_t t = now - glide.camStart;
+        if (t >= glide.camMs)
+            glide.camMs = 0;
+        else {
+            lagX = glide.camX * (int) (glide.camMs - t) / (int) glide.camMs;
+            lagY = glide.camY * (int) (glide.camMs - t) / (int) glide.camMs;
+        }
+    }
+    for (size_t i = 0; i < glide.tracks.size(); ) {
+        if (now - glide.tracks[i].start >= glide.tracks[i].ms)
+            glide.tracks.erase(glide.tracks.begin() + i);
+        else
+            ++i;
+    }
+    if (! glide.camMs && glide.tracks.empty()) {
         glide.active = false;
         return false;
     }
 
-    // How far the view still lags behind the party, in pixels.
-    int lagX = glide.dx * (int) ((glide.ms - t) * glide.tileW / glide.ms);
-    int lagY = glide.dy * (int) ((glide.ms - t) * glide.tileH / glide.ms);
-    int fromX = lagX - glide.dx * glide.tileW;
-    int fromY = lagY - glide.dy * glide.tileH;
     const int w = glide.vw;
     const int h = glide.vh;
+    const int T = glide.tileW;
+    const int TH = glide.tileH;
+    int fromX = lagX - (glide.camX > 0 ? T : glide.camX < 0 ? -T : 0);
+    int fromY = lagY - (glide.camY > 0 ? TH : glide.camY < 0 ? -TH : 0);
+    bool sliding = glide.camMs != 0;
 
     glide.frame.resize(w * h);
     uint32_t* dp = glide.frame.data();
@@ -1181,26 +1334,42 @@ static bool screenGlideFrame() {
             int tx = x - lagX;
             int fx = x - fromX;
             if (tx >= 0 && tx < w && ty >= 0 && ty < h)
-                *dp++ = glide.toBare[ty * w + tx];
-            else if (fx >= 0 && fx < w && fy >= 0 && fy < h)
-                *dp++ = glide.fromBare[fy * w + fx];
+                *dp++ = glide.ground[ty * w + tx];
+            else if (sliding && fx >= 0 && fx < w && fy >= 0 && fy < h)
+                *dp++ = glide.fromGround[fy * w + fx];
             else
                 *dp++ = 0xff000000;
         }
     }
 
-    // The party stays put: their pixels over the slid ground.
-    for (int y = 0; y < glide.tileH; ++y) {
-        int py = glide.partyY + y;
-        if (py < 0 || py >= h)
-            continue;
-        for (int x = 0; x < glide.tileW; ++x) {
-            int px = glide.partyX + x;
-            if (px < 0 || px >= w)
+    // The walkers over the ground: those on the map slide with it, gliding
+    // from their last square, and the party stays put.
+    for (int pass = 0; pass < 2; ++pass) {
+        for (const GlideWalker& wk : glide.walkers) {
+            if ((wk.obj == NULL) != (pass == 1))
                 continue;
-            int i = py * w + px;
-            if (glide.toFull[i] != glide.toBare[i])
-                glide.frame[i] = glide.toFull[i];
+            int ox = wk.px, oy = wk.py;
+            if (wk.obj) {
+                ox += lagX;
+                oy += lagY;
+                for (const GlideTrack& tr : glide.tracks)
+                    if (tr.obj == wk.obj) {
+                        int lx, ly;
+                        glideLag(tr, now, &lx, &ly);
+                        ox += lx;
+                        oy += ly;
+                        break;
+                    }
+            }
+            const uint32_t* sp = wk.sprite.data();
+            for (int y = 0; y < TH; ++y) {
+                int py = oy + y;
+                for (int x = 0; x < T; ++x, ++sp) {
+                    int px = ox + x;
+                    if (*sp && px >= 0 && px < w && py >= 0 && py < h)
+                        glide.frame[py * w + px] = *sp;
+                }
+            }
         }
     }
     return true;
