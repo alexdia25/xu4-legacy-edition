@@ -648,6 +648,236 @@ static bool removeFiles() {
     return true;
 }
 
+//----------------------------------------------------------------------------
+// Saved games: export to a zip & import from one (the web version's Export
+// Saves makes the same zip).
+
+// Return true for a path (relative to the data folder) that holds settings
+// or saves, not game data, modules or temporary files.
+static bool isSavePath(const std::string& rel) {
+    if (rel.empty() || rel[0] == '/' || rel.find("..") != std::string::npos)
+        return false;
+    std::string lo = lower(rel);
+    if (lo.compare(0, 3, "u4/") == 0 || lo.compare(0, 5, "docs/") == 0)
+        return false;
+    std::string base = baseName(lo);
+    std::string ext = extension(base);
+    if (ext == "zip" || ext == "tmp" || isImageFile(base) ||
+        base == "modules.version")
+        return false;
+    for (const char** it = moduleFiles; *it; ++it)
+        if (base == lower(*it))
+            return false;
+    return true;
+}
+
+static void put16(std::vector<uint8_t>& out, uint32_t v) {
+    out.push_back(v & 0xff);
+    out.push_back((v >> 8) & 0xff);
+}
+static void put32(std::vector<uint8_t>& out, uint32_t v) {
+    put16(out, v & 0xffff);
+    put16(out, v >> 16);
+}
+
+/*
+ * Make a zip (stored, not compressed) of the settings & saves.
+ */
+static bool zipSaves(std::vector<uint8_t>& zip, int& count) {
+    std::string data(androidInternalData());
+    int n = 0;
+    char** paths = SDL_GlobDirectory(data.c_str(), NULL, 0, &n);
+    if (! paths)
+        return false;
+
+    std::vector<uint8_t> dir;
+    count = 0;
+    for (int i = 0; i < n; ++i) {
+        std::string rel(paths[i]);
+        std::string full = data + "/" + rel;
+        SDL_PathInfo info;
+        if (! SDL_GetPathInfo(full.c_str(), &info) ||
+            info.type != SDL_PATHTYPE_FILE || ! isSavePath(rel))
+            continue;
+        size_t len;
+        uint8_t* buf = (uint8_t*) SDL_LoadFile(full.c_str(), &len);
+        if (! buf)
+            continue;
+        uint32_t crc = crc32(0L, buf, (uInt) len);
+        uint32_t offset = zip.size();
+
+        put32(zip, 0x04034b50); put16(zip, 20); put16(zip, 0); put16(zip, 0);
+        put32(zip, 0); put32(zip, crc); put32(zip, len); put32(zip, len);
+        put16(zip, rel.size()); put16(zip, 0);
+        zip.insert(zip.end(), rel.begin(), rel.end());
+        zip.insert(zip.end(), buf, buf + len);
+        SDL_free(buf);
+
+        put32(dir, 0x02014b50); put16(dir, 20); put16(dir, 20);
+        put16(dir, 0); put16(dir, 0); put32(dir, 0);
+        put32(dir, crc); put32(dir, len); put32(dir, len);
+        put16(dir, rel.size()); put16(dir, 0); put16(dir, 0);
+        put16(dir, 0); put16(dir, 0); put32(dir, 0); put32(dir, offset);
+        dir.insert(dir.end(), rel.begin(), rel.end());
+        ++count;
+    }
+    SDL_free(paths);
+
+    uint32_t dirOffset = zip.size();
+    zip.insert(zip.end(), dir.begin(), dir.end());
+    put32(zip, 0x06054b50); put16(zip, 0); put16(zip, 0);
+    put16(zip, count); put16(zip, count);
+    put32(zip, dir.size()); put32(zip, dirOffset); put16(zip, 0);
+    return count > 0;
+}
+
+static std::string exportSaves() {
+    std::vector<uint8_t> zip;
+    int count;
+    if (! zipSaves(zip, count))
+        return "There are no settings or saved games to export yet.";
+
+    char name[40];
+    SDL_Time now;
+    SDL_DateTime dt;
+    if (SDL_GetCurrentTime(&now) && SDL_TimeToDateTime(now, &dt, true))
+        snprintf(name, sizeof(name), "xu4-saves-%04d-%02d-%02d.zip",
+                 dt.year, dt.month, dt.day);
+    else
+        strcpy(name, "xu4-saves.zip");
+
+    DialogResult res;
+    res.done = false;
+    SDL_ShowSaveFileDialog(dialogDone, &res, NULL, NULL, 0, name);
+    while (! res.done) {
+        SDL_PumpEvents();
+        SDL_Delay(50);
+    }
+    if (res.files.empty())
+        return std::string();
+    if (! SDL_SaveFile(res.files[0].c_str(), zip.data(), zip.size()))
+        return std::string("The saves could not be written (") +
+               SDL_GetError() + ").";
+    return "Exported the settings and " + std::to_string(count) +
+           " file(s) of saved games.";
+}
+
+/*
+ * Import saves from a zip made by Export Saves.  Returns the number of
+ * files written, or -1 if the zip holds no saved games.
+ */
+static int importSavesZip(const std::string& path) {
+    unzFile zf = unzOpen(path.c_str());
+    if (! zf)
+        return -1;
+
+    std::string data(androidInternalData());
+    std::vector<uint8_t> buf;
+    char name[512];
+    unz_file_info info;
+    bool haveSave = false;
+    for (int r = unzGoToFirstFile(zf); r == UNZ_OK; r = unzGoToNextFile(zf)) {
+        if (unzGetCurrentFileInfo(zf, &info, name, sizeof(name), NULL, 0,
+                                  NULL, 0) == UNZ_OK) {
+            std::string base = lower(baseName(name));
+            if (base == "party.sav" || base == "xu4rc")
+                haveSave = true;
+        }
+    }
+    if (! haveSave) {
+        unzClose(zf);
+        return -1;
+    }
+
+    int count = 0;
+    for (int r = unzGoToFirstFile(zf); r == UNZ_OK; r = unzGoToNextFile(zf)) {
+        if (unzGetCurrentFileInfo(zf, &info, name, sizeof(name), NULL, 0,
+                                  NULL, 0) != UNZ_OK)
+            continue;
+        std::string rel(name);
+        if (rel.empty() || rel.back() == '/' || ! isSavePath(rel))
+            continue;
+        if (! zipRead(zf, buf, info.uncompressed_size))
+            continue;
+        if (saveData(data + "/" + rel, buf.data(), buf.size()))
+            ++count;
+    }
+    unzClose(zf);
+    return count;
+}
+
+static std::string importSaves(bool& imported) {
+    const SDL_MessageBoxButtonData buttons[] = {
+        { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Choose Zip" },
+        { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Cancel" }
+    };
+    SDL_MessageBoxData box = {
+        SDL_MESSAGEBOX_WARNING, NULL, "Import Saves",
+        "Choose a zip made by Export Saves (here or in the web version). "
+        "Its settings and saved games replace the ones on this device, and "
+        "XU4 then closes: open it again to play them.",
+        2, buttons, NULL
+    };
+    int choice = 0;
+    if (! SDL_ShowMessageBox(&box, &choice) || choice != 1)
+        return std::string();
+
+    std::vector<PickedFile> files;
+    pickFiles(files);
+    if (files.empty())
+        return std::string();
+
+    std::string zipTemp = std::string(androidInternalData()) + "/import.zip";
+    size_t len;
+    void* zdata = SDL_LoadFile(files[0].uri.c_str(), &len);
+    if (! zdata)
+        return "That file could not be read.";
+    int count = -1;
+    if (SDL_SaveFile(zipTemp.c_str(), zdata, len)) {
+        count = importSavesZip(zipTemp);
+        SDL_RemovePath(zipTemp.c_str());
+    }
+    SDL_free(zdata);
+    if (count < 0)
+        return "No saved games were found in " + files[0].name + ".";
+    imported = true;
+    return "Imported " + std::to_string(count) + " file(s) from " +
+           files[0].name + ".";
+}
+
+/*
+ * Export or import the saves.  Exits after an import so that the game
+ * starts again with them (& does not write over them with what it has).
+ */
+static std::string savesBox() {
+    const SDL_MessageBoxButtonData buttons[] = {
+        { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Export Saves" },
+        { 0, 2, "Import Saves" },
+        { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Cancel" }
+    };
+    SDL_MessageBoxData box = {
+        SDL_MESSAGEBOX_INFORMATION, NULL, "Saved Games",
+        "Export Saves makes a zip of the settings and saved games, to keep "
+        "or to move to another device. Import Saves puts them back.",
+        3, buttons, NULL
+    };
+    int choice = 0;
+    if (! SDL_ShowMessageBox(&box, &choice) || choice == 0)
+        return std::string();
+    if (choice == 1)
+        return exportSaves();
+
+    bool imported = false;
+    std::string msg = importSaves(imported);
+    if (imported) {
+        msg += "\n\nXU4 closes now. Open it again to play.";
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import Saves",
+                                 msg.c_str(), NULL);
+        exit(0);
+    }
+    return msg;
+}
+
 /*
  * Show the game files, and add or remove some.  Returns true if any were
  * added or removed; the data is then read again (androidTakeDataAdded).
@@ -661,16 +891,23 @@ bool androidAddGameFiles() {
             { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Choose Files" },
             { 0, 2, "Choose Folder" },
             { 0, 3, "Remove..." },
+            { 0, 4, "Saves..." },
             { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Close" }
         };
         SDL_MessageBoxData box = {
             SDL_MESSAGEBOX_INFORMATION, NULL, "Game Files", msg.c_str(),
-            4, buttons, NULL
+            5, buttons, NULL
         };
         int choice = 0;
         if (! SDL_ShowMessageBox(&box, &choice) || choice == 0)
             return dataAdded;
 
+        if (choice == 4) {
+            note = savesBox();
+            if (! note.empty())
+                note += "\n\n";
+            continue;
+        }
         if (choice == 3) {
             if (removeFiles())
                 note = "Removed. They stop being used when you close this.\n\n";

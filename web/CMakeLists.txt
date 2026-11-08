@@ -39,6 +39,6 @@ target_link_options(xu4 PRIVATE
     -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864
     -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3=1
     -sENVIRONMENT=web -lidbfs.js
-    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,addRunDependency,removeRunDependency,callMain
+    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,addRunDependency,removeRunDependency,callMain,UTF8ToString
     --preload-file ${XU4_ASSETS}@/data
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/shell.html)

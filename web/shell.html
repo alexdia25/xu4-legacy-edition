@@ -38,11 +38,22 @@
   button, label.button { display: inline-block; margin: .5rem .5rem 0 0; padding: .55rem 1.1rem;
            font: inherit; font-weight: 600; color: #fff; background: #2a4aa0; border: 0;
            border-radius: 6px; cursor: pointer; }
-  button.quiet { background: #333a5a; }
+  button.quiet, label.button.quiet { background: #333a5a; }
+  [hidden] { display: none !important; }
   input[type=file] { display: none; }
   #menuButton { position: fixed; top: env(safe-area-inset-top, 0); right: env(safe-area-inset-right, 0);
                 margin: 6px; padding: 4px 10px; background: rgba(40,60,150,.8); z-index: 5; }
   #status { min-height: 1.4em; }
+  #iosNote { color: #fc6; }
+  #errorDetails { max-height: 12rem; overflow: auto; white-space: pre-wrap; font-size: .75rem;
+                  background: #000; color: var(--dim); padding: .5rem; border-radius: 4px;
+                  -webkit-user-select: text; user-select: text; }
+  #updateBar { position: fixed; left: 50%; transform: translateX(-50%);
+               top: env(safe-area-inset-top, 0); margin-top: 6px; z-index: 6;
+               background: var(--panel); border: 2px solid var(--edge); border-radius: 6px;
+               padding: 4px 4px 4px 12px; font-size: .9rem; white-space: nowrap; }
+  #updateBar[hidden] { display: none; }
+  #updateBar button { margin: 0 0 0 .5rem; padding: .25rem .7rem; font-size: .85rem; }
   #rotate { display: none; }
   @media (orientation: portrait) and (pointer: coarse) {
     #rotate { display: block; color: #fc6; }
@@ -60,6 +71,8 @@
        the DOS game (from GOG, or <code>ultima4.zip</code>); your files and saved games stay in this
        browser.</p>
     <p id="rotate">Turn your device sideways to play.</p>
+    <p id="iosNote" hidden>Safari deletes saved games after 7 days without a visit: add XU4 to
+       the Home Screen (Share, Add to Home Screen) to keep them.</p>
     <p id="status">Loading...</p>
     <button id="playButton" disabled>Play</button>
     <button class="quiet" id="startFiles" disabled>Game Files</button>
@@ -75,16 +88,36 @@
     <label class="button" for="folderInput" id="folderButton">Choose Folder</label>
     <button id="restartButton" hidden>Restart</button>
     <button class="quiet" id="exportButton">Export Saves</button>
+    <label class="button quiet" for="savesInput" id="importButton">Import Saves</label>
     <button class="quiet" id="closeFiles">Close</button>
     <input type="file" id="fileInput" multiple>
     <input type="file" id="folderInput" webkitdirectory>
+    <input type="file" id="savesInput" accept=".zip,application/zip">
   </div>
+</div>
+
+<div class="overlay" id="errorBox" hidden>
+  <div class="box">
+    <h1>XU4 stopped</h1>
+    <p id="errorText"></p>
+    <p>Your saved games are kept. Copy Details puts what happened on the clipboard for a bug
+       report.</p>
+    <pre id="errorDetails"></pre>
+    <button id="copyError">Copy Details</button>
+    <button class="quiet" id="errorExport">Export Saves</button>
+    <button class="quiet" id="errorReload">Reload</button>
+  </div>
+</div>
+
+<div id="updateBar" hidden>A new version of XU4 is out.
+  <button id="updateReload">Reload</button><button class="quiet" id="updateLater">Later</button>
 </div>
 
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
 const DATA = '/xu4';
+const VERSION_NAME = '@VERSION@';   // Set by dist/build-web.sh.
 let syncing = false, needSync = false, pendingChoose = null;
 
 // Write the files in DATA back to IndexedDB.
@@ -111,7 +144,7 @@ const INTRO = '<p>XU4 needs the files of Ultima IV for DOS.</p><ul>' +
 const LATER = '<p>Add more files at any time: <code>u4upgrad.zip</code> (the VGA upgrade), Apple II ' +
   '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images and the Sega ' +
   'Master System ROM (<code>.sms</code>), on their own or in zip files. Export Saves downloads ' +
-  'your settings and saved games as a zip.</p>';
+  'your settings and saved games as a zip, and Import Saves puts them back.</p>';
 
 // iOS has no folder picker; selecting the files (or a zip) works there.
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
@@ -176,6 +209,7 @@ function showFiles(text, canClose, restart) {
   if (canClose) showStored(); else $('stored').innerHTML = '';
   $('closeFiles').hidden = !canClose;
   $('exportButton').hidden = !canClose;
+  $('importButton').hidden = !canClose;
   $('restartButton').hidden = !restart;
   $('filesBox').hidden = false;
 }
@@ -349,7 +383,7 @@ for (const id of ['fileInput', 'folderInput']) {
 // hidden element; bring back the Files button & box.
 new MutationObserver(() => {
   if (document.getElementById('SDL3_fill_document_background_elements'))
-    for (const id of ['menuButton', 'filesBox'])
+    for (const id of ['menuButton', 'filesBox', 'errorBox', 'updateBar'])
       if ($(id).parentNode !== document.body) document.body.appendChild($(id));
 }).observe(document.body, { childList: true });
 $('restartButton').onclick = () => {
@@ -408,13 +442,80 @@ function listFiles(path, prefix, out) {
   }
   return out;
 }
-$('exportButton').onclick = () => {
+function exportSaves() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(zipFiles(listFiles(DATA, '', [])));
   a.download = 'xu4-saves-' + new Date().toISOString().slice(0, 10) + '.zip';
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+$('exportButton').onclick = exportSaves;
+
+// Import Saves: a zip made by Export Saves (here or by the Android app)
+// replaces the settings & saved games, then the game starts again.
+const isSavePath = (p) => !/(^|\/)\.\.(\/|$)/.test(p) && !p.startsWith('/') && !p.endsWith('/') &&
+  !/^(u4|docs)\//i.test(p) && !/\.(zip|tmp|dsk|do|d64|d81|sms|pak|mod)$/i.test(p) &&
+  !/(^|\/)modules\.version$/i.test(p);
+$('savesInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const buf = new Uint8Array(await f.arrayBuffer());
+  const list = zipEntries(buf);
+  if (!list || !list.some((x) => /^(party\.sav|xu4rc)$/i.test(baseName(x.name)))) {
+    showFiles('<p>No saved games were found in ' + f.name.replace(/[&<>]/g, '') + '.</p>' + LATER,
+              true, false);
+    return;
+  }
+  if (!confirm('Replace the settings and saved games in this browser with the ones in ' +
+               f.name + '?' + (running ? ' The game starts again.' : ''))) return;
+  let n = 0;
+  for (const x of list) {
+    if (!isSavePath(x.name)) continue;
+    saveFile(DATA + '/' + x.name, await zipRead(buf, x));
+    ++n;
+  }
+  FS.syncfs(false, () => {
+    if (running) location.reload();
+    else showFiles('<p>Imported ' + n + ' file(s) of settings and saved games.</p>' + LATER, true);
+  });
+});
+
+// The last lines the game printed, for the error box's details.
+const logLines = [];
+function logLine(text) {
+  logLines.push(text);
+  if (logLines.length > 40) logLines.shift();
+}
+let errorShown = false;
+function showError(message) {
+  if (errorShown) return;
+  errorShown = true;
+  $('errorText').textContent = message || 'Something went wrong.';
+  $('errorDetails').textContent = 'XU4 Legacy Edition ' + VERSION_NAME + ' (web)\n' +
+    navigator.userAgent + '\n' + (message || '') + '\n\n' + logLines.join('\n');
+  $('errorExport').hidden = !running;
+  $('filesBox').hidden = true;
+  $('errorBox').hidden = false;
+  if (document.getElementById('SDL3_fill_document_background_elements') &&
+      $('errorBox').parentNode !== document.body)
+    document.body.appendChild($('errorBox'));
+}
+$('copyError').onclick = () => {
+  const text = $('errorDetails').textContent;
+  const done = () => { $('copyError').textContent = 'Copied'; };
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(text).then(done, () => window.prompt('Copy this:', text));
+  else window.prompt('Copy this:', text);
 };
+$('errorExport').onclick = () => { try { exportSaves(); } catch (e) {} };
+$('errorReload').onclick = () => location.reload();
+window.addEventListener('error', (e) => {
+  if (running) showError(e.message || String(e.error));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  if (running) showError(String(e.reason && e.reason.message || e.reason));
+});
 
 var Module = {
   canvas: $('canvas'),
@@ -434,8 +535,12 @@ var Module = {
     $('startFiles').disabled = false;
   },
   setStatus: (text) => { if (text) $('status').textContent = text; },
-  print: (text) => console.log(text),
-  printErr: (text) => console.warn(text),
+  print: (text) => { logLine(text); console.log(text); },
+  printErr: (text) => { logLine(text); console.warn(text); },
+  // Called by the game (src/error.cpp) on a fatal error, & by the runtime
+  // when the game crashes.
+  xu4Error: (message) => showError(message),
+  onAbort: (what) => showError('The game crashed (' + what + ').'),
   // Called by the game (src/web.cpp) when ultima4.zip is missing.
   xu4ChooseFiles: (retry) => new Promise((resolve) => {
     pendingChoose = resolve;
@@ -456,8 +561,27 @@ $('playButton').onclick = () => {
   Module.callMain([]);
 };
 
-if ('serviceWorker' in navigator && location.protocol === 'https:')
-  navigator.serviceWorker.register('sw.js');
+// Safari's 7-day limit on what a site keeps does not apply to a site
+// added to the Home Screen.
+const STANDALONE = navigator.standalone ||
+                   (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+if (IOS && !STANDALONE) $('iosNote').hidden = false;
+
+// A new version published while playing: say so (the next load uses it).
+$('updateReload').onclick = () => {
+  if (!running) { location.reload(); return; }
+  if (confirm('Reload XU4 now? Anything not saved is lost.')) FS.syncfs(false, () => location.reload());
+};
+$('updateLater').onclick = () => { $('updateBar').hidden = true; };
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      // The first install is not an update.
+      if (navigator.serviceWorker.controller) $('updateBar').hidden = false;
+    });
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+  });
+}
 </script>
 {{{ SCRIPT }}}
 </body>

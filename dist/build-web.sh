@@ -54,7 +54,7 @@ cmake --build ${WORK}/build -j8
 
 rm -rf ${SITE}
 mkdir -p ${SITE}
-cp ${WORK}/build/xu4.html ${SITE}/index.html
+sed "s/@VERSION@/${VERSION}/" ${WORK}/build/xu4.html > ${SITE}/index.html
 cp ${WORK}/build/xu4.js ${WORK}/build/xu4.wasm ${WORK}/build/xu4.data ${SITE}
 cp ${TOP}/web/manifest.webmanifest ${SITE}
 sed "s/@VERSION@/${VERSION}-$(date +%s)/" ${TOP}/web/sw.js > ${SITE}/sw.js
