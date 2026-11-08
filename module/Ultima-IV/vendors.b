@@ -28,6 +28,14 @@ stats-reset: [
     quit
 ]
 
+; Number of portions (each of size food units * 100) the party can afford
+; and still carry.
+food-limit: func [price size] [
+    gold: div party 'gold price
+    room: div sub 999900 party 'food size
+    either lt? gold room [gold] [room]
+]
+
 enum: func [start list] [
     forall list [set first list ++ start]
 ]
@@ -208,6 +216,7 @@ weapons: context [
     howmany_buy: [
         vo 7
         >> "^/How many would^/you like? "
+        dial-limit div party 'gold price price
         either quant: input-number 2 [buy] [anything_else_buy]
     ]
 
@@ -439,6 +448,7 @@ armor: context [
     howmany_buy: [
         vo 6
         >> "^/How many would^/you like? "
+        dial-limit div party 'gold price price
         either quant: input-number 2 [buy] [anything_else_buy]
     ]
 
@@ -608,6 +618,7 @@ food: context [
         vo 5
         => "^/How many packs of # would you like? "
             ['#' portion]
+        dial-limit food-limit price mul portion 100 price
         either quant: input-number 3 [
             buy
         ][
@@ -693,6 +704,7 @@ tavern: context [
 
     how_many_plates: [
         >> "^/How many plates would you^/like? "
+        dial-limit food-limit spec_price 100 spec_price
         either quant: input-number 2 [
             pay spec_price quant [
                 vo 6
@@ -955,6 +967,7 @@ reagents: context [
         vo 3
         => "^/Very well, we sell = for $gp. How many would you^/like? "
             item-vars
+        dial-limit div party 'gold price price
         either quant: input-number 2 [you_pay] [i_see_then]
     ]
 

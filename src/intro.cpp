@@ -379,6 +379,7 @@ IntroController::IntroController() :
     moreMenu.add(MI_MORE_COUNTS,  new BoolMenuItem("Counts In Action Menu    %s", 2,  3,/*'o'*/  1, &lo.menuCounts));
     moreMenu.add(MI_MORE_LIGHT,   new BoolMenuItem("Light In The Dark        %s", 2,  4,/*'l'*/  0, &lo.lightFirst));
     moreMenu.add(MI_MORE_STEAL,   new BoolMenuItem("Name Stealing            %s", 2,  5,/*'s'*/  5, &lo.nameSteal));
+    moreMenu.add(MI_MORE_DIALS,   new BoolMenuItem("Shop Dials Stop At Gold  %s", 2,  6,/*'d'*/  5, &lo.capDials));
     moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu.addShortcutKey(CANCEL, ' ');
@@ -1983,6 +1984,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_COUNTS, "The action menu shows the torches, gems and keys left." },
         { &moreMenu, MI_MORE_LIGHT, "In a dark dungeon, a torch or the Light spell is offered first." },
         { &moreMenu, MI_MORE_STEAL, "A chest in a town is offered as Steal Chest: taking it costs virtue." },
+        { &moreMenu, MI_MORE_DIALS, "Shop number dials stop at what thy gold buys, and show the cost." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
         { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },

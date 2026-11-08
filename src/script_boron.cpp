@@ -476,6 +476,24 @@ CFUNC(cf_inputNumber)
 }
 
 /*-cf-
+    dial-limit
+        max         int!  Largest number the party can afford.
+        price       int!  Cost of one.
+    return: unset!
+
+    Limit the next input-number dial (Shop Dials Stop At Gold option) and
+    show the cost of the number picked.
+*/
+CFUNC(cf_dialLimit)
+{
+    (void) ut;
+    EventHandler::dialLimit = ur_int(a1);
+    EventHandler::dialPrice = ur_int(a1+1);
+    ur_setId(res, UT_UNSET);
+    return UR_OK;
+}
+
+/*-cf-
     input-text
         limit       int!/block!  Maximum number of characters, or topics
     return: none!/string!
@@ -1065,6 +1083,7 @@ static const BoronCFunc pfFuncs[] = {
     cf_screenMessage,
     cf_inputChoice,
     cf_inputNumber,
+    cf_dialLimit,
     cf_inputText,
     cf_inputPlayer,
     cf_party,
@@ -1094,6 +1113,7 @@ static const char pfFuncSpecs[] =
     ">> text\n"
     "input-choice spec string!/block!\n"
     "input-number limit int!\n"
+    "dial-limit max int! price int!\n"
     "input-text limit int!/block!\n"
     "input-player\n"
     "party a word!\n"

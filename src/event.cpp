@@ -1160,21 +1160,32 @@ bool ListPickerController::inputEvent(const InputEvent* ev) {
  */
 class NumberPickerController : public WaitableController<int> {
 public:
-    NumberPickerController(int maxValue, int x, int y)
-        : maxValue(maxValue), x(x), y(y), num(0) {
+    NumberPickerController(int maxValue, int x, int y, int price = 0)
+        : maxValue(maxValue), x(x), y(y), num(0), price(price) {
         value = 0;
     }
 
     virtual bool keyPressed(int key);
     virtual bool inputEvent(const InputEvent*);
     void draw() const {
-        screenTextAt(x, y, "%c%d%c   ", '<', num, '>');
+        char buf[24];
+        int len = snprintf(buf, sizeof(buf), "<%d>", num);
+        // Show the cost when it fits on the line.
+        if (price && num) {
+            char cost[12];
+            int clen = snprintf(cost, sizeof(cost), "%dgp", num * price);
+            if (x + len + 1 + clen <= TEXT_AREA_X + TEXT_AREA_W)
+                len += snprintf(buf + len, sizeof(buf) - len, " %s", cost);
+        }
+        int pad = TEXT_AREA_X + TEXT_AREA_W - x - len;
+        screenTextAt(x, y, "%s%*s", buf, (pad > 0) ? pad : 0, "");
     }
 
 private:
     int maxValue;
     int x, y;
     int num;
+    int price;
 };
 
 bool NumberPickerController::keyPressed(int key) {
@@ -1818,6 +1829,7 @@ int EventHandler::readInt(int maxlen)
             maxValue = maxValue * 10 + 9;
         return chooseNumber(maxValue);
     }
+    dialLimit = -1;
 
     ReadStringController ctrl(maxlen, TEXT_AREA_X + c->col,
                                       TEXT_AREA_Y + c->line,
@@ -2174,20 +2186,33 @@ int EventHandler::chooseInline(TextView* view, const char* const* items,
  * Pick a number from 0 to maxValue at the text cursor.
  * Returns 0 if cancelled.
  */
+int EventHandler::dialLimit = -1;
+int EventHandler::dialPrice = 0;
+
 int EventHandler::chooseNumber(int maxValue)
 {
     bool cursor = screenState()->cursorVisible;
     screenHideCursor();
 
+    int price = 0;
+    if (dialLimit >= 0 && xu4.settings->legacy.capDials) {
+        if (dialLimit < maxValue)
+            maxValue = dialLimit;
+        price = dialPrice;
+    }
+    dialLimit = -1;
+
     NumberPickerController ctrl(maxValue, TEXT_AREA_X + c->col,
-                                TEXT_AREA_Y + c->line);
+                                TEXT_AREA_Y + c->line, price);
     ctrl.draw();
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();
 
+    int digits = snprintf(NULL, 0, "%d", n);
+    int pad = TEXT_AREA_W - c->col - digits;
     screenTextAt(TEXT_AREA_X + c->col, TEXT_AREA_Y + c->line, "%d%*s",
-                 n, 5, "");
-    c->col += snprintf(NULL, 0, "%d", n);
+                 n, (pad > 0) ? pad : 0, "");
+    c->col += digits;
     screenShowCursor(cursor);
     return n;
 }

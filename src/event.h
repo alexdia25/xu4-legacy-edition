@@ -193,6 +193,9 @@ public:
     static uint32_t pressCount;
     static void noteCancel() { if (cancelArmed) ++cancelCount; }
     static int  chooseNumber(int maxValue);
+    // Set by the dial-limit script function for the next chooseNumber.
+    static int  dialLimit;
+    static int  dialPrice;
     static const char* readLetters(int maxlen);
     static int  chooseList(TextView* view, int x, int y, int width,
                            int rows, const char* const* items, int count);

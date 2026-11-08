@@ -257,6 +257,7 @@ private:
         MI_MORE_COUNTS,
         MI_MORE_LIGHT,
         MI_MORE_STEAL,
+        MI_MORE_DIALS,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,
