@@ -141,7 +141,7 @@ void screenShake(int iterations);
 void screenShowChar(int chr, int x, int y);
 void screenShowCharPixel(int chr, int x, int y);
 void screenTextAt(int x, int y, const char *fmt, ...) PRINTF_LIKE(3, 4);
-void screenTextColor(int color);
+void screenTextColor(int color, bool always = false);
 bool screenTileUpdate(TileView *view, const Coords &coords);
 #ifdef GPU_RENDER
 void screenDisableMap();

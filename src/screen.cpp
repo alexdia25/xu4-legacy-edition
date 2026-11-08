@@ -1533,9 +1533,9 @@ void screenDrawImageInMapArea(Symbol name) {
 /**
  * Change the current text color
  */
-void screenTextColor(int color) {
-    if (!xu4.settings->enhancements ||
-        !xu4.settings->enhancementsOptions.textColorization) {
+void screenTextColor(int color, bool always) {
+    if (! always && (!xu4.settings->enhancements ||
+        !xu4.settings->enhancementsOptions.textColorization)) {
         return;
     }
 

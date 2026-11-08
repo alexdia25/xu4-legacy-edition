@@ -99,7 +99,7 @@ build-items: func [
         append inventory rejoin [uppercase key ' ' name '^/']
 
         append items mark-sol key
-        append items name       ; Label for the console menus.
+        append items ware-label name cost   ; Label for the console menus.
         append/block items reduce [
            to-set-word 'type  to-lit-word type
            to-set-word 'name  name
@@ -142,6 +142,7 @@ weapons: context [
     ; Buying
 
     show_inventory: [
+        stock stock-list    ; Labels for the gold left.
         => "^/We Have:^/+Your^/Interest? "
             ['+' inventory]
         input-choice items
@@ -327,7 +328,9 @@ weapons: context [
         mystic-sword 'p' "Mystic Sword" 7000
     ]
 
-    stock: func [list] [
+    stock-list: none
+    stock: func [list /extern stock-list] [
+        stock-list: list
         build-items list check_money all-weapons
         append items 'adieu
     ]
@@ -393,6 +396,7 @@ armor: context [
     ; Buying
 
     show_inventory: [
+        stock stock-list    ; Labels for the gold left.
         vo 2
         => "^/We've got:^/+^/What'll it^/be? "
             ['+' inventory]
@@ -555,7 +559,9 @@ armor: context [
         mystic-robe 'h' "Mystic Robe" 9000
     ]
 
-    stock: func [list] [
+    stock-list: none
+    stock: func [list /extern stock-list] [
+        stock-list: list
         build-items list check_money all-armor
         append items 'adieu
     ]

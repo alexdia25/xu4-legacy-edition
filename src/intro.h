@@ -265,6 +265,7 @@ private:
         MI_MORE_AUTO,
         MI_MORE_NEXT,
         MI_MORE_SPELL,
+        MI_MORE_WARES,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,

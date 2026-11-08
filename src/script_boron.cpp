@@ -494,6 +494,27 @@ CFUNC(cf_dialLimit)
 }
 
 /*-cf-
+    ware-label
+        name        string!  Name of the item for sale.
+        price       int!     Cost of one.
+    return: string!
+
+    The name as a shop list shows it: grey when the party cannot pay for
+    one (Shop Colours option).
+*/
+CFUNC(cf_wareLabel)
+{
+    USeriesIter si;
+    ur_seriesSlice(ut, &si, a1);
+    std::string name(si.buf->ptr.c + si.it, si.end - si.it);
+    if (xu4.settings->legacy.shopColours && c->saveGame->gold < ur_int(a1+1))
+        name.insert(name.begin(), (char) FG_GREY);
+    UBuffer* buf = ur_makeStringCell(ut, UR_ENC_LATIN1, name.size(), res);
+    ur_strAppendCStr(buf, name.c_str());
+    return UR_OK;
+}
+
+/*-cf-
     input-text
         limit       int!/block!  Maximum number of characters, or topics
     return: none!/string!
@@ -1084,6 +1105,7 @@ static const BoronCFunc pfFuncs[] = {
     cf_inputChoice,
     cf_inputNumber,
     cf_dialLimit,
+    cf_wareLabel,
     cf_inputText,
     cf_inputPlayer,
     cf_party,
@@ -1114,6 +1136,7 @@ static const char pfFuncSpecs[] =
     "input-choice spec string!/block!\n"
     "input-number limit int!\n"
     "dial-limit max int! price int!\n"
+    "ware-label name string! price int!\n"
     "input-text limit int!/block!\n"
     "input-player\n"
     "party a word!\n"

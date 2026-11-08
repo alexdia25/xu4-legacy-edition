@@ -1020,10 +1020,20 @@ void ListPickerController::draw() const {
             more = '^';
         else if (i == rows - 1 && n < count - 1)
             more = 'v';
-        screenTextAt(TEXT_AREA_X, TEXT_AREA_Y + line + i, "%c%-*.*s%c",
-                     (n == sel) ? CHARSET_BULLET : ' ',
-                     TEXT_AREA_W - 2, TEXT_AREA_W - 2,
-                     (n < count) ? items[n] : "", more);
+        // An item may start with a colour (e.g. grey for wares too dear).
+        const char* s = (n < count) ? items[n] : "";
+        char color[2] = { 0, 0 };
+        if (*s >= FG_GREY && *s <= FG_WHITE)
+            color[0] = *s++;
+        int y = TEXT_AREA_Y + line + i;
+        screenTextAt(TEXT_AREA_X, y, "%c", (n == sel) ? CHARSET_BULLET : ' ');
+        if (color[0])
+            screenTextColor(color[0], true);
+        screenTextAt(TEXT_AREA_X + 1, y, "%-*.*s",
+                     TEXT_AREA_W - 2, TEXT_AREA_W - 2, s);
+        if (color[0])
+            screenTextColor(FG_WHITE, true);
+        screenTextAt(TEXT_AREA_X + TEXT_AREA_W - 1, y, "%c", more);
     }
 }
 

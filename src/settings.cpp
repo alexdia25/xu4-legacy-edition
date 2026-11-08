@@ -295,6 +295,7 @@ bool Settings::read() {
     legacy.lightFirst   = true;
     legacy.nameSteal    = true;
     legacy.capDials     = true;
+    legacy.shopColours  = true;
     legacy.spellExtras  = true;
     legacy.sceneStop    = true;
     legacy.autoExtras   = true;
@@ -485,6 +486,8 @@ bool Settings::read() {
             legacy.nameSteal = toInt(val);
         else if (VALUE("capDials="))
             legacy.capDials = toInt(val);
+        else if (VALUE("shopColours="))
+            legacy.shopColours = toInt(val);
         else if (VALUE("spellExtras="))
             legacy.spellExtras = toInt(val);
         else if (VALUE("sceneStop="))
@@ -685,6 +688,7 @@ bool Settings::write() {
             "lightFirst=%d\n"
             "nameSteal=%d\n"
             "capDials=%d\n"
+            "shopColours=%d\n"
             "spellExtras=%d\n"
             "sceneStop=%d\n"
             "autoExtras=%d\n"
@@ -726,6 +730,7 @@ bool Settings::write() {
             legacy.lightFirst,
             legacy.nameSteal,
             legacy.capDials,
+            legacy.shopColours,
             legacy.spellExtras,
             legacy.sceneStop,
             legacy.autoExtras,
