@@ -397,6 +397,7 @@ IntroController::IntroController() :
     moreMenu2.add(MI_MORE_SPELL,  new BoolMenuItem("Spell Card Extras        %s", 2,  2,/*'s'*/  0, &lo.spellExtras));
     moreMenu2.add(MI_MORE_WARES,  new BoolMenuItem("Grey Wares Too Dear      %s", 2,  3,/*'g'*/  0, &lo.shopColours));
     moreMenu2.add(MI_MORE_MIX,    new BoolMenuItem("Quick Mixing             %s", 2,  4,/*'q'*/  0, &lo.quickMix));
+    moreMenu2.add(MI_MORE_BLOCK,  new BoolMenuItem("Say What Blocks          %s", 2,  5,/*'w'*/  4, &lo.blockReason));
     moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu2.addShortcutKey(CANCEL, ' ');
@@ -2010,6 +2011,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },
         { &moreMenu2, MI_MORE_WARES, "Shop lists show in grey what thy gold cannot buy." },
         { &moreMenu2, MI_MORE_MIX, "With menus, a recipe mixed before is made again by the number." },
+        { &moreMenu2, MI_MORE_BLOCK, "\"Blocked by water!\" in place of \"Blocked!\"." },
         { &moreMenu2, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },

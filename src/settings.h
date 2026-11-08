@@ -176,6 +176,7 @@ struct LegacyOptions {
     bool spellExtras;       // Spell lists: mana, mixtures made, castable first.
     bool shopColours;       // Shop lists grey the wares the party cannot pay for.
     bool quickMix;          // Console mixing: a known recipe by the number.
+    bool blockReason;       // "Blocked by water!" in place of "Blocked!".
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

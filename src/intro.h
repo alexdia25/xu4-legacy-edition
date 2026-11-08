@@ -267,6 +267,7 @@ private:
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
+        MI_MORE_BLOCK,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,

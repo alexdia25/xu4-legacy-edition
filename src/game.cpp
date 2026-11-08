@@ -3193,6 +3193,59 @@ static bool bumpAction(Direction dir, bool act = true) {
 /**
  * Handles feedback after avatar moved during normal 3rd-person view.
  */
+/*
+ * Say What Blocks: "Blocked by water!" in place of "Blocked!".  Hidden
+ * things (secret doors) read as the wall they look like.
+ */
+static const char* blockedMessage(Direction dir) {
+    if (! xu4.settings->legacy.blockReason)
+        return "Blocked!";
+    Coords ahead = c->location->coords;
+    map_move(ahead, dir, c->location->map);
+    const Object* obj = c->location->map->objectAt(ahead);
+    if (obj && obj->objType == Object::PERSON)
+        return "Blocked by someone!";
+
+    static std::string msg;
+    std::string what;
+    if (obj && obj->objType == Object::CREATURE) {
+        what = static_cast<const Creature*>(obj)->getName();
+    } else {
+        const Tile* tile = c->location->map->tileTypeAt(ahead, WITHOUT_OBJECTS);
+        std::string name = tile->nameStr() ? tile->nameStr() : "";
+        static const struct { const char* prefix; const char* text; } names[] = {
+            {"sea", "water"}, {"water", "water"}, {"shallows", "water"},
+            {"mountains", "mountains"}, {"stone_wall", "a wall"},
+            {"brick_wall", "a wall"}, {"secret_door", "a wall"},
+            {"solid", "a wall"}, {"black", "a wall"}, {"lcb_", "a wall"},
+            {"column", "a column"}, {"window", "a window"},
+            {"rocks", "rocks"}, {"lava", "lava"}, {"ship", "the ship"},
+            {"altar", "an altar"}, {"ankh", "an ankh"}, {"campfire", "a fire"},
+            {"space", "a counter"}, {"poison_field", "a poison field"},
+            {"energy_field", "an energy field"}, {"fire_field", "a fire field"},
+            {"sleep_field", "a sleep field"}
+        };
+        for (const auto& n : names) {
+            if (name.compare(0, strlen(n.prefix), n.prefix) == 0) {
+                what = n.text;
+                break;
+            }
+        }
+        if (what.empty()) {
+            if (name.size() < 3)
+                what = "a sign";
+            else {
+                what = name;
+                for (char& ch : what)
+                    if (ch == '_')
+                        ch = ' ';
+            }
+        }
+    }
+    msg = "Blocked by " + what + "!";
+    return msg.c_str();
+}
+
 void GameController::avatarMoved(MoveEvent &event) {
     // What will be said under the step, so the two can be folded.
     const char* follow = NULL;
@@ -3210,7 +3263,7 @@ void GameController::avatarMoved(MoveEvent &event) {
                  (c->transportContext & TRANSPORT_FOOT_OR_HORSE) &&
                  bumpAction(event.dir, false));
             if (! acts)
-                follow = "Blocked!";
+                follow = blockedMessage(event.dir);
         } else if ((event.result & MOVE_SLOWED) &&
                    (c->transportContext & TRANSPORT_FOOT_OR_HORSE))
             follow = "Slow progress!";
@@ -3274,7 +3327,8 @@ horse_moved:
             if ((event.result & MOVE_BLOCKED) && !xu4.settings->filterMoveMessages) {
                 soundPlay(SOUND_BLOCKED);
                 if (! moveFollowPrinted)
-                    screenMessage("%cBlocked!%c\n", FG_GREY, FG_WHITE);
+                    screenMessage("%c%s%c\n", FG_GREY,
+                                  blockedMessage(event.dir), FG_WHITE);
             }
         }
         else if (c->transportContext == TRANSPORT_FOOT ||
