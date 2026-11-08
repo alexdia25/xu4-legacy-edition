@@ -219,6 +219,7 @@ IntroController::IntroController() :
     videoMenu.add(MI_VIDEO_05,  (new BoolMenuItem("Mode                 %s",  2,  5,/*'m'*/  0, &settingsChanged.fullscreen))->setValueStrings("Fullscreen", "Window"));
     videoMenu.add(MI_VIDEO_06,   new EnumMenuItem("Filter               %s",  2,  6,/*'f'*/  0, &settingsChanged.filter, screenGetFilterNames()));
     videoMenu.add(MI_VIDEO_08,    new IntMenuItem("Gamma                %s",  2,  7,/*'a'*/  1, &settingsChanged.gamma, 50, 150, 10, MENU_OUTPUT_GAMMA));
+    videoMenu.add(MI_VIDEO_SMOOTH, new BoolMenuItem("Smooth Motion        %s",  2,  8,/*'o'*/  2, &settingsChanged.legacy.smoothMotion));
     videoMenu.add(USE_SETTINGS,                   "\010 Use These Settings",  2, 11,/*'u'*/  2);
     videoMenu.add(CANCEL,                         "\010 Cancel",              2, 12,/*'c'*/  2);
     videoMenu.addShortcutKey(CANCEL, ' ');
@@ -1859,6 +1860,7 @@ void IntroController::initMenuHelp() {
         { &videoMenu, MI_VIDEO_05, "Play in a window or on the whole screen." },
         { &videoMenu, MI_VIDEO_06, "How the picture is enlarged. Point keeps the pixels sharp." },
         { &videoMenu, MI_VIDEO_08, "The brightness of the picture." },
+        { &videoMenu, MI_VIDEO_SMOOTH, "The map slides from square to square as the party walks, instead of jumping." },
 
         { &gfxMenu, MI_GFX_TILE_TRANSPARENCY, "Transparent draws people and things over the ground; DOS Black on black." },
         { &gfxMenu, MI_GFX_TILE_TRANSPARENCY_SHADOW_SIZE, "The shadow round people and things on transparent tiles." },

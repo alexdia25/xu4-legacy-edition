@@ -449,6 +449,8 @@ bool Settings::read() {
             legacy.batterySaver = toInt(val);
         else if (VALUE("scanlines="))
             legacy.scanlines = toInt(val);
+        else if (VALUE("smoothMotion="))
+            legacy.smoothMotion = toInt(val);
         else if (VALUE("partyColours="))
             legacy.partyColours = toInt(val);
         else if (VALUE("cheatsMenu="))
@@ -629,6 +631,7 @@ bool Settings::write() {
             "batterySaver=%d\n"
             "scanlines=%d\n"
             "partyColours=%d\n"
+            "smoothMotion=%d\n"
             "cheatsMenu=%d\n"
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
@@ -653,6 +656,7 @@ bool Settings::write() {
             legacy.batterySaver,
             legacy.scanlines,
             legacy.partyColours,
+            legacy.smoothMotion,
             legacy.cheatsMenu,
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
