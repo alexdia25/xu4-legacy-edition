@@ -265,6 +265,8 @@ private:
         MI_MORE_SNAP,
         MI_MORE_AUTO,
         MI_MORE_NEXT,
+        MI_MORE_NEXT2,
+        MI_MORE_QUICKFX,
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
@@ -332,6 +334,7 @@ private:
     Menu rulesMenu;
     Menu moreMenu;
     Menu moreMenu2;
+    Menu moreMenu3;
     Menu padMenu;
     Menu cheatsMenu;
     Menu gameMenu;

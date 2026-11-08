@@ -204,7 +204,8 @@ bool Creature::specialEffect() {
                     return false;
 
                 soundPlay(SOUND_STORM);
-                EventHandler::wait_msecs(soundDuration(SOUND_STORM));
+                if (! xu4.settings->legacy.quickFx)
+                    EventHandler::wait_msecs(soundDuration(SOUND_STORM));
 
                 /* damage the ship */
                 if (c->transportContext == TRANSPORT_SHIP) {
@@ -236,7 +237,8 @@ bool Creature::specialEffect() {
             // Play storm effect once if any objects are destroyed.
             if (retval) {
                 soundPlay(SOUND_STORM);
-                EventHandler::wait_msecs(soundDuration(SOUND_STORM));
+                if (! xu4.settings->legacy.quickFx)
+                    EventHandler::wait_msecs(soundDuration(SOUND_STORM));
             }
         }
         break;
@@ -250,7 +252,8 @@ bool Creature::specialEffect() {
                 c->transportContext == TRANSPORT_SHIP) {
 
                 soundPlay(SOUND_WHIRLPOOL);
-                EventHandler::wait_msecs(soundDuration(SOUND_WHIRLPOOL));
+                if (! xu4.settings->legacy.quickFx)
+                    EventHandler::wait_msecs(soundDuration(SOUND_WHIRLPOOL));
 
                 /* Deal 10 damage to the ship */
                 gameDamageShip(-1, 10);
@@ -291,7 +294,8 @@ bool Creature::specialEffect() {
             // Play whirlpool sound once if any objects are destroyed.
             if (retval) {
                 soundPlay(SOUND_WHIRLPOOL);
-                EventHandler::wait_msecs(soundDuration(SOUND_WHIRLPOOL));
+                if (! xu4.settings->legacy.quickFx)
+                    EventHandler::wait_msecs(soundDuration(SOUND_WHIRLPOOL));
             }
         }
 

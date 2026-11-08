@@ -206,7 +206,13 @@ Beside Rules & Saving, **More Options** holds these, all starting on:
 | Map Opens Where You Are    | In a town, castle, shrine or dungeon the map shows that place first (a dungeon level shows the cells seen); W, Y or the World button switches to Britannia and Here back |
 | Moongates Say Where        | Zoomed in on the world map, a moongate the party has gone through names the town it led to last |
 | Shop Buyer First           | Weapon and armour shops ask who is buying (the Avatar alone is never asked); the list greys what they cannot use, and a purchase is offered to them to ready or wear |
+
+Its **Next Page** holds:
+
+| Option                     | What it does |
+|----------------------------|--------------|
 | Frame Colour By Place      | The blue border turns gold at a shrine and grey in a dungeon, darker on each level down (with the DOS border picture) |
+| Effects Don't Stop Play    | A spell's screen flash is brief while its sound plays on, and a storm or whirlpool doesn't hold the game for its sound |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is

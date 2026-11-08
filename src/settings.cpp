@@ -301,6 +301,7 @@ bool Settings::read() {
     legacy.gateNotes    = true;
     legacy.shopBuyer    = true;
     legacy.frameTint    = true;
+    legacy.quickFx      = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -505,6 +506,8 @@ bool Settings::read() {
             legacy.shopBuyer = toInt(val);
         else if (VALUE("frameTint="))
             legacy.frameTint = toInt(val);
+        else if (VALUE("quickFx="))
+            legacy.quickFx = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -721,6 +724,7 @@ bool Settings::write() {
             "gateNotes=%d\n"
             "shopBuyer=%d\n"
             "frameTint=%d\n"
+            "quickFx=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -771,6 +775,7 @@ bool Settings::write() {
             legacy.gateNotes,
             legacy.shopBuyer,
             legacy.frameTint,
+            legacy.quickFx,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

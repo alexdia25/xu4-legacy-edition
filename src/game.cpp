@@ -1141,7 +1141,10 @@ void gameSpellEffect(int spell, int player, Sound sound) {
     if (player >= 0)
         c->stats->highlightPlayer(player);
 
-    // Invert the screen while the sound plays.
+    // Invert the screen while the sound plays (Effects Don't Stop Play:
+    // only briefly, the sound playing on).
+    if (xu4.settings->legacy.quickFx && time > 150)
+        time = 150;
     gameUpdateScreen();
     xu4.game->mapArea.highlight(0, 0, xu4.game->mapArea.width,
                                     xu4.game->mapArea.height);

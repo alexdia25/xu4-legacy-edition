@@ -403,13 +403,23 @@ IntroController::IntroController() :
     moreMenu2.add(MI_MORE_HERE,   new BoolMenuItem("Map Opens Where You Are  %s", 2,  7,/*'m'*/  0, &lo.mapHere));
     moreMenu2.add(MI_MORE_GATES,  new BoolMenuItem("Moongates Say Where      %s", 2,  8,/*'o'*/  1, &lo.gateNotes));
     moreMenu2.add(MI_MORE_BUYER,  new BoolMenuItem("Shop Buyer First         %s", 2,  9,/*'b'*/  5, &lo.shopBuyer));
-    moreMenu2.add(MI_MORE_FRAME,  new BoolMenuItem("Frame Colour By Place    %s", 2, 10,/*'f'*/  0, &lo.frameTint));
+    moreMenu2.add(MI_MORE_NEXT2,                   "\010 Next Page",              2, 10,/*'n'*/  2);
     moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu2.addShortcutKey(CANCEL, ' ');
     moreMenu2.addShortcutKey(CANCEL, U4_ESC);
     moreMenu2.setClosesMenu(USE_SETTINGS);
     moreMenu2.setClosesMenu(CANCEL);
+
+    moreMenu3.setTitle("More Legacy Options (3):", 0, 0);
+    moreMenu3.add(MI_MORE_FRAME,  new BoolMenuItem("Frame Colour By Place    %s", 2,  1,/*'f'*/  0, &lo.frameTint));
+    moreMenu3.add(MI_MORE_QUICKFX, new BoolMenuItem("Effects Don't Stop Play  %s", 2,  2,/*'e'*/  0, &lo.quickFx));
+    moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu3.addShortcutKey(CANCEL, ' ');
+    moreMenu3.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu3.setClosesMenu(USE_SETTINGS);
+    moreMenu3.setClosesMenu(CANCEL);
 
     gameMenu.setTitle("Game Menu:", 0, 0);
     gameMenu.add(CANCEL,          "\017 Return to Game",       2,  1,/*'r'*/  2);
@@ -2051,6 +2061,8 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_FOES, "The dungeon mini map marks a creature the party can see." },
         { &moreMenu, MI_MORE_SNAP, "Snap Attacks mark their target; PgUp/PgDn or L/R pick another foe." },
         { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
+        { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
+        { &moreMenu3, MI_MORE_QUICKFX, "Spell flashes are brief and storms don't wait for their sound." },
         { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },
         { &moreMenu2, MI_MORE_WARES, "Shop lists show in grey what thy gold cannot buy." },
         { &moreMenu2, MI_MORE_MIX, "With menus, a recipe mixed before is made again by the number." },
@@ -2058,7 +2070,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu2, MI_MORE_HERE, "In a town or dungeon the map shows it first; W or Here for Britannia." },
         { &moreMenu2, MI_MORE_GATES, "Zoomed in, the map names the town each moongate last led to." },
         { &moreMenu2, MI_MORE_BUYER, "Arms shops ask who is buying; what they cannot use shows in grey." },
-        { &moreMenu2, MI_MORE_FRAME, "The border turns gold at a shrine and grey in a dungeon, darker deeper." },
+        { &moreMenu3, MI_MORE_FRAME, "The border turns gold at a shrine and grey in a dungeon, darker deeper." },
         { &moreMenu2, MI_MORE_ASK, "A new game asks which rules to play by: Story, Modern or Classic." },
         { &moreMenu2, MI_MORE_AUTO, "Auto on the party panel, Auto Combat in the fight menu, stops if stuck." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
@@ -2168,7 +2180,7 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateLegacyMenu(event);
     else if (menu == &rulesMenu)
         updateRulesMenu(event);
-    else if (menu == &moreMenu || menu == &moreMenu2)
+    else if (menu == &moreMenu || menu == &moreMenu2 || menu == &moreMenu3)
         updateMoreMenu(event);
     else if (menu == &padMenu)
         updatePadMenu(event);
@@ -2539,6 +2551,9 @@ void IntroController::updateMoreMenu(MenuEvent &event) {
         switch(event.item->getId()) {
             case MI_MORE_NEXT:
                 runMenu(&moreMenu2, &extendedMenuArea, true);
+                break;
+            case MI_MORE_NEXT2:
+                runMenu(&moreMenu3, &extendedMenuArea, true);
                 break;
             case USE_SETTINGS:
                 xu4.settings->setData(settingsChanged);
