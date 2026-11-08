@@ -2035,7 +2035,8 @@ void EventHandler::pointerRepeat()
     }
     uint32_t now = getTicks();
     if ((int32_t) (now - repeatTime) >= 0) {
-        repeatTime = now + POINTER_REPEAT_RATE;
+        int delay, rate = xu4.settings->heldRepeat(&delay);
+        repeatTime = now + (rate ? rate : POINTER_REPEAT_RATE);
         if (con->notifyKeyPressed(repeatKey) && updateScreen)
             (*updateScreen)();
     }

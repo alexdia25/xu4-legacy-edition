@@ -620,6 +620,12 @@ void screenShowMouseCursor(bool visible)
  *                 Otherwise EventHandler::getController() (the currently
  *                 active one) will be used.
  */
+// A held key repeated by the game (Held Key Pace), not by the system, so a
+// held direction walks at a steady pace with no backlog of repeats.
+static SDL_KeyboardEvent heldKey;
+static bool heldDown = false;
+static uint32_t heldNext;
+
 void EventHandler::handleInputEvents(Controller* waitCon,
                                      updateScreenCallback update)
 {
@@ -652,8 +658,23 @@ void EventHandler::handleInputEvents(Controller* waitCon,
         }
         switch (event.type) {
             case SDL_EVENT_KEY_DOWN:
+            {
+                int delay;
+                if (xu4.settings->heldRepeat(&delay)) {
+                    if (event.key.repeat)
+                        break;
+                    heldKey = event.key;
+                    heldDown = true;
+                    heldNext = getTicks() + delay;
+                }
                 gamepad_keyboardUsed();
                 keyHandler(&event.key);
+            }
+                break;
+
+            case SDL_EVENT_KEY_UP:
+                if (heldDown && event.key.scancode == heldKey.scancode)
+                    heldDown = false;
                 break;
 
             case SDL_EVENT_MOUSE_MOTION:
@@ -709,6 +730,7 @@ void EventHandler::handleInputEvents(Controller* waitCon,
                 break;
 
             case SDL_EVENT_WINDOW_FOCUS_LOST:
+                heldDown = false;
                 // Pause Legacy option: the game, its timers & music wait
                 // until the player comes back and unpauses.
                 if (xu4.settings->legacy.pauseUnfocused &&
@@ -719,6 +741,18 @@ void EventHandler::handleInputEvents(Controller* waitCon,
             case SDL_EVENT_QUIT:
                 quitGame();
                 break;
+        }
+    }
+
+    if (heldDown) {
+        int delay, rate = xu4.settings->heldRepeat(&delay);
+        uint32_t now = getTicks();
+        if (! rate)
+            heldDown = false;
+        else if ((int32_t) (now - heldNext) >= 0) {
+            heldNext = now + rate;
+            lastInputTime = now;
+            keyHandler(&heldKey);
         }
     }
 

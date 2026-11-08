@@ -132,6 +132,14 @@ enum LegacyMoonSpeed {
     MoonSpeed_Fastest       // Four times.
 };
 
+// How fast a held key, gamepad direction or touch repeats (Max Input).
+enum LegacyHeldPace {
+    HeldPace_System,        // Keys repeat as the system has them.
+    HeldPace_Slow,
+    HeldPace_Medium,
+    HeldPace_Fast
+};
+
 enum LegacyMapView {
     MapView_Standard,       // The tiles the view was laid out for.
     MapView_Fill            // As many tiles as fit (smaller SMS tiles).
@@ -158,6 +166,7 @@ struct LegacyOptions {
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).
     uint8_t moonSpeed;      // LegacyMoonSpeed
+    uint8_t heldPace;       // LegacyHeldPace
     uint8_t mapView;        // LegacyMapView
     uint8_t padMap[6];      // PadAction of each PadMapButton in play.
     // Rules
@@ -242,6 +251,8 @@ public:
     static const char** dungeonMapStrings();
     static const char** mapViewStrings();
     static const char** moonSpeedStrings();
+    static const char** heldPaceStrings();
+    int heldRepeat(int* delay) const;
     static void applyLegacyPreset(SettingsData& data, int preset);
 
     void init(const char* profileName);

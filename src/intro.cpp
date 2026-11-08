@@ -257,6 +257,7 @@ IntroController::IntroController() :
     inputMenu.setTitle("Keyboard Options:", 0, 0);
     inputMenu.add(MI_INPUT_01,  new IntMenuItem("Repeat Delay        %4d msec", 2,  2,/*'d'*/  7, &settingsChanged.keydelay, 100, MAX_KEY_DELAY, 100));
     inputMenu.add(MI_INPUT_02,  new IntMenuItem("Repeat Interval     %4d msec", 2,  3,/*'i'*/  7, &settingsChanged.keyinterval, 10, MAX_KEY_INTERVAL, 10));
+    inputMenu.add(MI_INPUT_PACE, new EnumMenuItem("Held Key Pace     %s", 2,  4,/*'h'*/  0, &settingsChanged.legacy.heldPace, Settings::heldPaceStrings()));
     /* "Mouse Options:" is drawn in the updateInputMenu() function */
     inputMenu.add(MI_INPUT_03, new BoolMenuItem("Mouse                %s",      2,  7,/*'m'*/  0, &settingsChanged.mouseOptions.enabled));
     inputMenu.add(MI_INPUT_PAD,                 "\010 Gamepad Buttons",         2,  9,/*'g'*/  2);
@@ -1880,6 +1881,7 @@ void IntroController::initMenuHelp() {
 
         { &inputMenu, MI_INPUT_01, "How long a held key waits before it repeats." },
         { &inputMenu, MI_INPUT_02, "How quickly a held key repeats." },
+        { &inputMenu, MI_INPUT_PACE, "How fast a held key, stick or touch repeats, keeping a steady walk." },
         { &inputMenu, MI_INPUT_03, "Play with the mouse or by touch: tap to walk, tap the party for the menu." },
         { &inputMenu, MI_INPUT_PAD, "Choose what each gamepad button does in play." },
 

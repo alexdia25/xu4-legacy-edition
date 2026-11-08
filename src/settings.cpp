@@ -292,6 +292,7 @@ bool Settings::read() {
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
+    legacy.heldPace     = HeldPace_Medium;
     gamepad_defaultMap(legacy.padMap);
 #if defined(ANDROID) || defined(__EMSCRIPTEN__)
     // Phones, tablets & browsers are mostly played by touch: Automatic
@@ -468,6 +469,8 @@ bool Settings::read() {
                     legacy.moonSpeed = i;
             }
         }
+        else if (VALUE("heldPace="))
+            legacy.heldPace = settingEnum(heldPaceStrings(), val);
         else if (VALUE("dungeonMap="))
             legacy.dungeonMap = settingEnum(dungeonMapStrings(), val);
         else if (VALUE("mapView="))
@@ -641,6 +644,7 @@ bool Settings::write() {
             "dungeonMap=%s\n"
             "mapView=%s\n"
             "moonSpeed=%s\n"
+            "heldPace=%s\n"
             "rules=%s\n"
             "starvation=%s\n"
             "turnTimer=%s\n"
@@ -667,6 +671,7 @@ bool Settings::write() {
             dungeonMapStrings()[ legacy.dungeonMap ],
             mapViewStrings()[ legacy.mapView ],
             moonSpeedStrings()[ legacy.moonSpeed ],
+            heldPaceStrings()[ legacy.heldPace ],
             legacyPresetStrings()[ legacy.preset ],
             starvationStrings()[ legacy.starvation ],
             turnTimerStrings()[ legacy.turnTimer ],
@@ -708,6 +713,21 @@ const char** Settings::turnTimerStrings() {
 const char** Settings::autoCombatStrings() {
     static const char* names[] = {"Off", "Companions", "Whole Party", NULL};
     return names;
+}
+
+const char** Settings::heldPaceStrings() {
+    static const char* names[] = {"System", "Slow", "Medium", "Fast", NULL};
+    return names;
+}
+
+/*
+ * Return the milliseconds before a held key first repeats (*delay) and
+ * between repeats (the return value), or 0 for the system's key repeat.
+ */
+int Settings::heldRepeat(int* delay) const {
+    static const int interval[] = { 0, 250, 160, 110 };
+    *delay = 300;
+    return interval[ legacy.heldPace <= HeldPace_Fast ? legacy.heldPace : 0 ];
 }
 
 const char** Settings::moonSpeedStrings() {

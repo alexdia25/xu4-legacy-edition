@@ -5,6 +5,8 @@
 
 #include "event.h"
 #include "gamepad.h"
+#include "settings.h"
+#include "xu4.h"
 
 #define STICK_DEAD_ZONE 0.5f
 #define REPEAT_DELAY    300     // Milliseconds before a held direction repeats.
@@ -153,15 +155,19 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
             int key = buttonKey(b);
             if (key)
                 sendPadKey(sendKey, key);
-            if (PAD_BIT(b) & DIR_MASK)
-                pad.repeatTime = msec + REPEAT_DELAY;
+            if (PAD_BIT(b) & DIR_MASK) {
+                int delay;
+                pad.repeatTime = msec + (xu4.settings->heldRepeat(&delay)
+                                         ? delay : REPEAT_DELAY);
+            }
         }
     }
 
     // Repeat a held direction.
     uint32_t dir = buttons & DIR_MASK;
     if (dir && ! (pressed & DIR_MASK) && (int32_t) (msec - pad.repeatTime) >= 0) {
-        pad.repeatTime = msec + REPEAT_RATE;
+        int delay, rate = xu4.settings->heldRepeat(&delay);
+        pad.repeatTime = msec + (rate ? rate : REPEAT_RATE);
         for (int b = PAD_UP; b <= PAD_RIGHT; ++b) {
             if (dir & PAD_BIT(b)) {
                 sendPadKey(sendKey, buttonKey(b));
