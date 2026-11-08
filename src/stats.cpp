@@ -49,6 +49,8 @@ StatsArea::StatsArea() :
     flashMask  = 0;
     flashCycle = 0;
     avatarOnly = false;
+    compareWeapon = NULL;
+    compareArmor = NULL;
 }
 
 StatsArea::~StatsArea() {
@@ -157,6 +159,9 @@ void StatsArea::redraw() {
         break;
     case MIX_REAGENTS:
         showReagents(true);
+        break;
+    case STATS_COMPARE:
+        showCompareView();
         break;
     }
 
@@ -352,6 +357,58 @@ void StatsArea::showWeapons() {
                 col += 8;
             }
         }
+    }
+}
+
+/*
+ * Show how a weapon or armour for sale compares with what each member of
+ * the party has (the Shops Compare Arms option).
+ */
+void StatsArea::showCompare(const Weapon* w, const Armor* a) {
+    compareWeapon = w;
+    compareArmor = a;
+    setView(STATS_COMPARE);
+}
+
+void StatsArea::showCompareView() {
+    const Weapon* w = compareWeapon;
+    const Armor* a = compareArmor;
+    char buf[STATS_AREA_WIDTH + 1];
+    if (w)
+        snprintf(buf, sizeof(buf), "Damage %d%s", w->damage,
+                 (w->range > 1) ? " Far" : "");
+    else if (a)
+        snprintf(buf, sizeof(buf), "Defense %d", a->defense);
+    else
+        return;
+    setTitle(buf);
+
+    for (int i = 0; i < c->party->size() && i < STATS_AREA_HEIGHT; i++) {
+        PartyMember* pm = c->party->member(i);
+        int diff;
+        bool usable;
+        if (w) {
+            usable = w->canReady(pm->getClass());
+            diff = int(w->damage) - int(pm->getWeapon()->damage);
+        } else {
+            usable = a->canWear(pm->getClass());
+            diff = int(a->defense) - int(pm->getArmor()->defense);
+        }
+        char what[8];
+        char color = FG_WHITE;
+        if (! usable) {
+            strcpy(what, "can't");
+            color = FG_GREY;
+        } else if (diff > 0) {
+            snprintf(what, sizeof(what), "+%d", diff);
+            color = FG_GREEN;
+        } else if (diff < 0) {
+            snprintf(what, sizeof(what), "%d", diff);
+            color = FG_RED;
+        } else
+            strcpy(what, "same");
+        mainArea.textAtFmt(0, i, "%c%-9.9s%5s%c", color, pm->getName(), what,
+                           FG_WHITE);
     }
 }
 

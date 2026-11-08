@@ -31,7 +31,8 @@ enum StatsView {
     STATS_ITEMS,
     STATS_REAGENTS,
     STATS_MIXTURES,
-    MIX_REAGENTS
+    MIX_REAGENTS,
+    STATS_COMPARE       // A weapon or armour in a shop, member by member.
 };
 
 class StatsArea {
@@ -40,6 +41,7 @@ public:
     ~StatsArea();
 
     void setView(StatsView view);
+    void showCompare(const class Weapon* w, const class Armor* a);
 
     void prevItem();
     void nextItem();
@@ -64,6 +66,7 @@ private:
     void showItems();
     void showReagents(bool active = false);
     void showMixtures();
+    void showCompareView();
     void setTitle(const char* s);
     void redrawAura();
 
@@ -81,6 +84,8 @@ private:
     uint16_t flashMask;
     uint16_t flashCycle;
     bool     avatarOnly;
+    const class Weapon* compareWeapon;
+    const class Armor*  compareArmor;
 };
 
 /**

@@ -231,6 +231,7 @@ weapons: context [
     ]
 
     anything_else_buy: [
+        view-stats stats-weapons
         >> "^/Anything^/else? "
         input-choice ['y' show_inventory 'n' adieu adieu]
     ]
@@ -461,6 +462,7 @@ armor: context [
     ]
 
     anything_else_buy: [
+        view-stats stats-armor
         >> "^/Anything^/else? "
         input-choice ['y' show_inventory 'n' adieu adieu]
     ]

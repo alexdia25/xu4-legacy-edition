@@ -988,35 +988,9 @@ CFUNC(cf_compareArms)
     if (! w && ! a)
         return UR_OK;
 
-    if (w)
-        screenMessage("Damage %d%s\n", w->damage,
-                      (w->range > 1) ? ", ranged" : "");
-    else
-        screenMessage("Defense %d\n", a->defense);
-
-    for (int i = 0; i < c->party->size(); i++) {
-        PartyMember* pm = c->party->member(i);
-        int diff;
-        bool usable;
-        if (w) {
-            usable = w->canReady(pm->getClass());
-            diff = int(w->damage) - int(pm->getWeapon()->damage);
-        } else {
-            usable = a->canWear(pm->getClass());
-            diff = int(a->defense) - int(pm->getArmor()->defense);
-        }
-
-        char name[10];
-        snprintf(name, sizeof(name), "%-9.9s", pm->getName());
-        if (! usable)
-            screenMessage("%c%s can't%c\n", FG_GREY, name, FG_WHITE);
-        else if (diff > 0)
-            screenMessage("%c%s +%d%c\n", FG_GREEN, name, diff, FG_WHITE);
-        else if (diff < 0)
-            screenMessage("%c%s %d%c\n", FG_RED, name, diff, FG_WHITE);
-        else
-            screenMessage("%s same\n", name);
-    }
+    // The party panel shows each member's gain or loss until the shop
+    // goes back to its list (view-stats).
+    c->stats->showCompare(w, a);
     return UR_OK;
 }
 
