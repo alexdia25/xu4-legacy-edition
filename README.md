@@ -86,9 +86,11 @@ into someone talks, into a door opens it) starts off.
 
 Escape (Select on a gamepad) opens a menu drawn like the title menus:
 Return to Game, Journal, How to Play, Books of Britannia, World Map,
-Save Game, Settings, Graphics & Music (the module list) and Quit Game.
-Settings can be changed without leaving the game, and Quit Game offers
-to save first.
+Save Game, Load a Save, Settings, Graphics & Music (the module list) and
+Quit Game.  Load a Save goes back to the last save, or to an earlier one
+from the save history.  Settings can be changed without leaving the
+game, and Quit Game offers to save first.  Every option in the settings
+menus has a line saying what it does over the menu.
 
 ![The game menu](doc/screenshots/game-menu.png)
 
@@ -104,8 +106,12 @@ for the contents).  The reader also has:
    words written in runes.
  - **How to Play**: a short guide for new players, from talking to
    people to the quest and the options.
- - **Journal**: the path of each virtue, the quest items found and the
-   clues heard.
+ - **Journal**: the path of each virtue, the quest items found, the
+   places found (castles, townes and villages, with how many of their
+   clues have been heard; M, or X on a gamepad, shows a place on the
+   World Map), and the clues heard, grouped by topic (mantras, runes,
+   stones, bell book & candle, the key, the Abyss), with the ones acted
+   on already apart.  "Journal updated" is shown when a clue is noted.
  - **Map**: the whole cloth map of Britannia.
  - **Three text sizes**: - and + (or the shoulder buttons) change the
    size of the text, which rewraps to fit.
@@ -160,7 +166,7 @@ edition.  Each can be switched off for the game as it was.
 |------------------------|----------------------------------------------------|--------|
 | Console (SMS) Menus    | The action menu and pickers described above        | On with a gamepad or a tap |
 | Walk Into To Act       | Walking into someone talks, into a foe attacks, into a locked door opens it | Off |
-| Fold Repeated Moves    | "North (x5)" instead of five lines                 | On     |
+| Fold Repeated Moves    | "North (x5)" instead of five lines, and the same for Blocked!, Slow progress! and Pass | On |
 | Cancel Spends No Turn  | Backing out of a command costs nothing             | On     |
 | Shops Compare Arms     | Shops show how gear compares with what each member has, and offer to equip it | On |
 | Spell Info In Lists    | Spell lists show what each spell does and costs, and ? opens its Wisdom page | On |
@@ -172,14 +178,20 @@ edition.  Each can be switched off for the game as it was.
 it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
 turn timer, and whether a fallen party is raised by Lord British or may
-reload).  It also turns on autosave with a history of saves to go back
+reload: when the whole party falls, it then offers the last save, an
+earlier save or Lord British's aid).  It also turns on autosave with a history of saves to go back
 to, several characters each with their own saves, and a Cheats menu
 (these three start off).
 
 ![Rules, Saving & Cheats](doc/screenshots/rules-saving.png)
 
 The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
-(the game waits while its window is in the background).  **Map View**
+(the game waits while its window is in the background).  Video Options
+adds **Smooth Motion**: the map slides from square to square as the
+party walks, instead of jumping (off at first).  Enhanced Interface
+Options adds **Party Colours**: hit points turn yellow below half and red
+below a quarter, names are green when poisoned, purple asleep, grey when
+dead and blue when a level is due at Lord British (on at first).  **Map View**
 set to Fill Space shows more of the towns, castles and Britannia when
 the tiles are smaller than the DOS ones: with the SMS module's 12 pixel
 tiles the map area holds 15 by 15 tiles (the outer ones cut at the edge)
@@ -274,7 +286,9 @@ wherever Steam installed it.
    files, a zip of it, or `ultima4.zip`.  The Files button of Graphics &
    Music lists the game files, adds more (u4upgrad.zip, Apple II or C64
    disk images, the SMS ROM, the documents; loose or zipped) and removes
-   them.  Files can also be copied over USB to
+   them, and its Saves button exports the settings and saved games as a
+   zip, or imports such a zip (from this or the web version).  Files can
+   also be copied over USB to
    `Android/data/io.github.alexdia25.xu4_legacy_edition/files`.  The game
    is played with touch or a gamepad; Back opens the game menu.
  - **Web browser, iPhone and iPad**: [play in the browser], on a
@@ -287,7 +301,10 @@ wherever Steam installed it.
    iCloud Drive or Files).  `ultima4.zip` works too.  The Files button
    (and Game Files on the start screen) adds more at any time:
    `u4upgrad.zip`, Apple II or C64 disk images and the SMS ROM, loose or
-   zipped, read after a restart.  It also exports the saves as a zip.  On an iPhone or iPad open
+   zipped, read after a restart.  It also exports the saves as a zip and
+   imports them again (from this or the Android version); if the game
+   stops, a box offers Copy Details for a bug report and Export Saves, and
+   a bar says when a new version is out.  On an iPhone or iPad open
    it in Safari and choose Share > Add to Home Screen: it then runs full
    screen, works offline and keeps its saves (Safari clears the storage of
    a site not visited for seven days, but not of a Home Screen app).

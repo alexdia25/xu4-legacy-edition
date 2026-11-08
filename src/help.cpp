@@ -30,6 +30,7 @@ static const char helpText[] =
 "\n"
 "Save often with Q (or Save Game in the menu).  The game can be saved\n"
 "outdoors and in dungeons, but not inside towns, castles or battles.\n"
+"Load a Save in the menu goes back to the last save or an earlier one.\n"
 "\n"
 "\n"
 "TALKING TO PEOPLE\n"
@@ -167,7 +168,8 @@ static const char helpText[] =
 "several characters with their own saves, and what happens when the\n"
 "party falls.  Scanlines, Battery Saver, Pause Unfocused (the game\n"
 "waits while you are away) and Map View (Fill Space shows more of the\n"
-"map with the smaller SMS tiles) are in the Graphics options.\n";
+"map with the smaller SMS tiles) are in the Graphics options, and\n"
+"Smooth Motion (the map slides as you walk) is in Video Options.\n";
 
 std::string legacyHelpText()
 {
