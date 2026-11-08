@@ -416,6 +416,7 @@ IntroController::IntroController() :
     moreMenu3.add(MI_MORE_FRAME,  new BoolMenuItem("Frame Colour By Place    %s", 2,  1,/*'f'*/  0, &lo.frameTint));
     moreMenu3.add(MI_MORE_QUICKFX, new BoolMenuItem("Effects Don't Stop Play  %s", 2,  2,/*'e'*/  0, &lo.quickFx));
     moreMenu3.add(MI_MORE_UPDATE, new BoolMenuItem("Update Notice            %s", 2,  3,/*'n'*/  5, &lo.updateNotice));
+    moreMenu3.add(MI_MORE_STEP,   new BoolMenuItem("Step Onto To Use         %s", 2,  4,/*'s'*/  0, &lo.stepOnto));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -2068,6 +2069,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_SNAP, "Snap Attacks mark their target; PgUp/PgDn or L/R pick another foe." },
         { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
         { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
+        { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
         { &moreMenu3, MI_MORE_UPDATE, "Once a day, ask GitHub if a newer release is out (Windows, Mac, Linux)." },
         { &moreMenu3, MI_MORE_QUICKFX, "Spell flashes are brief and storms don't wait for their sound." },
         { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },

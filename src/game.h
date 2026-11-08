@@ -61,6 +61,7 @@ struct ScreenState;
 class GameController : public TurnController {
 public:
     void updateBorderTint(bool force);
+    bool stepOntoAction();
     GameController();
     ~GameController();
 

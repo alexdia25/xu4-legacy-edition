@@ -184,6 +184,7 @@ struct LegacyOptions {
     bool frameTint;         // The border is tinted at shrines & in dungeons.
     bool quickFx;           // Spell flashes & storm sounds don't hold play.
     bool updateNotice;      // Desktop: say when a newer release is out.
+    bool stepOnto;          // Walk Into To Act: chests & ladders stepped on.
     bool capDials;          // Shop dials stop at what the party can afford.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap

@@ -3490,6 +3490,56 @@ horse_moved:
         if (checkMoongates())
             event.result = (MoveResult)(MOVE_MAP_CHANGE | MOVE_END_TURN);
     }
+
+    // Step Onto To Use (with Walk Into To Act): a chest or ladder stepped
+    // onto offers to be opened or climbed.
+    if (event.userEvent && xu4.settings->legacy.bumpToAct &&
+        xu4.settings->legacy.stepOnto &&
+        (c->transportContext & TRANSPORT_FOOT_OR_HORSE) &&
+        !(event.result & (MOVE_BLOCKED | MOVE_MAP_CHANGE |
+                          MOVE_EXIT_TO_PARENT)) &&
+        stepOntoAction())
+        event.result = (MoveResult)(event.result | MOVE_MAP_CHANGE);
+}
+
+/*
+ * Offer to open a chest or climb a ladder the party stands on.  Returns
+ * true if the map changed.
+ */
+bool GameController::stepOntoAction()
+{
+    static const char* const labels[] = { "Yes", "No", NULL, NULL };
+    Location* loc = c->location;
+    const Coords& co = loc->coords;
+    int action = 0;
+    const char* ask = NULL;
+
+    if (loc->map->tileTypeAt(co, WITH_GROUND_OBJECTS)->isChest())
+        ask = "Open the chest? ";
+    else if (loc->map->portalAt(co, ACTION_KLIMB)) {
+        action = ACTION_KLIMB;
+        ask = "Klimb the ladder? ";
+    } else if (loc->map->portalAt(co, ACTION_DESCEND)) {
+        action = ACTION_DESCEND;
+        ask = "Descend the ladder? ";
+    }
+    if (! ask)
+        return false;
+
+    screenMessage("%s", ask);
+    int ch = EventHandler::readChoice("yn \033", labels);
+    if (ch != 'y') {
+        screenMessage("\n");
+        return false;
+    }
+    screenMessage("\n");
+    if (! action) {
+        getChest();
+        return false;
+    }
+    Map* before = loc->map;
+    usePortalAt(loc, co, (PortalTriggerAction) action);
+    return c->location->map != before;
 }
 
 /**
