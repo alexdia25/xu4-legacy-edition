@@ -66,11 +66,12 @@ enum HitIds {
 
 static const char* bookTabs[DocReader::BOOK_COUNT] = {
     "History", "Wisdom", "Hints", "Keyboard", "Runes", "Map", "How to Play",
-    "Journal"
+    "Tips", "Journal"
 };
 
 static const char* shortTabs[DocReader::BOOK_COUNT] = {
-    "History", "Wisdom", "Hints", "Keys", "Runes", "Map", "Help", "Journal"
+    "History", "Wisdom", "Hints", "Keys", "Runes", "Map", "Help", "Tips",
+    "Journal"
 };
 
 // Columns of text for each text size.  The text is drawn on a page of its
@@ -83,6 +84,7 @@ static const char* bookTitle(int n)
     switch (n) {
         case DocReader::BOOK_RUNES:   return "The Runes of Britannia";
         case DocReader::BOOK_HELP:    return "How to Play";
+        case DocReader::BOOK_TIPS:    return "Tips";
         case DocReader::BOOK_JOURNAL: return "Journal";
     }
     return docsTitle(GameDocument(n));
@@ -463,6 +465,8 @@ void DocReader::openBook(int n, int chap)
         text = runesText();
     } else if (n == BOOK_HELP) {
         text = legacyHelpText();
+    } else if (n == BOOK_TIPS) {
+        text = legacyTipsText();
     } else if (n == BOOK_JOURNAL) {
         text = legacyJournalText();
     } else if (! docsLoad(GameDocument(n), text)) {
@@ -943,7 +947,7 @@ void DocReader::drawFooter()
         "Enter Contents", ""
     };
     static const char* keyHelp2[] = {
-        "Tab or 1-8 Book  +/- Size", "Tab Book  +/- Size", "Tab Book", ""
+        "Tab or 1-9 Book  +/- Size", "Tab Book  +/- Size", "Tab Book", ""
     };
     static const char* padHelp1[] = {
         "Up/Down Scroll  Left/Right Chapter  A Contents",

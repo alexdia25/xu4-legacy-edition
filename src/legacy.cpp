@@ -437,6 +437,64 @@ void legacySaveDone(const char* userPath) {
 }
 
 /*
+ * Combat Tips: one tip in the log at the start of each of the first fights
+ * (counted in combattips.sav, so each character sees them once).
+ */
+void legacyCombatTip() {
+    if (! xu4.settings->legacy.combatTips)
+        return;
+    fs::path path = userDir() / "combattips.sav";
+    int seen = 0;
+    FILE* fp = fopen(path.string().c_str(), "r");
+    if (fp) {
+        if (fscanf(fp, "%d", &seen) != 1)
+            seen = 0;
+        fclose(fp);
+    }
+
+    bool pad = EventHandler::smsMenus();
+    const char* tip = NULL;
+    switch (seen) {
+    case 0:
+        tip = xu4.settings->legacy.snapAttacks ?
+            (pad ? "Strike in the action menu hits a foe in reach." :
+                   "X strikes a foe in reach; A attacks in a direction.") :
+            (pad ? "Attack in the action menu, then a direction." :
+                   "A attacks, then choose a direction.");
+        break;
+    case 1:
+        tip = "Each member acts in turn; the one whose turn it is is "
+              "marked.  Pass to wait.";
+        break;
+    case 2:
+        tip = "Walk off the edge of the field to leave a battle.  "
+              "Fleeing evil costs Valor.";
+        break;
+    case 3:
+        tip = "Magic Missile strikes from afar; Heal mends a member "
+              "between blows.";
+        break;
+    case 4:
+        tip = "Foes leave chests behind.  Get one afterwards for gold, "
+              "but beware of traps.";
+        break;
+    case 5:
+        tip = "Auto Combat, in Legacy Edition Options, can fight for "
+              "you.  Any key takes it back.";
+        break;
+    default:
+        return;
+    }
+    screenMessage("%cTip:%c %s\n", FG_YELLOW, FG_WHITE, tip);
+
+    fp = fopen(path.string().c_str(), "w");
+    if (fp) {
+        fprintf(fp, "%d\n", seen + 1);
+        fclose(fp);
+    }
+}
+
+/*
  * Save the game, if the Autosave option is on and the game can be saved
  * here.  Called on entering & leaving places.
  */
@@ -881,6 +939,7 @@ struct JournalPlace {
     const char* kind;       // "Castles", "Townes" or "Villages".
     int x, y;               // Entrance on the world map.
     int total;              // Clues its people can tell (-1 unknown).
+    std::string tlk;        // Its conversations (resource name).
 };
 
 /*
@@ -915,8 +974,8 @@ static const std::vector<JournalPlace>& journalPlaceList() {
                   (strcmp(type, "village") == 0) ? "Villages" : "Townes";
         jp.x = portal->coords.x;
         jp.y = portal->coords.y;
-        jp.total = discourse_countLines(
-                        xu4.config->confString(city->tlk_fname), isClue);
+        jp.tlk = xu4.config->confString(city->tlk_fname);
+        jp.total = discourse_countLines(jp.tlk.c_str(), isClue);
         list.push_back(jp);
     }
     return list;
@@ -940,6 +999,40 @@ bool legacyJournalPlace(const std::string& title, int* x, int* y) {
 
 static bool placeSeen(const JournalPlace& jp) {
     return legacyWorldSeen(jp.x, jp.y);
+}
+
+/*
+ * Journal Hints: name the people of a place who know more than has been
+ * heard from them ("Calumny, Shamino and Sentri"), without saying what.
+ */
+struct TalkerCount {
+    std::vector<std::pair<std::string, int>> list;
+};
+
+static void addTalker(const char* name, int count, void* user) {
+    static_cast<TalkerCount*>(user)->list.emplace_back(name, count);
+}
+
+static std::string journalYetToAsk(const JournalPlace& jp,
+                                   const std::vector<JournalClue>& clues) {
+    TalkerCount tc;
+    discourse_countByTalker(jp.tlk.c_str(), isClue, addTalker, &tc);
+    std::vector<std::string> names;
+    for (const auto& it : tc.list) {
+        int heard = 0;
+        for (const JournalClue& jc : clues)
+            if (jc.place == jp.name && jc.who == it.first)
+                ++heard;
+        if (heard < it.second)
+            names.push_back(it.first);
+    }
+    std::string out;
+    for (size_t i = 0; i < names.size(); ++i) {
+        if (i)
+            out += (i + 1 == names.size()) ? " and " : ", ";
+        out += names[i];
+    }
+    return out;
 }
 
 static void journalPlaces(std::string& out) {
@@ -1005,6 +1098,11 @@ static void journalPlaces(std::string& out) {
             snprintf(buf, sizeof(buf), "%d more to hear here.", left);
             out += "\n";
             wrapText(out, buf, "    ", 60);
+            if (xu4.settings->legacy.journalHints) {
+                std::string ask = journalYetToAsk(*jp, clues);
+                if (! ask.empty())
+                    wrapText(out, "Hint: ask " + ask + ".", "    ", 60);
+            }
         }
         out += "\n";
         wrapText(out, "M (X on a gamepad): show it on the World Map.",

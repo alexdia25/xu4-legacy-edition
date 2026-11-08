@@ -289,6 +289,8 @@ bool Settings::read() {
     legacy.spellInfo    = true;
     legacy.healShortcut = true;
     legacy.snapAttacks  = true;
+    legacy.journalHints = true;
+    legacy.combatTips   = true;
     legacy.partyColours = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
@@ -461,6 +463,10 @@ bool Settings::read() {
             legacy.cheatsMenu = toInt(val);
         else if (VALUE("steamSaves="))
             legacy.steamSaves = toInt(val);
+        else if (VALUE("journalHints="))
+            legacy.journalHints = toInt(val);
+        else if (VALUE("combatTips="))
+            legacy.combatTips = toInt(val);
         else if (VALUE("autoCombat="))
             legacy.autoCombat = settingEnum(autoCombatStrings(), val);
         else if (VALUE("moonSpeed="))
@@ -643,6 +649,9 @@ bool Settings::write() {
             "smoothMotion=%d\n"
             "cheatsMenu=%d\n"
             "steamSaves=%d\n"
+            "journalHints=%d\n"
+            "combatTips=%d\n"
+
             "autoCombat=%s\n"
             "dungeonMap=%s\n"
             "mapView=%s\n"
@@ -671,6 +680,9 @@ bool Settings::write() {
             legacy.smoothMotion,
             legacy.cheatsMenu,
             legacy.steamSaves,
+            legacy.journalHints,
+            legacy.combatTips,
+
             autoCombatStrings()[ legacy.autoCombat ],
             dungeonMapStrings()[ legacy.dungeonMap ],
             mapViewStrings()[ legacy.mapView ],

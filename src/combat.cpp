@@ -210,8 +210,10 @@ void CombatController::beginCombat() {
     }
 
     /* if there are creatures around, start combat! */
-    if (showMessage && placeCreaturesOnMap && winOrLose)
+    if (showMessage && placeCreaturesOnMap && winOrLose) {
         screenMessage("\n%c****%c COMBAT %c****%c\n", FG_GREY, FG_WHITE, FG_GREY, FG_WHITE);
+        legacyCombatTip();
+    }
 
     /* FIXME: there should be a better way to accomplish this */
     if (!camping) {

@@ -224,6 +224,40 @@ int discourse_countLines(const char* resource, bool (*match)(const char*))
 }
 
 /*
+ * Call found() for each character of a TLK file with the number of their
+ * lines that match (if any).
+ */
+void discourse_countByTalker(const char* resource, bool (*match)(const char*),
+                             void (*found)(const char*, int, void*),
+                             void* user)
+{
+    Discourse dis;
+    discourse_init(&dis);
+    if (discourse_load(&dis, resource) || dis.system != DISCOURSE_U4_TLK) {
+        discourse_free(&dis);
+        return;
+    }
+    const U4Talk* tlk = (const U4Talk*) dis.conv.table;
+    for (int i = 0; i < dis.convCount; ++i, ++tlk) {
+        const uint16_t offs[6] = {
+            tlk->job, tlk->health, tlk->response1, tlk->response2,
+            tlk->yes, tlk->no
+        };
+        int count = 0;
+        for (int j = 0; j < 6; ++j) {
+            if (j >= 4 && ! tlk->question)
+                break;
+            const char* text = tlk->strings + offs[j];
+            if (text[0] && match(text))
+                ++count;
+        }
+        if (count)
+            found(tlk->strings + tlk->name, count, user);
+    }
+    discourse_free(&dis);
+}
+
+/*
  * Return the conversation index for a character or -1 if the name is not found.
  */
 int discourse_findName(const Discourse* dis, const char* name)

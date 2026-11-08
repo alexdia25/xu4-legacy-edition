@@ -347,6 +347,7 @@ IntroController::IntroController() :
     legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  8,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
     legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  9,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
     legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules & Saving",         2, 10,/*'r'*/  2);
+    legacyMenu.add(MI_LEGACY_MORE,                 "\010 More Options",          21, 10,/*'p'*/  8);
     legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     legacyMenu.addShortcutKey(CANCEL, ' ');
@@ -372,10 +373,21 @@ IntroController::IntroController() :
     rulesMenu.setClosesMenu(CANCEL);
     ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
 
+    moreMenu.setTitle("More Legacy Options:", 0, 0);
+    moreMenu.add(MI_MORE_HINTS,   new BoolMenuItem("Journal Hints            %s", 2,  1,/*'j'*/  0, &lo.journalHints));
+    moreMenu.add(MI_MORE_TIPS,    new BoolMenuItem("Combat Tips              %s", 2,  2,/*'t'*/  7, &lo.combatTips));
+    moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu.addShortcutKey(CANCEL, ' ');
+    moreMenu.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu.setClosesMenu(USE_SETTINGS);
+    moreMenu.setClosesMenu(CANCEL);
+
     gameMenu.setTitle("Game Menu:", 0, 0);
-    gameMenu.add(CANCEL,          "\017 Return to Game",       2,  2,/*'r'*/  2);
-    gameMenu.add(MI_HUB_JOURNAL,  "\010 Journal",              2,  3,/*'j'*/  2);
-    gameMenu.add(MI_HUB_HELP,     "\010 How to Play",          2,  4,/*'h'*/  2);
+    gameMenu.add(CANCEL,          "\017 Return to Game",       2,  1,/*'r'*/  2);
+    gameMenu.add(MI_HUB_JOURNAL,  "\010 Journal",              2,  2,/*'j'*/  2);
+    gameMenu.add(MI_HUB_HELP,     "\010 How to Play",          2,  3,/*'h'*/  2);
+    gameMenu.add(MI_HUB_TIPS,     "\010 Tips",                 2,  4,/*'t'*/  2);
     gameMenu.add(MI_HUB_BOOKS,    "\010 Books of Britannia",   2,  5,/*'b'*/  2);
     gameMenu.add(MI_HUB_MAP,      "\010 World Map",            2,  6,/*'w'*/  2);
     gameMenu.add(MI_HUB_SAVE,     "\010 Save Game",            2,  7,/*'s'*/  2);
@@ -1962,6 +1974,9 @@ void IntroController::initMenuHelp() {
         { &legacyMenu, MI_LEGACY_08, "A mini map beside the dungeon view, or a map from above in its place." },
         { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters, Steam saves." },
 
+        { &legacyMenu, MI_LEGACY_MORE, "Journal hints, combat tips and other small helps." },
+        { &moreMenu, MI_MORE_HINTS, "A place's journal page names who still knows more, not what." },
+        { &moreMenu, MI_MORE_TIPS, "A tip in the log at the start of each of the first six fights." },
         { &rulesMenu, MI_RULES_PRESET, "Classic is the game as it was. Modern and Story are gentler." },
         { &rulesMenu, MI_RULES_01, "Off: poison stops at 1 hit point." },
         { &rulesMenu, MI_RULES_02, "Mild stops at half the hit points. None never hurts." },
@@ -1974,6 +1989,7 @@ void IntroController::initMenuHelp() {
 
         { &gameMenu, MI_HUB_JOURNAL, "The virtues, the quest, the places found and the clues heard." },
         { &gameMenu, MI_HUB_HELP, "A short guide for new players." },
+        { &gameMenu, MI_HUB_TIPS, "Pointers on talking, virtue, food, healing, magic, dungeons..." },
         { &gameMenu, MI_HUB_BOOKS, "The History, the Book of Mystic Wisdom, the Hints, the runes, the map." },
         { &gameMenu, MI_HUB_MAP, "The parts of Britannia the party has explored." },
         { &gameMenu, MI_HUB_SAVE, "Save the game here: outdoors or in a dungeon, not in towns or battles." },
@@ -2067,6 +2083,8 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateLegacyMenu(event);
     else if (menu == &rulesMenu)
         updateRulesMenu(event);
+    else if (menu == &moreMenu)
+        updateMoreMenu(event);
     else if (menu == &padMenu)
         updatePadMenu(event);
     else if (menu == &cheatsMenu)
@@ -2405,12 +2423,35 @@ void IntroController::updateLegacyMenu(MenuEvent &event) {
         event.type == MenuEvent::DECREMENT) {
 
         switch(event.item->getId()) {
+            case MI_LEGACY_MORE:
+                runMenu(&moreMenu, &extendedMenuArea, true);
+                break;
             case MI_LEGACY_RULES:
                 // Only for the Steam release's game files.
                 rulesMenu.getItemById(MI_RULES_STEAM)->setVisible(
                                 steamGameFilesUsed());
                 runMenu(&rulesMenu, &extendedMenuArea, true);
                 break;
+            case USE_SETTINGS:
+                xu4.settings->setData(settingsChanged);
+                xu4.settings->write();
+                break;
+            case CANCEL:
+                settingsChanged = *xu4.settings;
+                break;
+            default: break;
+        }
+    }
+
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+}
+
+void IntroController::updateMoreMenu(MenuEvent &event) {
+    if (event.type == MenuEvent::ACTIVATE ||
+        event.type == MenuEvent::INCREMENT ||
+        event.type == MenuEvent::DECREMENT) {
+        switch(event.item->getId()) {
             case USE_SETTINGS:
                 xu4.settings->setData(settingsChanged);
                 xu4.settings->write();
@@ -2487,6 +2528,9 @@ void IntroController::updateGameMenu(MenuEvent &event) {
             break;
         case MI_HUB_HELP:
             gameShowBook(DocReader::BOOK_HELP);
+            break;
+        case MI_HUB_TIPS:
+            gameShowBook(DocReader::BOOK_TIPS);
             break;
         case MI_HUB_BOOKS:
             gameShowBook(-1);

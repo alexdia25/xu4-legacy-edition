@@ -163,6 +163,8 @@ struct LegacyOptions {
     bool partyColours;      // Party panel names & hit points coloured.
     bool cheatsMenu;        // Cheats in the in-game settings.
     bool steamSaves;        // Saves also go to the Steam release's folder.
+    bool journalHints;      // Journal place pages name who to ask.
+    bool combatTips;        // A tip in the log during the first fights.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).

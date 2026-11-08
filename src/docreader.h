@@ -27,6 +27,7 @@ public:
         BOOK_RUNES = DOC_COUNT,
         BOOK_MAP,               // Opens the whole world map (cloth map).
         BOOK_HELP,
+        BOOK_TIPS,
         BOOK_JOURNAL,
         BOOK_COUNT
     };

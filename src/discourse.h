@@ -36,6 +36,11 @@ int         discourse_findName(const Discourse*, const char* name);
 const char* discourse_name(const Discourse*, uint16_t entry);
 int         discourse_countLines(const char* resource,
                                  bool (*match)(const char*));
+void        discourse_countByTalker(const char* resource,
+                                    bool (*match)(const char*),
+                                    void (*found)(const char* name, int count,
+                                                  void* user),
+                                    void* user);
 
 // Words heard in conversations, used by the SMS style topic menu.
 #define TALKWORDS_SAV   "talkwords.sav"

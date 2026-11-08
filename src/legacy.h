@@ -40,6 +40,7 @@ extern bool legacyReloadPending;
 void legacySaveDone(const char* userPath);
 void legacyCopySaveFiles(const std::string& from, const std::string& to);
 void legacyAutosave();
+void legacyCombatTip();
 bool legacyWipeChoice();
 void legacyReloadLast();
 std::vector<LegacySaveInfo> legacyLoadableSaves();
@@ -58,6 +59,7 @@ void legacyJournalReset();
 std::string legacyJournalText();
 const char* legacyVirtueWord(int karma);
 std::string legacyHelpText();
+std::string legacyTipsText();
 
 // Dungeon map: the cells of each dungeon level the party has seen.
 void legacyDungeonLoad();

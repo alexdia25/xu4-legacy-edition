@@ -113,6 +113,7 @@ public:
     void updateInterfaceMenu(MenuEvent &event);
     void updateLegacyMenu(MenuEvent &event);
     void updateRulesMenu(MenuEvent &event);
+    void updateMoreMenu(MenuEvent &event);
     void updatePadMenu(MenuEvent &event);
     void updateCheatsMenu(MenuEvent &event);
     void updateGameMenu(MenuEvent &event);
@@ -250,6 +251,9 @@ private:
         MI_LEGACY_08,
         MI_LEGACY_09,
         MI_LEGACY_RULES,
+        MI_LEGACY_MORE,
+        MI_MORE_HINTS,
+        MI_MORE_TIPS,
         MI_RULES_PRESET,
         MI_RULES_01,
         MI_RULES_02,
@@ -273,6 +277,7 @@ private:
         MI_CHEAT_MAP,
         MI_HUB_JOURNAL,
         MI_HUB_HELP,
+        MI_HUB_TIPS,
         MI_HUB_BOOKS,
         MI_HUB_MAP,
         MI_HUB_SAVE,
@@ -304,6 +309,7 @@ private:
     Menu interfaceMenu;
     Menu legacyMenu;
     Menu rulesMenu;
+    Menu moreMenu;
     Menu padMenu;
     Menu cheatsMenu;
     Menu gameMenu;

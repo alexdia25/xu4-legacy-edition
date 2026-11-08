@@ -19,7 +19,7 @@ What it adds to XU4:
  - A [game menu](#the-game-menu) on Escape, drawn like the title menus.
  - The [Books of Britannia](#books-of-britannia) in the game: the
    History, the Book of Mystic Wisdom, the Hints, the reference card, the
-   runes, a How to Play guide and a Journal of the quest.
+   runes, a How to Play guide, Tips and a Journal of the quest.
  - A [world map](#world-map) and a [dungeon map](#dungeon-map).
  - [Legacy Edition options](#legacy-edition-options): conveniences,
    difficulty presets, autosave and several characters.
@@ -85,7 +85,7 @@ into someone talks, into a door opens it) starts off.
 ### The Game Menu
 
 Escape (Select on a gamepad) opens a menu drawn like the title menus:
-Return to Game, Journal, How to Play, Books of Britannia, World Map,
+Return to Game, Journal, How to Play, Tips, Books of Britannia, World Map,
 Save Game, Load a Save, Settings, Graphics & Music (the module list) and
 Quit Game.  Load a Save goes back to the last save, or to an earlier one
 from the save history.  Settings can be changed without leaving the
@@ -106,12 +106,17 @@ for the contents).  The reader also has:
    words written in runes.
  - **How to Play**: a short guide for new players, from talking to
    people to the quest and the options.
+ - **Tips**: pointers by topic (first steps, talking, virtue, shrines,
+   food and gold, healing, magic, levels, travel, dungeons, and what to
+   do when stuck) that point the way without giving answers away.
  - **Journal**: the path of each virtue, the quest items found, the
    places found (castles, townes and villages, with how many of their
    clues have been heard; M, or X on a gamepad, shows a place on the
    World Map), and the clues heard, grouped by topic (mantras, runes,
    stones, bell book & candle, the key, the Abyss), with the ones acted
    on already apart.  "Journal updated" is shown when a clue is noted.
+   With Journal Hints, a place's page also names the people there who
+   know more than has been heard from them.
  - **Map**: the whole cloth map of Britannia.
  - **Three text sizes**: - and + (or the shoulder buttons) change the
    size of the text, which rewraps to fit.
@@ -173,6 +178,11 @@ edition.  Each can be switched off for the game as it was.
 | Heal In Action Menu    | A Heal or Cure shortcut when someone needs it      | On     |
 | Auto Combat            | The party fights on its own; any key or button takes the battle back, and it stops when someone is badly hurt | Off |
 | Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
+
+Beside Rules & Saving, **More Options** holds **Journal Hints** (a place's
+journal page names who still has clues to tell, never what) and
+**Combat Tips** (a tip in the log at the start of each of the first six
+fights, once per character); both start on.
 
 **Rules & Saving** sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
