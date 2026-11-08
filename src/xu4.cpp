@@ -12,6 +12,7 @@
 #include <cstring>
 #include <ctime>
 #include "xu4.h"
+#include "update.h"
 #include "config.h"
 #include "docs.h"
 #include "error.h"
@@ -506,6 +507,8 @@ int main(int argc, char *argv[]) {
     screenTextAt(15, 11, "Loading...");
     ++pb;
 #endif
+
+    updateCheckStart();
 
 begin_game:
     while( xu4.stage != StageExitGame )

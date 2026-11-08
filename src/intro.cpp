@@ -8,6 +8,7 @@
 #include "u4.h"
 
 #include "intro.h"
+#include "update.h"
 #include "gamepad.h"
 #include "context.h"
 #include "location.h"
@@ -414,6 +415,7 @@ IntroController::IntroController() :
     moreMenu3.setTitle("More Legacy Options (3):", 0, 0);
     moreMenu3.add(MI_MORE_FRAME,  new BoolMenuItem("Frame Colour By Place    %s", 2,  1,/*'f'*/  0, &lo.frameTint));
     moreMenu3.add(MI_MORE_QUICKFX, new BoolMenuItem("Effects Don't Stop Play  %s", 2,  2,/*'e'*/  0, &lo.quickFx));
+    moreMenu3.add(MI_MORE_UPDATE, new BoolMenuItem("Update Notice            %s", 2,  3,/*'n'*/  5, &lo.updateNotice));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -1949,8 +1951,12 @@ void IntroController::timerFired() {
             MAP_ENABLE;
         }
 
-    if (mode == INTRO_MAP)
+    if (mode == INTRO_MAP) {
         drawMap();
+        // Update Notice: offer a newer release at the title menu.
+        if (xu4.eventHandler->getController() == this)
+            updateNoticeShow();
+    }
 
     if (beastiesVisible)
         drawBeasties();
@@ -2062,6 +2068,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_SNAP, "Snap Attacks mark their target; PgUp/PgDn or L/R pick another foe." },
         { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
         { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
+        { &moreMenu3, MI_MORE_UPDATE, "Once a day, ask GitHub if a newer release is out (Windows, Mac, Linux)." },
         { &moreMenu3, MI_MORE_QUICKFX, "Spell flashes are brief and storms don't wait for their sound." },
         { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },
         { &moreMenu2, MI_MORE_WARES, "Shop lists show in grey what thy gold cannot buy." },

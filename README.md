@@ -213,6 +213,7 @@ Its **Next Page** holds:
 |----------------------------|--------------|
 | Frame Colour By Place      | The blue border turns gold at a shrine and grey in a dungeon, darker on each level down (with the DOS border picture) |
 | Effects Don't Stop Play    | A spell's screen flash is brief while its sound plays on, and a storm or whirlpool doesn't hold the game for its sound |
+| Update Notice              | On Windows, macOS and Linux (not the Flatpak, which updates itself), once a day the game asks GitHub for the latest release and offers its download page when a newer one is out; Not This One skips that release |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is

@@ -302,6 +302,7 @@ bool Settings::read() {
     legacy.shopBuyer    = true;
     legacy.frameTint    = true;
     legacy.quickFx      = true;
+    legacy.updateNotice = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -508,6 +509,8 @@ bool Settings::read() {
             legacy.frameTint = toInt(val);
         else if (VALUE("quickFx="))
             legacy.quickFx = toInt(val);
+        else if (VALUE("updateNotice="))
+            legacy.updateNotice = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -725,6 +728,7 @@ bool Settings::write() {
             "shopBuyer=%d\n"
             "frameTint=%d\n"
             "quickFx=%d\n"
+            "updateNotice=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -776,6 +780,7 @@ bool Settings::write() {
             legacy.shopBuyer,
             legacy.frameTint,
             legacy.quickFx,
+            legacy.updateNotice,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,

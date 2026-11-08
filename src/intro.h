@@ -267,6 +267,7 @@ private:
         MI_MORE_NEXT,
         MI_MORE_NEXT2,
         MI_MORE_QUICKFX,
+        MI_MORE_UPDATE,
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
