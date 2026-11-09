@@ -191,4 +191,9 @@ jobs:
           # version is never older than the newest download.  The Flatpak
           # repository there always takes the latest full release's bundle,
           # so pre-releases don't reach installed Flatpaks.
-          gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"
+          # A release built from another branch (one that leaves out work
+          # on the default branch) keeps the site as it is.
+          DEFAULT="${{ github.event.repository.default_branch }}"
+          if [ "$GITHUB_REF_TYPE" = tag ] || [ "$GITHUB_REF_NAME" = "$DEFAULT" ]; then
+            gh workflow run pages.yml --ref "$DEFAULT"
+          fi
