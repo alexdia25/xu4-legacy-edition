@@ -21,6 +21,7 @@ CXXSRCS=\
         c64disk.cpp \
         c64music.cpp \
         smsmusic.cpp \
+        nesmusic.cpp \
         smsrom.cpp \
         nesrom.cpp \
         smsz80.cpp \

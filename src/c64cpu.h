@@ -4,8 +4,9 @@
  *
  * A small model of the 6502 (documented instructions, no decimal mode) to
  * run code from the C64 disks: the music player and the self-extracting
- * programs of Ultima IV Remastered.  Writes to the SID ($D400-$D41F) can be
- * logged with the cycle count.
+ * programs of Ultima IV Remastered, and the sound driver of the NES ROM.
+ * Writes to the SID ($D400-$D41F), or to the 32 registers from logBase, can
+ * be logged with the cycle count.
  */
 
 #ifndef C64CPU_H
@@ -43,9 +44,12 @@ struct Cpu6502 {
     uint32_t cycles;
     uint16_t pc;
     uint8_t a, x, y, sp, p;
+    uint16_t logBase;       // First of the 32 registers whose writes are logged.
+    uint32_t romStart;      // Writes from here up are ignored.
 
     Cpu6502(uint8_t* m) : mem(m), writes(NULL), cycles(0), pc(0),
-                          a(0), x(0), y(0), sp(0xFD), p(P6502_U | P6502_I) {}
+                          a(0), x(0), y(0), sp(0xFD), p(P6502_U | P6502_I),
+                          logBase(0xD400), romStart(0x10000) {}
 
     uint8_t rd(uint16_t addr) const { return mem[addr]; }
     uint16_t rd16(uint16_t addr) const {
@@ -55,9 +59,11 @@ struct Cpu6502 {
         return mem[addr] | (mem[uint8_t(addr + 1)] << 8);
     }
     void wr(uint16_t addr, uint8_t v) {
+        if (addr >= romStart)
+            return;
         mem[addr] = v;
-        if (addr >= 0xD400 && addr < 0xD420 && writes) {
-            SidWrite sw = { cycles, uint8_t(addr - 0xD400), v };
+        if (addr >= logBase && addr < logBase + 0x20 && writes) {
+            SidWrite sw = { cycles, uint8_t(addr - logBase), v };
             writes->push_back(sw);
         }
     }

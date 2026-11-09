@@ -18,6 +18,7 @@
 #include "c64disk.h"
 #include "c64music.h"
 #include "smsmusic.h"
+#include "nesmusic.h"
 
 #include "config.h"
 #include "context.h"
@@ -669,8 +670,8 @@ void soundStop() {
 
 #ifdef CONF_MODULE
 /*
- * Render a tune from the Apple II or C64 disks or the SMS ROM and start
- * playing it.
+ * Render a tune from the Apple II or C64 disks or the SMS or NES ROM and
+ * start playing it.
  */
 static bool music_playApple2(const CDIEntry* ent, int mode)
 {
@@ -690,6 +691,10 @@ static bool music_playApple2(const CDIEntry* ent, int mode)
     if (spec.compare(0, 4, "sms/") == 0) {
         // The tune is played by the game's sound driver.
         if (! sms_renderMusic(tune, A2MUSIC_RATE, samples))
+            return false;
+    } else if (spec.compare(0, 4, "nes/") == 0) {
+        // The tune is played by the game's sound driver.
+        if (! nes_renderMusic(tune, A2MUSIC_RATE, samples))
             return false;
     } else if (spec.compare(0, 4, "c64/") == 0) {
         // The tune is played by the game's music player.

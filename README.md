@@ -324,8 +324,8 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
    the gypsy's cards, the shrine visions and the endgame pictures, and
    the music of the Sega Master System release, read from its ROM (see
    [SMS ROM](#sms-rom)).
- - **NES**: the map tiles, character sprites and font of the NES release,
-   read from its ROM (see [NES ROM](#nes-rom)).
+ - **NES** and **NES-Music**: the map tiles, character sprites, font and
+   music of the NES release, read from its ROM (see [NES ROM](#nes-rom)).
 
 The **CGA** module draws the game with the DOS release's own
 four-colour CGA graphics (black, cyan, magenta and white): the tiles
@@ -575,19 +575,20 @@ ROM is found.  Nothing from the ROM is stored in the modules.
 
 The NES module reads the map tiles, the character and creature sprites
 and the font of Ultima: Quest of the Avatar for the NES straight from its
-ROM.  The NES game draws Lord British's castle as two tiles, so the
-square west of its gate shows grass.  A few DOS tiles have no NES
-picture; they are drawn from NES pieces in their own colours (the ship's
-mast and wheel, the bull, the corpse, the city, the ruins, the runes and
-the twister).  The title, story pictures and dungeons still use the DOS
+ROM, and the NES-Music soundtrack plays its music by running the game's
+own sound driver on a model of the console's 6502 & sound unit.  The NES
+game draws Lord British's castle as two tiles, so the square west of its
+gate shows grass.  A few DOS tiles have no NES picture; they are drawn
+from NES pieces in their own colours (the ship's mast and wheel, the
+bull, the corpse, the city, the ruins, the runes and the twister).  The title, story pictures and dungeons still use the DOS
 pictures, and the game itself stays the DOS one.
 
 The ROM must be the USA release (256 KB of program data, SHA-1
 `f603c7f274cb6db9be0508a9aa150521ff27d14c` for the `.nes` file with its
 16 byte header) with the `.nes` extension; its file name doesn't matter.
 Put it in any of the [data folders](#data-folders), or in a `nes` folder
-inside one of them.  The module is only listed in Graphics & Music when
-the ROM is found.  Nothing from the ROM is stored in the module.
+inside one of them.  The modules are only listed in Graphics & Music when
+the ROM is found.  Nothing from the ROM is stored in the modules.
 
 About This Fork
 ---------------

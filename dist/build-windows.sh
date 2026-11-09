@@ -82,7 +82,7 @@ mkdir -p ${OUT}
 cp ${SRC}/src/xu4.exe ${OUT}
 cp ${SYS}/bin/SDL3.dll ${OUT}
 for f in render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod \
-         C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod CGA.mod NES.mod; do
+         C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod CGA.mod NES.mod NES-Music.mod; do
     # Rebuilt when out of date; kept as is if boron is not installed.
     make -s -C ${TOP} $f || [ -f ${TOP}/$f ]
     cp ${TOP}/$f ${OUT}
