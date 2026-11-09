@@ -134,6 +134,16 @@ struct NesRom {
         int p = rd16(bank, 0x8000 + 2 * k);
         unpack(bank, p + 2, rd16(bank, p), false, out);
     }
+
+    // The palettes the game gives a sprite: bits 4-5 of a table in bank 9
+    // ($AC0B), and the lower half takes another palette if bit 7 of a
+    // table in the fixed bank ($DFDB) is set.
+    void spritePal(int k, int* top, int* bottom) const {
+        static const uint8_t lower[4] = { 1, 0, 0, 0 };
+        int p = (rd(9, 0xAC0B + k) >> 4) & 3;
+        *top = p;
+        *bottom = (fixed(0xDFDB + k) & 0x80) ? lower[p] : p;
+    }
 };
 
 // A tile of the map sets with its patterns & palette.
@@ -204,13 +214,17 @@ struct NesTileSrc {
 #define MT(s,t)         {NS_MAP, s, t, 0xFF, 0, {0,0,0,0}}
 #define MTP(s,t,p)      {NS_MAP, s, t, p, 0, {0,0,0,0}}
 #define MTC(s,t,c1,c2,c3) {NS_MAP, s, t, 0xFF, 0, {0x0F,c1,c2,c3}}
+#define NES_PAL_GAME    0xFF    // The sprite's palettes in the game.
 #define SP(g,f,p)       {NS_SPRITE, g, f, p, 0, {0,0,0,0}}
+#define SN(g,f)         {NS_SPRITE, g, f, NES_PAL_GAME, 0, {0,0,0,0}}
+#define SNF(g,f)        {NS_SPRITE, g, f, NES_PAL_GAME, 1, {0,0,0,0}}
 #define SPF(g,f,p)      {NS_SPRITE, g, f, p, 1, {0,0,0,0}}
 #define SPC(g,f,c2,c3)  {NS_SPRITE, g, f, 0, 0, {0x0F,0x0F,c2,c3}}
 #define SPCF(g,f,c2,c3) {NS_SPRITE, g, f, 0, 1, {0x0F,0x0F,c2,c3}}
 #define LT(ch)          {NS_LETTER, ch, 0, 0, 0, {0,0,0,0}}
 #define SPECIAL         {NS_SPECIAL, 0, 0, 0, 0, {0,0,0,0}}
-#define CREATURE(g,p)   SP(g,0,p), SPF(g,0,p), SP(g,0,p), SPF(g,0,p)
+#define CREATURE(g)     SN(g,0), SNF(g,0), SN(g,0), SNF(g,0)
+#define CREATURE_P(g,p) SP(g,0,p), SPF(g,0,p), SP(g,0,p), SPF(g,0,p)
 
 static const NesTileSrc nesTileSrc[256] = {
     // 0: sea, water, shallows, swamp, grass, brush, forest, hills
@@ -224,15 +238,15 @@ static const NesTileSrc nesTileSrc[256] = {
     SPF(0x43,4,2), SP(0x43,2,2), SP(0x43,4,2), SP(0x43,0,2),
     SPF(0x1F,2,2), SP(0x1F,2,2),
     // 22: dungeon floor, bridge, balloon, bridge north & south ends
-    MT(0x2C,0x02), MT(0,0x06), SP(0x46,0,0), MTP(0,0x06,2), MTP(0,0x06,3),
+    MT(0x2C,0x02), MT(0,0x06), SN(0x46,0), MTP(0,0x06,2), MTP(0,0x06,3),
     // 27: ladder up & down, ruins, shrine
     MT(0x13,0x07), MT(0x2D,0x10), SPECIAL, MT(0,0x36),
     // 31: avatar, mage, bard, fighter, druid, tinker, paladin, ranger,
     //     shepherd (two frames each)
     SP(0x01,0,0),
-    SP(1,0,2), SPF(1,0,2), SP(2,0,1), SPF(2,0,1), SP(3,0,0), SPF(3,0,0),
-    SP(4,0,3), SPF(4,0,3), SP(5,0,2), SPF(5,0,2), SP(6,0,0), SPF(6,0,0),
-    SP(7,0,3), SPF(7,0,3), SP(8,0,1), SPF(8,0,1),
+    SN(1,0), SNF(1,0), SN(2,0), SNF(2,0), SN(3,0), SNF(3,0),
+    SN(4,0), SNF(4,0), SN(5,0), SNF(5,0), SN(6,0), SNF(6,0),
+    SN(7,0), SNF(7,0), SN(8,0), SNF(8,0),
     // 48: column, waterside SW SE NW NE, ship mast, wheel, rocks
     MT(1,0x0F), MT(5,0x0E), MT(5,0x0F), MT(5,0x26), MT(5,0x24),
     SPECIAL, SPECIAL, MT(0x2C,0x05),
@@ -251,10 +265,10 @@ static const NesTileSrc nesTileSrc[256] = {
     SP(0x42,0,2), SP(0x42,1,1), SP(0x42,2,3),
     // 80: guard, villager, singing bard, jester, beggar, child, bull,
     //     Lord British
-    SP(0x09,0,0), SPF(0x09,0,0), SP(0x0D,0,1), SPF(0x0D,0,1),
-    SP(0x11,0,2), SPF(0x11,0,2), SP(0x10,0,3), SPF(0x10,0,3),
-    SP(0x0C,0,0), SPF(0x0C,0,0), SP(0x1C,0,1), SPF(0x1C,0,1),
-    SPF(0x1F,2,3), SP(0x1F,2,3), SP(0x0B,0,0), SP(0x0B,1,0),
+    SN(0x09,0), SNF(0x09,0), SN(0x0D,0), SNF(0x0D,0),
+    SN(0x11,0), SNF(0x11,0), SN(0x10,0), SNF(0x10,0),
+    SN(0x0C,0), SNF(0x0C,0), SN(0x1C,0), SNF(0x1C,0),
+    SPF(0x1F,2,3), SP(0x1F,2,3), SN(0x0B,0), SN(0x0B,1),
     // 96: letters A-Z
     LT('A'),LT('B'),LT('C'),LT('D'),LT('E'),LT('F'),LT('G'),LT('H'),
     LT('I'),LT('J'),LT('K'),LT('L'),LT('M'),LT('N'),LT('O'),LT('P'),
@@ -266,20 +280,21 @@ static const NesTileSrc nesTileSrc[256] = {
     // 128: pirate ship, nixie, squid, serpent, sea horse, whirlpool,
     //      twister
     SPF(0x44,4,3), SP(0x44,2,3), SP(0x44,4,3), SP(0x44,0,3),
-    SP(0x40,0,0), SPF(0x40,0,0), SP(0x3E,0,1), SPF(0x3E,0,1),
-    SP(0x27,0,2), SPF(0x27,0,2), SP(0x40,0,1), SPF(0x40,0,1),
+    SN(0x40,0), SNF(0x40,0), SN(0x3E,0), SNF(0x3E,0),
+    SN(0x2B,0), SNF(0x2B,0), SN(0x27,0), SNF(0x27,0),
     SP(0x47,0,0), SP(0x47,1,0), SPC(0x49,1,0x10,0x30), SPC(0x49,2,0x10,0x30),
-    // 144: rat, bat, spider, ghost, slime, troll, gremlin, mimic, reaper,
+    // 144: rat, bat, spider, ghost, slime, troll, gremlin, mimic (not in
+    //      the chest's palette), reaper,
     //      insects, gazer, phantom, orc, skeleton, rogue, python, ettin,
     //      headless, cyclops, wisp, mage, liche, lava lizard, zorn, daemon,
     //      hydra, dragon, balron
-    CREATURE(0x3B,3), CREATURE(0x34,0), CREATURE(0x37,2), CREATURE(0x24,2),
-    CREATURE(0x33,1), CREATURE(0x3A,0), CREATURE(0x3F,1), CREATURE(0x2C,1),
-    CREATURE(0x25,0), CREATURE(0x35,1), CREATURE(0x38,3), CREATURE(0x14,2),
-    CREATURE(0x2F,0), CREATURE(0x23,2), CREATURE(0x20,3), CREATURE(0x39,1),
-    CREATURE(0x31,3), CREATURE(0x2E,0), CREATURE(0x30,1), CREATURE(0x2D,2),
-    CREATURE(0x36,0), CREATURE(0x41,1), CREATURE(0x3D,3), CREATURE(0x26,0),
-    CREATURE(0x28,1), CREATURE(0x2A,0), CREATURE(0x29,3), CREATURE(0x3C,3)
+    CREATURE(0x3B), CREATURE(0x34), CREATURE(0x37), CREATURE(0x24),
+    CREATURE(0x33), CREATURE(0x3A), CREATURE(0x3F), CREATURE_P(0x2C,1),
+    CREATURE(0x25), CREATURE(0x35), CREATURE(0x38), CREATURE(0x14),
+    CREATURE(0x2F), CREATURE(0x23), CREATURE(0x20), CREATURE(0x39),
+    CREATURE(0x31), CREATURE(0x2E), CREATURE(0x30), CREATURE(0x2D),
+    CREATURE(0x36), CREATURE(0x41), CREATURE(0x3D), CREATURE(0x26),
+    CREATURE(0x28), CREATURE(0x2A), CREATURE(0x29), CREATURE(0x3C)
 };
 
 // NES glyph number for an ASCII character, or 0 if the NES has none.
@@ -358,11 +373,15 @@ public:
             return;
         if (frame >= frames)
             frame = frames - 1;
-        const uint8_t* pal4 = col[0] ? col : nesSpritePal[palIndex & 3];
+        int top = palIndex & 3, bottom = top;
+        if (palIndex == NES_PAL_GAME)
+            rom.spritePal(g, &top, &bottom);
         for (int j = 0; j < 4; ++j) {
             int x = (j & 1) * 8;
             if (flip)
                 x = 8 - x;
+            const uint8_t* pal4 = col[0] ? col
+                                : nesSpritePal[(j < 2) ? top : bottom];
             nesPattern(img, x, y0 + (j >> 1) * 8,
                        &data[frame * 64 + j * 16], pal4, flip, false);
         }
