@@ -118,6 +118,7 @@ void screenWait(int numberOfAnimationFrames);
 void screenUploadToGPU();
 
 void screenIconify(void);
+void screenToggleFullscreen(void);
 
 const std::vector<std::string> &screenGetGemLayoutNames();
 const char** screenGetFilterNames();

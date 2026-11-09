@@ -12,6 +12,8 @@
 #include "gamepad.h"
 #include "screen.h"
 #include "xu4.h"
+#include <sys/stat.h>
+#include <SDL3/SDL_filesystem.h>
 
 #ifdef ANDROID
 extern "C" const char* androidInternalData();
@@ -134,6 +136,25 @@ void Settings::init(const char* profileName) {
 #endif
 
     }
+
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+    // Portable: a "portable" folder beside the program keeps the saves &
+    // settings there, so they go wherever the program is carried.
+    if (profile.empty()) {
+        const char* base = SDL_GetBasePath();
+        if (base) {
+            std::string port = std::string(base) + "portable";
+            struct stat st;
+            if (stat(port.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+#ifdef _WIN32
+                userPath = port + "\\";
+#else
+                userPath = port + "/";
+#endif
+            }
+        }
+    }
+#endif
 
 #ifndef ANDROID
     FileSystem::createDirectory(userPath);
@@ -308,6 +329,9 @@ bool Settings::read() {
     legacy.mapPlaces    = true;
     legacy.spoilerGuide = false;
     legacy.outOfReach   = true;
+    legacy.smartWho     = true;
+    legacy.menuSounds   = true;
+    legacy.smoothSound  = true;
     legacy.quickMix     = true;
     legacy.shopColours  = true;
     legacy.spellExtras  = true;
@@ -526,6 +550,12 @@ bool Settings::read() {
             legacy.spoilerGuide = toInt(val);
         else if (VALUE("outOfReach="))
             legacy.outOfReach = toInt(val);
+        else if (VALUE("smartWho="))
+            legacy.smartWho = toInt(val);
+        else if (VALUE("menuSounds="))
+            legacy.menuSounds = toInt(val);
+        else if (VALUE("smoothSound="))
+            legacy.smoothSound = toInt(val);
         else if (VALUE("quickMix="))
             legacy.quickMix = toInt(val);
         else if (VALUE("shopColours="))
@@ -566,6 +596,8 @@ bool Settings::read() {
             legacy.wakeOnHit    = eased;
             legacy.heavyHitters = eased;
             legacy.ambushWakes  = eased;
+            legacy.idlePause    = eased;
+            legacy.cancelMana   = eased;
             legacy.armourBonus  = (legacy.preset == LegacyPreset_Story) ?
                                   Armour_Story : eased ? Armour_Modern
                                                        : Armour_None;
@@ -588,6 +620,10 @@ bool Settings::read() {
             legacy.heavyHitters = toInt(val);
         else if (VALUE("ambushWakes="))
             legacy.ambushWakes = toInt(val);
+        else if (VALUE("idlePause="))
+            legacy.idlePause = toInt(val);
+        else if (VALUE("cancelMana="))
+            legacy.cancelMana = toInt(val);
 
         /* mouse options */
         else if (VALUE("mouseEnabled="))
@@ -650,6 +686,8 @@ bool Settings::readCharacter(const std::string& path) {
     lo.readerSize     = dev.readerSize;
     lo.heldPace       = dev.heldPace;
     lo.mapView        = dev.mapView;
+    lo.menuSounds     = dev.menuSounds;
+    lo.smoothSound    = dev.smoothSound;
     memcpy(lo.padMap, dev.padMap, sizeof lo.padMap);
     legacy = lo;
     enhancementsOptions.smsInterface = mine.enhancementsOptions.smsInterface;
@@ -804,6 +842,9 @@ bool Settings::write() {
             "mapPlaces=%d\n"
             "spoilerGuide=%d\n"
             "outOfReach=%d\n"
+            "smartWho=%d\n"
+            "menuSounds=%d\n"
+            "smoothSound=%d\n"
             "quickMix=%d\n"
             "shopColours=%d\n"
             "spellExtras=%d\n"
@@ -827,7 +868,9 @@ bool Settings::write() {
             "wakeOnHit=%d\n"
             "armourBonus=%s\n"
             "heavyHitters=%d\n"
-            "ambushWakes=%d\n",
+            "ambushWakes=%d\n"
+            "idlePause=%d\n"
+            "cancelMana=%d\n",
             legacy.bumpToAct,
             legacy.foldMoves,
             legacy.freeCancel,
@@ -864,6 +907,9 @@ bool Settings::write() {
             legacy.mapPlaces,
             legacy.spoilerGuide,
             legacy.outOfReach,
+            legacy.smartWho,
+            legacy.menuSounds,
+            legacy.smoothSound,
             legacy.quickMix,
             legacy.shopColours,
             legacy.spellExtras,
@@ -887,7 +933,9 @@ bool Settings::write() {
             legacy.wakeOnHit,
             armourBonusStrings()[ legacy.armourBonus ],
             legacy.heavyHitters,
-            legacy.ambushWakes);
+            legacy.ambushWakes,
+            legacy.idlePause,
+            legacy.cancelMana);
 
     for (int i = 0; i < PadMap_Count; ++i)
         fprintf(settingsFile, "pad%s=%s\n", padButtonNames[i],
@@ -980,6 +1028,8 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.armourBonus = Armour_None;
             lo.heavyHitters = false;
             lo.ambushWakes = false;
+            lo.idlePause   = false;
+            lo.cancelMana  = false;
             break;
         case LegacyPreset_Modern:
             lo.poisonKills = false;
@@ -991,6 +1041,8 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.armourBonus = Armour_Modern;
             lo.heavyHitters = true;
             lo.ambushWakes = true;
+            lo.idlePause   = true;
+            lo.cancelMana  = true;
             break;
         case LegacyPreset_Story:
             lo.poisonKills = false;
@@ -1002,6 +1054,8 @@ void Settings::applyLegacyPreset(SettingsData& data, int preset) {
             lo.armourBonus = Armour_Story;
             lo.heavyHitters = true;
             lo.ambushWakes = true;
+            lo.idlePause   = true;
+            lo.cancelMana  = true;
             break;
     }
 }

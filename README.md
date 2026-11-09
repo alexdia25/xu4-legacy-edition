@@ -228,14 +228,17 @@ set on its own (whether poison kills, starvation, shared experience, the
 turn timer, and whether a fallen party is raised by Lord British or may
 reload: when the whole party falls, it then offers the last save, an
 earlier save or Lord British's aid).  More Rules holds the combat rules
-of the Ultima V port: Hit Wakes Sleepers (a sleeper hit in a fight has
+of the Ultima V and III ports: Hit Wakes Sleepers (a sleeper hit in a fight has
 an even chance to wake), Armour Bonus (Modern adds a tier of armour, 16,
 to every member's defence; Story two tiers while the party has food),
 Heavy Hitters (daemons, dragons and balrons strike for at least half of
-their full blow) and Ambush Wakes Sleepers (once a camp's ambush is
-over, nobody walks on asleep).  Classic has them all off, Modern and
-Story on.  It also turns on autosave with a history of saves to go back
-to and several characters each with their own saves (these start off).
+their full blow), Ambush Wakes Sleepers (once a camp's ambush is
+over, nobody walks on asleep), Idle Fights Pause (a fight left alone
+for a minute stops passing turns until you are back) and Cancel Keeps
+Mana (backing out of the Energy Field spell's choice costs no mana).
+Classic has them all off, Modern and Story on.  It also turns on
+autosave with a history of saves to go back to and several characters
+each with their own saves (these start off).
 With the Steam release's game files it also has **Steam Cloud Saves**
 (see [Steam Cloud saves](#steam-cloud-saves)).
 
@@ -690,7 +693,14 @@ modified.  These settings are stored in `$HOME/.config/xu4/xu4rc` on Linux,
 `$HOME/Library/Application Support/xu4/xu4rc` on macOS and
 `%APPDATA%\xu4\xu4.cfg` on Windows.
 
-The saved game files are stored in the settings directory.
+The saved game files are stored in the settings directory.  On Windows
+and Linux, a folder named `portable` beside the program is used in its
+place, so the saves and settings go wherever the program is carried.
+Only one copy of the game runs at a time on the same settings directory.
+Alt+Enter or F11 switches between full screen and a window, and Sound
+Options has **Menu Sounds** (the in-game pick lists tick and click) and
+**Smoother Sound** (the music dips under a long effect, and an effect is
+not restarted over itself).
 
 XU4 also accepts the following command line options:
 

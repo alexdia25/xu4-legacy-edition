@@ -32,7 +32,7 @@ for SESSION in ${SESSIONS}; do
 
     # Settings: enable the debug (cheat) commands.
     # The Legacy Edition conveniences are off so that play is as it was.
-    printf "debug=1\ncombatTips=0\njournalHints=0\nmenuCounts=0\nlightFirst=0\nnameSteal=0\ncapDials=0\nxpOnZtats=0\nmapCreatures=0\nsnapMark=0\nautoExtras=0\nsceneStop=0\nspellExtras=0\nshopColours=0\nquickMix=0\nblockReason=0\naskRules=0\nwakeOnHit=0\nmapHere=0\ngateNotes=0\nshopBuyer=0\nframeTint=0\nquickFx=0\nupdateNotice=0\nstepOnto=0\nperCharacter=0\nmapPlaces=0\noutOfReach=0\nbumpToAct=0\nfoldMoves=0\nfreeCancel=0\nshopCompare=0\nspellInfo=0\nhealShortcut=0\npartyColours=0\nsnapAttacks=0\ndungeonMap=Off\n" > ${TEST_HOME}/.config/xu4/xu4rc
+    printf "debug=1\ncombatTips=0\njournalHints=0\nmenuCounts=0\nlightFirst=0\nnameSteal=0\ncapDials=0\nxpOnZtats=0\nmapCreatures=0\nsnapMark=0\nautoExtras=0\nsceneStop=0\nspellExtras=0\nshopColours=0\nquickMix=0\nblockReason=0\naskRules=0\nwakeOnHit=0\nmapHere=0\ngateNotes=0\nshopBuyer=0\nframeTint=0\nquickFx=0\nupdateNotice=0\nstepOnto=0\nperCharacter=0\nmapPlaces=0\noutOfReach=0\nsmartWho=0\nmenuSounds=0\nsmoothSound=0\nbumpToAct=0\nfoldMoves=0\nfreeCancel=0\nshopCompare=0\nspellInfo=0\nhealShortcut=0\npartyColours=0\nsnapAttacks=0\ndungeonMap=Off\n" > ${TEST_HOME}/.config/xu4/xu4rc
 
     ARGS=""
     MODULE=$(sed -n 's/^#! *module *//p' ${SESSION})

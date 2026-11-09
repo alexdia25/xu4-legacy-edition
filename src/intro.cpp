@@ -249,6 +249,8 @@ IntroController::IntroController() :
     soundMenu.add(MI_SOUND_01,  new IntMenuItem("Music Volume         %s", 2,  2,/*'m'*/  0, &settingsChanged.musicVol, 0, MAX_VOLUME, 1, MENU_OUTPUT_VOLUME));
     soundMenu.add(MI_SOUND_02,  new IntMenuItem("Sound Effect Volume  %s", 2,  3,/*'s'*/  0, &settingsChanged.soundVol, 0, MAX_VOLUME, 1, MENU_OUTPUT_VOLUME));
     soundMenu.add(MI_SOUND_03, new BoolMenuItem("Fading               %s", 2,  4,/*'f'*/  0, &settingsChanged.volumeFades));
+    soundMenu.add(MI_SOUND_04, new BoolMenuItem("Menu Sounds          %s", 2,  5,/*'e'*/  1, &settingsChanged.legacy.menuSounds));
+    soundMenu.add(MI_SOUND_05, new BoolMenuItem("Smoother Sound       %s", 2,  6,/*'o'*/  2, &settingsChanged.legacy.smoothSound));
     soundMenu.add(USE_SETTINGS,                 "\010 Use These Settings", 2, 11,/*'u'*/  2);
     soundMenu.add(CANCEL,                       "\010 Cancel",             2, 12,/*'c'*/  2);
     soundMenu.addShortcutKey(CANCEL, ' ');
@@ -381,6 +383,8 @@ IntroController::IntroController() :
     rulesMenu2.add(MI_RULES_10,    new EnumMenuItem("Armour Bonus    %s",          2,  2,/*'a'*/  0, &lo.armourBonus, Settings::armourBonusStrings()));
     rulesMenu2.add(MI_RULES_11,    new BoolMenuItem("Heavy Hitters            %s", 2,  3,/*'v'*/  3, &lo.heavyHitters));
     rulesMenu2.add(MI_RULES_12,    new BoolMenuItem("Ambush Wakes Sleepers    %s", 2,  4,/*'w'*/  7, &lo.ambushWakes));
+    rulesMenu2.add(MI_RULES_13,    new BoolMenuItem("Idle Fights Pause        %s", 2,  5,/*'i'*/  0, &lo.idlePause));
+    rulesMenu2.add(MI_RULES_14,    new BoolMenuItem("Cancel Keeps Mana        %s", 2,  6,/*'k'*/  7, &lo.cancelMana));
     rulesMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     rulesMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu2.addShortcutKey(CANCEL, ' ');
@@ -433,6 +437,7 @@ IntroController::IntroController() :
     moreMenu3.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  6,/*'h'*/  0, &lo.mapPlaces));
     moreMenu3.add(MI_MORE_GUIDE,  new BoolMenuItem("Spoiler Guide            %s", 2,  7,/*'g'*/  8, &lo.spoilerGuide));
     moreMenu3.add(MI_MORE_REACH,  new BoolMenuItem("Out Of Reach Is Free     %s", 2,  8,/*'o'*/  0, &lo.outOfReach));
+    moreMenu3.add(MI_MORE_WHO,    new BoolMenuItem("Who? Picks Likely One    %s", 2,  9,/*'w'*/  0, &lo.smartWho));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -2024,6 +2029,8 @@ void IntroController::initMenuHelp() {
         { &soundMenu, MI_SOUND_01, "How loud the music plays." },
         { &soundMenu, MI_SOUND_02, "How loud the sound effects play." },
         { &soundMenu, MI_SOUND_03, "The music fades out and in when it changes." },
+        { &soundMenu, MI_SOUND_04, "Menus tick as the cursor moves and sound as you pick or back out." },
+        { &soundMenu, MI_SOUND_05, "The music dips under a long effect, and no effect restarts over itself." },
 
         { &inputMenu, MI_INPUT_01, "How long a held key waits before it repeats." },
         { &inputMenu, MI_INPUT_02, "How quickly a held key repeats." },
@@ -2087,6 +2094,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
         { &moreMenu3, MI_MORE_PLACES, "The map names the places visited, and those heard of in a box." },
         { &moreMenu3, MI_MORE_REACH, "An attack with no foe in reach is not made and spends no turn." },
+        { &moreMenu3, MI_MORE_WHO, "Who? starts on the likely one: the hurt for Heal, the dead to raise." },
         { &moreMenu3, MI_MORE_GUIDE, "Adds the Guide, a walkthrough of the whole quest, to the Books." },
         { &moreMenu3, MI_MORE_PERCHAR, "With Keep Characters, each character keeps their own play options." },
         { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
@@ -2113,6 +2121,8 @@ void IntroController::initMenuHelp() {
         { &rulesMenu2, MI_RULES_10, "Armour turns blows better: Modern +16, Story +32 while fed." },
         { &rulesMenu2, MI_RULES_11, "Daemons, dragons and balrons strike for at least half their blow." },
         { &rulesMenu2, MI_RULES_12, "When a camp's ambush is over, those still asleep wake up." },
+        { &rulesMenu2, MI_RULES_13, "A fight left alone a minute stops passing turns until you are back." },
+        { &rulesMenu2, MI_RULES_14, "Backing out of the Energy Field spell's choice costs no mana." },
         { &rulesMenu, MI_RULES_06, "Save on entering and leaving places, keeping the 8 saves before." },
         { &rulesMenu, MI_RULES_08, "A new game keeps the others; choose whose journey to take up." },
         { &rulesMenu, MI_RULES_STEAM, "Saves also go to the Steam release, so Steam Cloud carries them." },
@@ -2626,6 +2636,8 @@ void IntroController::updateRulesMenu(MenuEvent &event) {
             case MI_RULES_10:
             case MI_RULES_11:
             case MI_RULES_12:
+            case MI_RULES_13:
+            case MI_RULES_14:
                 lo.preset = LegacyPreset_Custom;
                 break;
             case MI_RULES_MORE:

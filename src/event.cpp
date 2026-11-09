@@ -970,6 +970,15 @@ bool AlphaActionController::keyPressed(int key) {
  * Up/Down move the cursor, Enter picks, Escape cancels.  A letter jumps to
  * the next item starting with it.
  */
+/*
+ * Menu Sounds: the in-game pick lists tick as the cursor moves and click
+ * as an item is picked or the list backed out of.
+ */
+static void listSound(int id) {
+    if (xu4.settings->legacy.menuSounds)
+        soundPlay((Sound) id);
+}
+
 class ListPickerController : public WaitableController<int> {
 public:
     ListPickerController(const char* const* items, int count, int start,
@@ -1038,6 +1047,7 @@ void ListPickerController::draw() const {
 }
 
 bool ListPickerController::keyPressed(int key) {
+    int oldSel = sel;
     switch (key) {
     case U4_UP:
     case U4_LEFT:
@@ -1053,10 +1063,12 @@ bool ListPickerController::keyPressed(int key) {
     case U4_KEYPAD_ENTER:
     case U4_SPACE:
         value = sel;
+        listSound(SOUND_UI_CLICK);
         doneWaiting();
         return true;
     case U4_ESC:
         value = -1;
+        listSound(SOUND_UI_TICK);
         doneWaiting();
         return true;
     case '?':
@@ -1095,6 +1107,8 @@ bool ListPickerController::keyPressed(int key) {
             return EventHandler::globalKeyHandler(key);
         break;
     }
+    if (sel != oldSel)
+        listSound(SOUND_UI_TICK);
     scrollToSel();
     draw();
     return true;
@@ -1520,15 +1534,18 @@ public:
         case U4_UP:
         case U4_LEFT:
             sel = (sel > 0) ? sel - 1 : count - 1;
+            listSound(SOUND_UI_TICK);
             break;
         case U4_DOWN:
         case U4_RIGHT:
             sel = (sel < count - 1) ? sel + 1 : 0;
+            listSound(SOUND_UI_TICK);
             break;
         case U4_ENTER:
         case U4_KEYPAD_ENTER:
         case U4_SPACE:
             value = sel;
+            listSound(SOUND_UI_CLICK);
             doneWaiting();
             return true;
         default:
@@ -1624,6 +1641,12 @@ bool EventHandler::globalKeyHandler(int key) {
         xu4.eventHandler->togglePause();
         return true;
 
+    case U4_ALT + U4_ENTER:
+    case U4_ALT + U4_KEYPAD_ENTER:
+    case U4_FKEY + 10:      // F11
+        screenToggleFullscreen();
+        return true;
+
     case U4_PAD_SELECT:
         // Same menu as Escape on the keyboard.  Pressed again it closes
         // the menu (or the document reader opened from it).
@@ -1696,6 +1719,7 @@ uint32_t EventHandler::lastInputTime = 0;
 uint32_t EventHandler::pressCount = 0;
 uint32_t EventHandler::sceneCount = 0;
 bool EventHandler::pickShowsMana = false;
+int  EventHandler::pickStart = 0;
 
 void EventHandler::sceneBreak() {
     ++sceneCount;
@@ -1728,9 +1752,14 @@ int EventHandler::choosePlayer()
                 names[i] = label[i];
             }
         }
-        return chooseItem(names, count);
+        int start = pickStart;
+        pickStart = 0;
+        if (start < 0 || start >= count)
+            start = 0;
+        return chooseItem(names, count, start);
     }
 
+    pickStart = 0;
     ReadPlayerController ctrl;
     xu4.eventHandler->pushController(&ctrl);
     int n = ctrl.waitFor();
@@ -2118,20 +2147,24 @@ public:
         case U4_UP:
         case U4_LEFT:
             sel = (sel > 0) ? sel - 1 : count - 1;
+            listSound(SOUND_UI_TICK);
             break;
         case U4_DOWN:
         case U4_RIGHT:
             sel = (sel < count - 1) ? sel + 1 : 0;
+            listSound(SOUND_UI_TICK);
             break;
         case U4_ENTER:
         case U4_KEYPAD_ENTER:
         case U4_SPACE:
             value = sel;
+            listSound(SOUND_UI_CLICK);
             doneWaiting();
             return true;
         case U4_ESC:
         case U4_PAD_B:
             value = -1;
+            listSound(SOUND_UI_TICK);
             doneWaiting();
             return true;
         default:

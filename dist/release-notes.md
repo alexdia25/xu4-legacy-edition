@@ -31,8 +31,14 @@ Playing:
   a fight has an even chance to wake), Armour Bonus (Modern adds a tier
   of armour to every member's defence, Story two while the party has
   food), Heavy Hitters (daemons, dragons and balrons strike for at least
-  half their full blow) and Ambush Wakes Sleepers (once a camp's ambush
-  is over, nobody walks on asleep).
+  half their full blow), Ambush Wakes Sleepers (once a camp's ambush
+  is over, nobody walks on asleep), Idle Fights Pause (a fight left
+  alone for a minute stops passing turns until you are back) and Cancel
+  Keeps Mana (backing out of the Energy Field spell's choice costs no
+  mana).
+- **Who? Picks Likely One**: a Who? list starts on the most hurt for
+  Heal, the poisoned for Cure, the dead to Resurrect, the caster with
+  the most mana to Cast and the nimblest to open a chest.
 - **Out Of Reach Is Free**: an attack with no foe in reach that way is
   not made and spends no turn.
 - **Snap Attacks**: X (or Strike in the action menu) hits a foe in
@@ -93,6 +99,14 @@ Input and system:
   (not the Flatpak, which updates itself).
 - Web and Android: Import Saves, and an error box with Copy Details (on
   Windows too).
+- **Alt+Enter or F11** switches between full screen and a window.
+- Only one copy of the game runs at a time on the same saves, so two
+  windows never write over each other's games.
+- **Portable on Windows and Linux**: with a folder named `portable`
+  beside the program, the saves and settings are kept in it.
+- **Menu Sounds** and **Smoother Sound** (Sound Options): the pick lists
+  tick and click, the music dips under a long effect and an effect does
+  not restart over itself.
 
 ## New in 1.2
 

@@ -196,6 +196,9 @@ struct LegacyOptions {
     bool spoilerGuide;      // Books of Britannia has the Guide (walkthrough).
     bool outOfReach;        // An attack with no foe in reach spends no turn.
     bool capDials;          // Shop dials stop at what the party can afford.
+    bool smartWho;          // Who? lists start on the likely member.
+    bool menuSounds;        // Menus tick as the cursor moves.
+    bool smoothSound;       // Music dips under long effects; no restarts.
     uint8_t autoCombat;     // LegacyAutoCombat
     uint8_t dungeonMap;     // LegacyDungeonMap
     uint8_t readerSize;     // Document reader text size (0-2).
@@ -214,6 +217,8 @@ struct LegacyOptions {
     uint8_t armourBonus;    // LegacyArmourBonus
     bool heavyHitters;      // Daemons, dragons & balrons hit at least half.
     bool ambushWakes;       // A camp's ambush fought, the sleepers wake.
+    bool idlePause;         // A fight left alone stops passing turns.
+    bool cancelMana;        // A spell backed out of keeps its mana.
 };
 
 struct MouseOptions {

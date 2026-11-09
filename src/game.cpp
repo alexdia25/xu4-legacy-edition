@@ -5,6 +5,8 @@
 #include <cstring>
 #include <filesystem>
 #include "game.h"
+
+extern uint32_t getTicks();
 #include "discourse.h"
 #include "docreader.h"
 
@@ -2676,11 +2678,47 @@ void board() {
 }
 
 
+/*
+ * Who? Picks Likely One: start a console Who? list on the member a
+ * command most likely wants.  kind is a spell letter ('h' heal, 'c' cure,
+ * 'r' resurrect, 'a' awaken), 'M' for the caster with the most mana or
+ * 'D' for the nimblest (opening a chest).
+ */
+static void pickLikely(int kind) {
+    if (! xu4.settings->legacy.smartWho)
+        return;
+    int best = -1, bestScore = 0;
+    for (int i = 0; i < c->party->size(); ++i) {
+        PartyMember* m = c->party->member(i);
+        StatusType st = m->getStatus();
+        int score = 0;
+        switch (kind) {
+        case 'h':
+            if (st != STAT_DEAD && m->getHp() < m->getMaxHp())
+                score = 1 + (m->getMaxHp() - m->getHp()) * 1000 /
+                            (m->getMaxHp() ? m->getMaxHp() : 1);
+            break;
+        case 'c': score = (st == STAT_POISONED); break;
+        case 'r': score = (st == STAT_DEAD); break;
+        case 'a': score = (st == STAT_SLEEPING); break;
+        case 'M': if (! m->isDisabled()) score = 1 + m->getMp(); break;
+        case 'D': if (! m->isDisabled()) score = 1 + m->getDex(); break;
+        }
+        if (score > bestScore) {
+            bestScore = score;
+            best = i;
+        }
+    }
+    if (best >= 0)
+        EventHandler::pickStart = best;
+}
+
 void castSpell(int player) {
     if (player == -1) {
         screenMessage("Cast Spell!\nPlayer: ");
         // Spell Card Extras: each member's mana beside their name.
         EventHandler::pickShowsMana = xu4.settings->legacy.spellExtras;
+        pickLikely('M');
         player = gameGetPlayer(false, true);
         EventHandler::pickShowsMana = false;
     }
@@ -2734,6 +2772,7 @@ void castSpell(int player) {
     }
     case Spell::PARAM_PLAYER: {
         screenMessage("Who: ");
+        pickLikely('a' + spell);
         int subject = gameGetPlayer(true, false);
         if (subject != -1)
             gameCastSpell(spell, player, subject);
@@ -2787,6 +2826,11 @@ void castSpell(int player) {
 
                 gameCastSpell(spell, player, param);
             }
+        }
+        else if (xu4.settings->legacy.cancelMana) {
+            // Cancel Keeps Mana: backing out costs nothing.
+            screenMessage("\n");
+            EventHandler::noteCancel();
         }
         else {
             /* Invalid input here = spell failure */
@@ -2940,6 +2984,7 @@ void getChest(int player)
         if (player == -1)
         {
             screenMessage("Who opens? ");
+            pickLikely('D');
             player = gameGetPlayer(false, true);
         }
         if (player == -1)
@@ -4251,7 +4296,21 @@ void GameController::timerFired() {
         } else if (dynamic_cast<TurnController *>(controller)) {
             c->commandTimer += 1000 / xu4.settings->gameCyclesPerSecond;
             uint8_t timer = xu4.settings->legacy.turnTimer;
-            if (timer != TurnTimer_Off &&
+            // Idle Fights Pause: a fight left alone for a minute stops
+            // passing turns until a key, button or tap comes.
+            static bool idleNoted = false;
+            bool idle = controller->isCombatController() &&
+                        xu4.settings->legacy.idlePause &&
+                        getTicks() - EventHandler::lastInputTime > 60000;
+            if (! idle)
+                idleNoted = false;
+            else if (! idleNoted &&
+                     gameTimeSinceLastCommand() > (timer == TurnTimer_Slow ? 60 : 20)) {
+                idleNoted = true;
+                screenMessage("%cWaiting for thee.%c\n", FG_GREY, FG_WHITE);
+                screenPrompt();
+            }
+            if (timer != TurnTimer_Off && ! idle &&
                 gameTimeSinceLastCommand() > (timer == TurnTimer_Slow ? 60 : 20)) {
                 /* pass the turn, and redraw the text area prompt */
                 controller->keyPressed(U4_SPACE);

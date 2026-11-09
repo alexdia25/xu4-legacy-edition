@@ -195,6 +195,7 @@ public:
     // New Scene, a held key, direction or touch stops repeating at one.
     static uint32_t sceneCount;
     static bool pickShowsMana;  // choosePlayer lists each member's MP.
+    static int  pickStart;      // choosePlayer's first highlighted member.
     static void sceneBreak();
     static bool repeatStopped(uint32_t sceneAtPress);
     static void noteCancel() { if (cancelArmed) ++cancelCount; }

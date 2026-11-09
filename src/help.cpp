@@ -213,14 +213,19 @@ static const char helpText[] =
 "                         of Britannia.\n"
 "  Out Of Reach Is Free   An attack with no foe in reach is not made\n"
 "                         and spends no turn.\n"
+"  Who? Picks Likely One  A Who? list starts on the likely member: the\n"
+"                         most hurt for Heal, the poisoned for Cure,\n"
+"                         the dead to Resurrect, the most mana to Cast,\n"
+"                         the nimblest to open a chest.\n"
 "\n"
 "Elsewhere in Settings\n"
 "\n"
 "  Rules & Saving         The difficulty (Classic is the game as it\n"
 "                         was; Modern and Story are gentler), More Rules\n"
 "                         (Hit Wakes Sleepers, Armour Bonus, Heavy\n"
-"                         Hitters, Ambush Wakes Sleepers: all on in\n"
-"                         Modern and Story), autosave with a history\n"
+"                         Hitters, Ambush Wakes Sleepers, Idle Fights\n"
+"                         Pause, Cancel Keeps Mana: all on in Modern\n"
+"                         and Story), autosave with a history\n"
 "                         of saves, several characters with their own\n"
 "                         saves, what happens when the party falls and,\n"
 "                         with the Steam release, Steam Cloud Saves.\n"
@@ -235,7 +240,12 @@ static const char helpText[] =
 "                         Cheats menu.\n"
 "  Input                  Held Key Pace (how fast a held key or\n"
 "                         direction repeats).\n"
-"  Keyboard               Stop At New Scene for held keys.\n";
+"  Keyboard               Stop At New Scene for held keys.\n"
+"  Sound                  Menu Sounds (pick lists tick and click) and\n"
+"                         Smoother Sound (the music dips under long\n"
+"                         effects).\n"
+"\n"
+"Alt+Enter or F11 switches between full screen and a window.\n";
 
 std::string legacyHelpText()
 {

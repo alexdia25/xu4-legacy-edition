@@ -530,6 +530,20 @@ void screenDelete_sys()
 /**
  * Attempts to iconify the screen.
  */
+/*
+ * Alt+Enter or F11: switch between full screen & a window during play.
+ * The choice is kept as the Full Screen setting.
+ */
+void screenToggleFullscreen() {
+#if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
+    ScreenSDL* ss = SGL;
+    Settings* settings = xu4.settings;
+    settings->fullscreen = ! settings->fullscreen;
+    SDL_SetWindowFullscreen(ss->view, settings->fullscreen);
+    settings->write();
+#endif
+}
+
 void screenIconify() {
     SDL_MinimizeWindow(SGL->view);
 }

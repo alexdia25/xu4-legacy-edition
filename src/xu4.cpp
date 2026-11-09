@@ -292,6 +292,41 @@ static void initResourcePaths(StringTable* st) {
 static void servicesFree(XU4GameServices*);
 #endif
 
+#if !defined(__EMSCRIPTEN__) && !defined(ANDROID)
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+#endif
+#include <SDL3/SDL_messagebox.h>
+
+/*
+ * Only one copy of the game runs on a save folder at a time, so two
+ * windows never write over each other's saves.  The lock goes when the
+ * program ends (even if it crashes).
+ */
+static void instanceLock(const std::string& dir) {
+    std::string path = dir + "xu4.lock";
+#ifdef _WIN32
+    HANDLE h = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL,
+                           OPEN_ALWAYS, FILE_FLAG_DELETE_ON_CLOSE, NULL);
+    bool running = (h == INVALID_HANDLE_VALUE &&
+                    GetLastError() == ERROR_SHARING_VIOLATION);
+#else
+    int fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
+    bool running = (fd >= 0 && flock(fd, LOCK_EX | LOCK_NB) != 0);
+#endif
+    if (running) {
+        fprintf(stderr, "xu4: already running (%s)\n", path.c_str());
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "XU4 Legacy",
+                "XU4 Legacy is already running.", NULL);
+        exit(0);
+    }
+}
+#endif
+
 void servicesInit(XU4GameServices* gs, Options* opt) {
     gs->verbose = opt->flags & OPT_VERBOSE;
 
@@ -326,6 +361,10 @@ void servicesInit(XU4GameServices* gs, Options* opt) {
     /* initialize the settings */
     gs->settings = new Settings;
     gs->settings->init(opt->profile);
+#if !defined(__EMSCRIPTEN__) && !defined(ANDROID)
+    if (! opt->recordFile && ! getenv("XU4_TEST_DATA"))
+        instanceLock(gs->settings->getUserPath());
+#endif
 
     /* split the GOG release's ULTIMA4.TXT into separate documents */
     docsExtract(gs->settings->getUserPath());

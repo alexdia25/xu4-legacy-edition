@@ -107,6 +107,12 @@ static uint16_t bufferResGroup[BUFFER_LIMIT];
 
 static Well512 sfxRng;
 
+// Smoother Sound: the music dips while a long effect plays, and an effect
+// is not restarted over itself.
+static volatile uint64_t duckUntil;     // SDL_GetTicks() time.
+static float duckGain = 1.0f;           // Used by the audio thread only.
+static uint64_t sfxLastStart[SOUND_MAX];
+
 extern "C" int sfx_random(int range) {
     return well512_genU32(&sfxRng) % range;
 }
@@ -308,6 +314,19 @@ static void SDLCALL music_feed(void*, SDL_AudioStream* stream,
                 }
                 for (int c = 0; c < ch; ++c)
                     *it++ *= music.fade;
+            }
+        }
+
+        // Smoother Sound: ease the music down under a long effect.
+        float duckTarget = (SDL_GetTicks() < duckUntil) ? 0.4f : 1.0f;
+        if (duckGain != 1.0f || duckTarget != 1.0f) {
+            float* it = buf;
+            for (int i = 0; i < n; ++i) {
+                duckGain += (duckTarget - duckGain) * 0.0008f;
+                if (duckTarget == 1.0f && duckGain > 0.999f)
+                    duckGain = 1.0f;
+                for (int c = 0; c < ch; ++c)
+                    *it++ *= duckGain;
             }
         }
 
@@ -531,6 +550,22 @@ void soundPlay(Sound sound, int limitMSec)
 
     uint32_t frames = buf->frames;
     SDL_AudioStream* stream;
+
+    if (xu4.settings->legacy.smoothSound) {
+        uint64_t now = SDL_GetTicks();
+        uint32_t ms = uint32_t(uint64_t(frames) * 1000 / MIX_RATE);
+        if (limitMSec > 0 && uint32_t(limitMSec) < ms)
+            ms = limitMSec;
+        // The same effect again within a few dozen milliseconds, or a long
+        // one still sounding, is not restarted.
+        if (sfxLastStart[sound] &&
+            (now - sfxLastStart[sound] < 40 ||
+             (ms >= 1000 && now - sfxLastStart[sound] < ms)))
+            return;
+        sfxLastStart[sound] = now;
+        if (ms >= 700 && now + ms > duckUntil)
+            duckUntil = now + ms;
+    }
 
     // The source SID_END is reserved for when limitMSec is used.
     if (limitMSec > 0) {
