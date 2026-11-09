@@ -22,6 +22,7 @@ CXXSRCS=\
         c64music.cpp \
         smsmusic.cpp \
         smsrom.cpp \
+        nesrom.cpp \
         smsz80.cpp \
         steam.cpp \
         update.cpp \

@@ -26,7 +26,7 @@ bool zipImportVerbose = false;
 #define IMPORT_DIR  "imported"
 
 static bool wanted(const char* base) {
-    static const char* exts[] = { ".dsk", ".d64", ".d81", ".sms", NULL };
+    static const char* exts[] = { ".dsk", ".d64", ".d81", ".sms", ".nes", NULL };
     size_t len = strlen(base);
     if (SDL_strcasecmp(base, "u4upgrad.zip") == 0)
         return true;

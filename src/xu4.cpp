@@ -40,6 +40,7 @@ extern bool androidTakeDataAdded();
 #include "a2disk.h"
 #include "c64disk.h"
 #include "smsrom.h"
+#include "nesrom.h"
 #endif
 
 #if defined(MACOSX)
@@ -468,6 +469,7 @@ static void servicesReset(XU4GameServices* gs) {
         a2_close();
         c64_close();
         sms_close();
+        nes_close();
     }
 #endif
 

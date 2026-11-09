@@ -324,6 +324,8 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
    the gypsy's cards, the shrine visions and the endgame pictures, and
    the music of the Sega Master System release, read from its ROM (see
    [SMS ROM](#sms-rom)).
+ - **NES**: the map tiles, character sprites and font of the NES release,
+   read from its ROM (see [NES ROM](#nes-rom)).
 
 The **CGA** module draws the game with the DOS release's own
 four-colour CGA graphics (black, cyan, magenta and white): the tiles
@@ -395,7 +397,7 @@ wherever Steam installed it.
    folder the GOG installer made on a PC (copied to the device), its
    files, a zip of it, or `ultima4.zip`.  The Files button of Graphics &
    Music lists the game files, adds more (u4upgrad.zip, Apple II or C64
-   disk images, the SMS ROM, the documents; loose or zipped) and removes
+   disk images, the SMS and NES ROMs, the documents; loose or zipped) and removes
    them, and its Saves button exports the settings and saved games as a
    zip, or imports such a zip (from this or the web version).  Files can
    also be copied over USB to
@@ -413,7 +415,7 @@ wherever Steam installed it.
    zip of that folder (the way to get them onto an iPhone or iPad, via
    iCloud Drive or Files).  `ultima4.zip` works too.  The Files button
    (and Game Files on the start screen) adds more at any time:
-   `u4upgrad.zip`, Apple II or C64 disk images and the SMS ROM, loose or
+   `u4upgrad.zip`, Apple II or C64 disk images and the SMS and NES ROMs, loose or
    zipped, read after a restart.  It also exports the saves as a zip and
    imports them again (from this or the Android version); if the game
    stops, a box offers Copy Details for a bug report and Export Saves, and
@@ -488,7 +490,7 @@ On macOS the folder is `~/Library/Application Support/xu4`, which also
 holds the settings and saved games.
 
 The Flatpak can only see `~/.local/share/xu4` (for the game data, extra
-modules, disk images and the SMS ROM) and `~/.config/xu4` (settings and
+modules, disk images and the SMS and NES ROMs) and `~/.config/xu4` (settings and
 saved games), so put the files there.  It can also read Steam's
 libraries (in `~/.local/share/Steam`, the Steam Flatpak's folder and SD
 cards under `/run/media`) to find the Steam release.
@@ -568,6 +570,24 @@ file name doesn't matter.  Put it in any of the [data folders](#data-folders), o
 an `sms` folder inside one of them, such as `%LOCALAPPDATA%\xu4\sms\` on
 Windows.  The modules are only listed in Graphics & Music when the
 ROM is found.  Nothing from the ROM is stored in the modules.
+
+### NES ROM
+
+The NES module reads the map tiles, the character and creature sprites
+and the font of Ultima: Quest of the Avatar for the NES straight from its
+ROM.  The NES game draws Lord British's castle as two tiles, so the
+square west of its gate shows grass.  A few DOS tiles have no NES
+picture; they are drawn from NES pieces in their own colours (the ship's
+mast and wheel, the bull, the corpse, the city, the ruins, the runes and
+the twister).  The title, story pictures and dungeons still use the DOS
+pictures, and the game itself stays the DOS one.
+
+The ROM must be the USA release (256 KB of program data, SHA-1
+`f603c7f274cb6db9be0508a9aa150521ff27d14c` for the `.nes` file with its
+16 byte header) with the `.nes` extension; its file name doesn't matter.
+Put it in any of the [data folders](#data-folders), or in a `nes` folder
+inside one of them.  The module is only listed in Graphics & Music when
+the ROM is found.  Nothing from the ROM is stored in the module.
 
 About This Fork
 ---------------

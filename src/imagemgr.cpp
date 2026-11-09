@@ -12,6 +12,7 @@
 #include "a2disk.h"
 #include "c64disk.h"
 #include "smsrom.h"
+#include "nesrom.h"
 #include "intro.h"
 #include "settings.h"
 #include "xu4.h"
@@ -392,6 +393,9 @@ U4FILE * ImageMgr::getImageFile(ImageInfo *info)
     } else if (strncmp(fn, "sms/", 4) == 0) {
         // The SMS ROM; "sms/<offset>,<length>[+<offset>,<length>]".
         file = sms_open(fn + 4);
+    } else if (strncmp(fn, "nes/", 4) == 0) {
+        // The NES program ROM; "nes/<offset>,<length>[+<offset>,<length>]".
+        file = nes_open(fn + 4);
 #ifdef CONF_MODULE
     } else if (isImageChunkId(fn)) {
         const CDIEntry* ent = xu4.config->imageFile(fn);

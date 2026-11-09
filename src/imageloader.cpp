@@ -153,6 +153,7 @@ static void setFromRawData(Image *image, int width, int height, int bpp, unsigne
 #include "imageloader_apple2.cpp"
 #include "imageloader_c64.cpp"
 #include "imageloader_sms.cpp"
+#include "imageloader_nes.cpp"
 #include "imageloader_cga.cpp"
 
 
@@ -201,6 +202,10 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
     case FTYPE_SMSBEASTS:
     case FTYPE_SMSWINDOW:
         return loadImage_sms(file, ftype);
+
+    case FTYPE_NESTILES:
+    case FTYPE_NESFONT:
+        return loadImage_nes(file, ftype);
 
     case FTYPE_CGATILES:
     case FTYPE_CGAFONT:

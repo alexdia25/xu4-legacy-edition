@@ -139,11 +139,11 @@ const INTRO = '<p>XU4 needs the files of Ultima IV for DOS.</p><ul>' +
   'Files, then choose the zip. On a Mac or Linux, <code>innoextract</code> unpacks the installer.</li>' +
   '<li>Or choose <code>ultima4.zip</code> if you have it.</li></ul>' +
   '<p>Also, now or later from Game Files: <code>u4upgrad.zip</code> (the VGA upgrade), Apple II ' +
-  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images and the Sega ' +
-  'Master System ROM (<code>.sms</code>), on their own or in zip files.</p>';
+  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images, the Sega ' +
+  'Master System ROM (<code>.sms</code>) and the NES ROM (<code>.nes</code>), on their own or in zip files.</p>';
 const LATER = '<p>Add more files at any time: <code>u4upgrad.zip</code> (the VGA upgrade), Apple II ' +
-  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images and the Sega ' +
-  'Master System ROM (<code>.sms</code>), on their own or in zip files. Export Saves downloads ' +
+  '(<code>.dsk</code>) or C64 (<code>.d64</code>, <code>.d81</code>) disk images, the Sega ' +
+  'Master System ROM (<code>.sms</code>) and the NES ROM (<code>.nes</code>), on their own or in zip files. Export Saves downloads ' +
   'your settings and saved games as a zip, and Import Saves puts them back.</p>';
 
 // iOS has no folder picker; selecting the files (or a zip) works there.
@@ -217,7 +217,7 @@ function showFiles(text, canClose, restart) {
 // The DOS game's files, which go in DATA/u4 (kept apart from the saves).
 const DOS_FILE = /^(avatar\.exe|title\.exe|.*\.(cga|com|con|dng|drv|ega|egz|map|new|old|pal|pic|tlk|ult))$/i;
 // Other platforms' data, which the modules look for in DATA.
-const IMAGE_FILE = /\.(dsk|do|d64|d81|sms)$/i;
+const IMAGE_FILE = /\.(dsk|do|d64|d81|sms|nes)$/i;
 // The printed documents (ULTIMA4.TXT from GOG, or separate files), which go
 // with the DOS files.
 const DOC_FILE = /^(ultima4|history|wisdom|hints|keyboard)\.txt$/i;
@@ -437,7 +437,7 @@ function listFiles(path, prefix, out) {
     if (FS.isDir(st.mode)) {
       if (!(prefix === '' && name === 'u4')) listFiles(full, prefix + name + '/', out);
     }
-    else if (!/\.(zip|dsk|do|d64|d81|sms)$/i.test(name))   // Not the game data.
+    else if (!/\.(zip|dsk|do|d64|d81|sms|nes)$/i.test(name))   // Not the game data.
       out.push([prefix + name, FS.readFile(full)]);
   }
   return out;
@@ -454,7 +454,7 @@ $('exportButton').onclick = exportSaves;
 // Import Saves: a zip made by Export Saves (here or by the Android app)
 // replaces the settings & saved games, then the game starts again.
 const isSavePath = (p) => !/(^|\/)\.\.(\/|$)/.test(p) && !p.startsWith('/') && !p.endsWith('/') &&
-  !/^(u4|docs)\//i.test(p) && !/\.(zip|tmp|dsk|do|d64|d81|sms|pak|mod)$/i.test(p) &&
+  !/^(u4|docs)\//i.test(p) && !/\.(zip|tmp|dsk|do|d64|d81|sms|nes|pak|mod)$/i.test(p) &&
   !/(^|\/)modules\.version$/i.test(p);
 $('savesInput').addEventListener('change', async (e) => {
   const f = e.target.files[0];

@@ -6,6 +6,7 @@
 #include "a2disk.h"
 #include "c64disk.h"
 #include "smsrom.h"
+#include "nesrom.h"
 #include "config.h"
 #include "docreader.h"
 #include "worldmap.h"
@@ -192,7 +193,8 @@ static bool isExtensionOf(const char* name, const char* /*version*/,
  * present.  Each space separated item is "apple2" (the Ultima IV Apple II
  * disk images), "c64" (the Program disk of Ultima IV for C64),
  * "c64remaster" (a disk image of Ultima IV Remastered for C64), "sms" (the
- * ROM of Ultima IV for the Sega Master System), "cga" (the CGA files of the
+ * ROM of Ultima IV for the Sega Master System), "nes" (the ROM of Ultima:
+ * Quest of the Avatar for the NES), "cga" (the CGA files of the
  * DOS game) or a file name looked for in the resource paths.
  */
 static bool hasRequiredData(const StringTable* modi)
@@ -224,6 +226,9 @@ static bool hasRequiredData(const StringTable* modi)
                 return false;
         } else if (item == "sms") {
             if (! sms_haveRom())
+                return false;
+        } else if (item == "nes") {
+            if (! nes_haveRom())
                 return false;
         } else if (item == "cga") {
             U4FILE* cga = u4fopen("shapes.cga");

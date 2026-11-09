@@ -46,6 +46,8 @@ enum ImageFiletype {
     FTYPE_CGATILES,
     FTYPE_CGAFONT,
     FTYPE_CGAPIC,
+    FTYPE_NESTILES,
+    FTYPE_NESFONT,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 
