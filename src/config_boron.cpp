@@ -1274,6 +1274,87 @@ void Config::changeSoundtrack(const char* modName) {
     }
 }
 
+/*
+ * Load another graphics module (and soundtrack) without restarting: the
+ * module layers are read again into a new configuration context, which the
+ * images, tile animations & music are then taken from.  The rules (maps,
+ * creatures, tiles, items...) made from the current context are kept, so
+ * this is only done when the new module is an extension of the same base
+ * module (as all the graphics modules are of Ultima-IV).
+ *
+ * Returns false and leaves everything unchanged if the module cannot be
+ * used this way.  The screen data must then be loaded again by the caller.
+ */
+bool Config::changeGraphics(const char* module, const char* soundtrack) {
+    ConfigBoron* cb = static_cast<ConfigBoron*>(this);
+    char rpath[512];
+    char mpath[512];
+    char spath[512];
+    const char* error = NULL;
+    int layer, oldBase, newBase;
+
+    if (! findModule(module, mpath, sizeof(mpath)) || ! moduleDataFound(mpath))
+        return false;
+
+    int stFound = 0;
+    if (soundtrack && soundtrack[0] != '\0')
+        stFound = findModule(soundtrack, spath, sizeof(spath)) &&
+                  moduleDataFound(spath);
+
+    Module newMod;
+    UIndex oldConfigN = cb->configN;
+    UIndex oldMusicN  = cb->musicN;
+
+    mod_init(&newMod, 4);
+    cb->configN = cb->musicN = UR_INVALID_BUF;
+
+    if (u4find_pathc("render.pak", "", rpath, sizeof(rpath)))
+        error = mod_addLayer(&newMod, rpath, NULL, NULL, NULL);
+    if (! error)
+        error = mod_addLayer(&newMod, mpath, NULL, confLoader, cb);
+    if (! error && stFound)
+        error = mod_addLayer(&newMod, spath, NULL, NULL, NULL);
+
+    // The base module must be the very same one.
+    oldBase = newBase = -1;
+    for (layer = 0; layer < cb->mod.modulePaths.used; ++layer) {
+        if (cb->mod.category[layer] == MOD_BASE) {
+            oldBase = layer;
+            break;
+        }
+    }
+    for (layer = 0; layer < newMod.modulePaths.used; ++layer) {
+        if (newMod.category[layer] == MOD_BASE) {
+            newBase = layer;
+            break;
+        }
+    }
+    if (! error && oldBase >= 0 && newBase >= 0 &&
+        cb->configN != UR_INVALID_BUF) {
+        int lenA, lenB;
+        const char* a = sst_stringL(&cb->mod.modulePaths, oldBase, &lenA);
+        const char* b = sst_stringL(&newMod.modulePaths, newBase, &lenB);
+        if (lenA != lenB || memcmp(a, b, lenA) != 0)
+            error = "Different base module";
+    } else if (! error)
+        error = "No base module";
+
+    if (error) {
+        fprintf(stderr, "Cannot change graphics in play: %s (%s)\n",
+                error, mpath);
+        mod_free(&newMod);
+        cb->configN = oldConfigN;
+        cb->musicN  = oldMusicN;
+        return false;
+    }
+
+    // The old context stays held, as the vendor scripts & other rules made
+    // from it may still refer to its values.
+    mod_free(&cb->mod);
+    cb->mod = newMod;
+    return true;
+}
+
 const char* Config::symbolName( Symbol s ) const {
     return ur_atomCStr(CX->ut, s);
 }

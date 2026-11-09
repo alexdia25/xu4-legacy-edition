@@ -795,7 +795,7 @@ bool GameBrowser::keyPressed(int key)
                 // change, or start over at the title.
                 xu4.eventHandler->setControllerDone(true);
                 if (xu4.stage == StagePlay)
-                    gameSwitchModules();
+                    gameSwitchModules(true);
                 else {
                     xu4.eventHandler->quitGame();
                     xu4.gameReset = 1;

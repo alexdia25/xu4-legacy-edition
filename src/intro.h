@@ -96,6 +96,7 @@ public:
     uint8_t *getSigData();
     void updateScreen();
     void reinitViews();
+    void graphicsChanged();
     void timerFired();
     void configureInGame();
     void gameMenuInGame();

@@ -132,7 +132,9 @@ int gameSave(const char* userPath);
 void gameShowJournal();
 void gameShowBook(int book);
 void gameShowWisdom(const char* name);
-void gameSwitchModules();
+void gameSwitchModules(bool reloadData = false);
+void gameApplyGraphics();
+bool gameGraphicsWaiting();
 bool gameModuleSwitchWaiting();
 
 /* action functions */

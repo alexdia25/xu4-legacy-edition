@@ -40,6 +40,13 @@ void TextView::setCharWidth(int w) {
     width = _cols * w;
 }
 
+/*
+ * Use the font of the graphics module just loaded (see screenReloadGraphics).
+ */
+void TextView::reloadFont() {
+    charset = xu4.imageMgr->get(BKGD_CHARSET)->image;
+}
+
 void TextView::reinit() {
     View::reinit();
     charset = xu4.imageMgr->get(BKGD_CHARSET)->image;

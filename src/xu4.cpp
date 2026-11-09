@@ -605,6 +605,7 @@ void xu4_selectGame() {
         if (! xu4.intro)
             xu4.intro = new IntroController;
         xu4.intro->gameMenuInGame();
+        gameApplyGraphics();    // Graphics picked in the menu.
         return;
     }
 

@@ -40,6 +40,7 @@ class TextView : public View {
 public:
     TextView(int x, int y, int columns, int rows);
 
+    static void reloadFont();
     void reinit();
 
     int cursorX() const { return _cursorX; }

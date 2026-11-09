@@ -109,6 +109,7 @@ void screenInit(int layerCount);
 void screenRefreshTimerInit(void);
 void screenDelete(void);
 void screenReInit(void);
+void screenReloadGraphics(void);
 void screenSetLayer(int layer, void (*renderFunc)(ScreenState*, void*),
                     void* data);
 bool screenLayerUsed(int layer);

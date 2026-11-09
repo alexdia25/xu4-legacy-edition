@@ -65,6 +65,7 @@ public:
     const float*    voiceParts( uint32_t id ) const;
     int atlasImages(StringId spec, AtlasSubImage* images, int max);
     void changeSoundtrack(const char* modName);
+    bool changeGraphics(const char* module, const char* soundtrack);
 #else
     const char* musicFile( uint32_t id );
     const char* soundFile( uint32_t id );

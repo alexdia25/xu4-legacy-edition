@@ -265,7 +265,8 @@ static void clearBorders(Screen* screen)
 
 enum ScreenSystemStage {
     SYS_CLEAN = 0,  // Initial screen setup.
-    SYS_RESET = 1   // Reconfigure screen settings.
+    SYS_RESET = 1,  // Reconfigure screen settings.
+    SYS_GRAPHICS = 2 // New module graphics: leave the window as it is.
 };
 
 /*
@@ -314,6 +315,20 @@ void screenReInit() {
     clearBorders(screen);
 
     //gs_emitMessage(SENDER_DISPLAY, &screen->state);
+}
+
+/*
+ * Load the images, tiles & font again after the graphics module changed
+ * during play (see gameSwitchModules).  The window is left as it is.
+ */
+void screenReloadGraphics() {
+    Screen* screen = XU4_SCREEN;
+
+    screenDelete_data(screen);
+    screenInit_sys(xu4.settings, &screen->state, SYS_GRAPHICS);
+    ++screenGeneration;
+    screenInit_data(screen, *xu4.settings);
+    clearBorders(screen);
 }
 
 /*

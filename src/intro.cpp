@@ -579,6 +579,25 @@ void IntroController::reinitViews() {
     mapArea.reinit();
 }
 
+/*
+ * Place the menu text for the font of the graphics module (at start, and
+ * when another module is chosen during play).
+ */
+void IntroController::graphicsChanged() {
+    // The Apple II title has a narrower map frame which fits the text
+    // only when using the 7 pixel wide Apple font.
+    bool a2 = (xu4.imageMgr->imageFixup(BKGD_INTRO) == FIXUP_APPLE2INTRO);
+    int cw = a2 ? 7 : CHAR_WIDTH;
+    menuArea.x         = a2 ? 20 + 7 : 1 * CHAR_WIDTH;
+    extendedMenuArea.x = a2 ? 20 + 14 : 2 * CHAR_WIDTH;
+    questionArea.x     = a2 ? 20 : INTRO_TEXT_X * CHAR_WIDTH;
+    menuArea.setCharWidth(cw);
+    extendedMenuArea.setCharWidth(cw);
+    questionArea.setCharWidth(cw);
+
+    reinitViews();
+}
+
 bool IntroController::init() {
 
     justInitiatedNewGame = false;
@@ -660,20 +679,7 @@ bool IntroController::init() {
     objectStateTable = new IntroObjectState[IntroBinData::INTRO_BASETILE_TABLE_SIZE];
 #endif
 
-    // The Apple II title has a narrower map frame which fits the text
-    // only when using the 7 pixel wide Apple font.
-    {
-    bool a2 = (xu4.imageMgr->imageFixup(BKGD_INTRO) == FIXUP_APPLE2INTRO);
-    int cw = a2 ? 7 : CHAR_WIDTH;
-    menuArea.x         = a2 ? 20 + 7 : 1 * CHAR_WIDTH;
-    extendedMenuArea.x = a2 ? 20 + 14 : 2 * CHAR_WIDTH;
-    questionArea.x     = a2 ? 20 : INTRO_TEXT_X * CHAR_WIDTH;
-    menuArea.setCharWidth(cw);
-    extendedMenuArea.setCharWidth(cw);
-    questionArea.setCharWidth(cw);
-    }
-
-    reinitViews();
+    graphicsChanged();
 
     // only update the screen if we are returning from game mode
     if (bSkipTitles)
@@ -2746,6 +2752,11 @@ void IntroController::updateGameMenu(MenuEvent &event) {
             }
             if (gameModuleSwitchWaiting())
                 hubStatus = "The new graphics load outdoors.";
+            else if (gameGraphicsWaiting()) {
+                // Back to the game to show the new graphics.
+                gameMenu.setClosed(true);
+                return;
+            }
             break;
         case MI_HUB_QUIT:
             quitMenu.getItemById(MI_QUIT_SAVE)->setVisible(

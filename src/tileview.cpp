@@ -140,6 +140,13 @@ TileView::~TileView() {
 void TileView::reinit() {
     View::reinit();
 
+    // Another graphics module may have tiles of another size.
+    if (tileset->tileW != tileWidth || tileset->tileH != tileHeight) {
+        tileWidth  = tileset->tileW;
+        tileHeight = tileset->tileH;
+        layout();
+    }
+
     //Scratchpad needs to be re-inited if we rescale...
     if (animated)
     {

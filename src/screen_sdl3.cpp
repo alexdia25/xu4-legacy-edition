@@ -406,7 +406,10 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
         gpu_free(&ss->gpu);
 
 #if !defined(ANDROID) && !defined(__EMSCRIPTEN__)
-        if (! settings->fullscreen) {
+        if (reset == 2) {
+            // New graphics only (SYS_GRAPHICS): keep the window's size,
+            // place & full screen state.
+        } else if (! settings->fullscreen) {
             SDL_SetWindowFullscreen(ss->view, false);
             SDL_SetWindowSize(ss->view, dw, dh);
             SDL_SetWindowPosition(ss->view, SDL_WINDOWPOS_CENTERED_DISPLAY(disp),

@@ -37,6 +37,7 @@ extern uint32_t getTicks();
 #include "settings.h"
 #include "spell.h"
 #include "stats.h"
+#include "textview.h"
 #include "tileset.h"
 #include "u4.h"
 #include "utils.h"
@@ -303,15 +304,20 @@ public:
  */
 /*
  * Graphics & music modules chosen during play are loaded without leaving the
- * game: it is saved, everything is restarted with the new modules, the save
- * is loaded again and then the player's own save files are put back.  Towns
- * & combat cannot be saved, so there the switch waits until the party is
- * back on the world map or in a dungeon.
+ * game.  The graphics modules only add images to the rules of their base
+ * module, so the images, font & music are swapped in place, anywhere, once
+ * the game menu is closed (see gameApplyGraphics).
+ *
+ * Other modules restart the game: it is saved, everything is restarted with
+ * the new modules, the save is loaded again and then the player's own save
+ * files are put back.  Towns & combat cannot be saved, so there the switch
+ * waits until the party is back on the world map or in a dungeon.
  */
 #define SWITCH_DIR  "module-switch/"
 
 static bool moduleSwitchPending = false;
 static bool moduleSwitchRestore = false;
+static bool graphicsSwapPending = false;
 
 static bool moduleSwitchReady() {
     return xu4.stage == StagePlay && c && c->location &&
@@ -354,13 +360,65 @@ static void moduleSwitchDone() {
 }
 
 /*
- * Load the modules named in the settings (see moduleSwitchNow).
+ * Restart with the modules named in the settings (see moduleSwitchNow).
  */
-void gameSwitchModules() {
+static void moduleSwitchRestart() {
     if (moduleSwitchReady())
         moduleSwitchNow();
     else
         moduleSwitchPending = true;
+}
+
+/*
+ * Load the modules named in the settings.  With reloadData the game data is
+ * looked for again, which needs a restart (Android's added files).
+ */
+void gameSwitchModules(bool reloadData) {
+    if (reloadData || xu4.stage != StagePlay || ! c || ! c->location) {
+        graphicsSwapPending = false;
+        moduleSwitchRestart();
+        return;
+    }
+    // Done once the game menu, and whatever else is shown over the game,
+    // is closed.
+    graphicsSwapPending = true;
+    moduleSwitchPending = false;
+}
+
+/*
+ * Swap in the graphics & music chosen with gameSwitchModules(), if the game
+ * is back to play (not in the game menu or a cut scene).  Modules that are
+ * not just graphics restart the game instead.
+ */
+void gameApplyGraphics() {
+    GameController* game = xu4.game;
+    if (! graphicsSwapPending || xu4.stage != StagePlay || ! game || ! c ||
+        game->cutScene || (xu4.intro && xu4.intro->gameMenuOpen()))
+        return;
+    graphicsSwapPending = false;
+
+    const Settings* settings = xu4.settings;
+    musicStop();
+    if (! xu4.config->changeGraphics(settings->game, settings->soundtrack)) {
+        musicPlayLocale();
+        moduleSwitchRestart();
+        return;
+    }
+
+    screenReloadGraphics();
+    TextView::reloadFont();
+    if (xu4.intro)
+        xu4.intro->graphicsChanged();
+    screenEraseMapArea();   // The new tiles may cover less of it.
+    game->redrawScreen();
+    musicPlayLocale();
+}
+
+/*
+ * Return true if new graphics are loaded once the game menu is closed.
+ */
+bool gameGraphicsWaiting() {
+    return graphicsSwapPending;
 }
 
 /*
@@ -994,6 +1052,7 @@ void GameController::finishTurn() {
         moduleSwitchNow();
         return;
     }
+    gameApplyGraphics();
 
     /* draw a prompt */
     screenPrompt();
