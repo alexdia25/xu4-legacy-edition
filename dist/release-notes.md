@@ -17,6 +17,10 @@ Graphics:
   `CHARSET.CGA` and `.PIC` files: tiles, font, title and story
   pictures, with the dungeon walls in the same colours.  Pick it in
   Graphics & Music.
+- **Switch graphics anywhere**: picking other graphics in Graphics &
+  Music during play now swaps the tiles, font and music in place, in a
+  town, a dungeon, a battle or after a conversation, without saving or
+  restarting, and the window no longer blinks or minimises.
 
 Help and books:
 
