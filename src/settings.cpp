@@ -342,6 +342,7 @@ bool Settings::read() {
     legacy.mapCreatures = true;
     legacy.xpOnZtats    = true;
     legacy.partyColours = true;
+    legacy.dimAsked     = true;
     legacy.dungeonMap   = 1;    // Mini Map
     legacy.moonSpeed    = MoonSpeed_Normal;
     legacy.heldPace     = HeldPace_Medium;
@@ -509,6 +510,8 @@ bool Settings::read() {
             legacy.smoothMotion = toInt(val);
         else if (VALUE("partyColours="))
             legacy.partyColours = toInt(val);
+        else if (VALUE("dimAsked="))
+            legacy.dimAsked = toInt(val);
         else if (VALUE("cheatsMenu="))
             legacy.cheatsMenu = toInt(val);
         else if (VALUE("steamSaves="))
@@ -823,6 +826,7 @@ bool Settings::write() {
             "batterySaver=%d\n"
             "scanlines=%d\n"
             "partyColours=%d\n"
+            "dimAsked=%d\n"
             "smoothMotion=%d\n"
             "cheatsMenu=%d\n"
             "steamSaves=%d\n"
@@ -889,6 +893,7 @@ bool Settings::write() {
             legacy.batterySaver,
             legacy.scanlines,
             legacy.partyColours,
+            legacy.dimAsked,
             legacy.smoothMotion,
             legacy.cheatsMenu,
             legacy.steamSaves,

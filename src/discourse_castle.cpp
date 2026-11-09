@@ -403,15 +403,21 @@ static std::string lordBritishChooseTopic(const U4TalkLordBritish* lb,
             index.end())
             index.push_back(lbTopicOrder[i]);
     }
-    for (size_t i = 0; i < index.size(); ++i)
-        items.push_back(lbWords[index[i]].c_str());
+    std::vector<std::string> dimmed(index.size());
+    for (size_t i = 0; i < index.size(); ++i) {
+        const char* w = lbWords[index[i]].c_str();
+        items.push_back(i ? askedItem(dimmed[i], w,
+                                      askedKey("lb", lbStubs[index[i]].c_str()))
+                          : w);
+    }
 
     int start = (*lastPick < (int) items.size()) ? *lastPick : 1;
     int n = EventHandler::chooseItem(&items[0], items.size(), start, 5);
     if (n <= 0)
         return std::string();
     *lastPick = n;
-    screenMessage("%s\n", items[n]);
+    screenMessage("%s\n", lbWords[index[n]].c_str());
+    askedNote(askedKey("lb", lbStubs[index[n]].c_str()));
     return lbStubs[index[n]];
 }
 
@@ -575,14 +581,19 @@ static void runTalkHawkwind(const U4TalkHawkwind* hw)
         prompt = HW_PROMPT;
         if (smsInterface()) {
             const char* items[VIRT_MAX + 1];
+            std::string dimmed[VIRT_MAX + 1];
             items[0] = "Bye";
             for (v = 0; v < VIRT_MAX; v++)
-                items[v + 1] = getVirtueName((Virtue) v);
+                items[v + 1] = askedItem(dimmed[v + 1],
+                                         getVirtueName((Virtue) v),
+                                         askedKey("hw", getVirtueName((Virtue) v)));
             int n = EventHandler::chooseItem(items, VIRT_MAX + 1, hwPick);
             if (n > 0) {
                 hwPick = n;
-                screenMessage("%s\n", items[n]);
-                input = items[n];
+                const char* name = getVirtueName((Virtue) (n - 1));
+                screenMessage("%s\n", name);
+                askedNote(askedKey("hw", name));
+                input = name;
             } else
                 input.clear();
         } else

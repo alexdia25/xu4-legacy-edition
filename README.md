@@ -267,7 +267,11 @@ party walks, and creatures, people and party members glide from square
 to square too, instead of jumping (off at first).  Enhanced Interface
 Options adds **Party Colours**: hit points turn yellow below half and red
 below a quarter, names are green when poisoned, purple asleep, grey when
-dead and blue when a level is due at Lord British (on at first).  **Map View**
+dead and blue when a level is due at Lord British (on at first), and
+**Dim Topics Asked**: in the console talk menus, the topics already asked
+of a person (or told without asking, like a name) are shown in grey, and
+so are Lord British's and Hawkwind's, kept with the saved game (on at
+first).  **Map View**
 set to Fill Space shows more of the towns, castles and Britannia when
 the tiles are smaller than the DOS ones: with the SMS module's 12 pixel
 tiles the map area holds 15 by 15 tiles (the outer ones cut at the edge)

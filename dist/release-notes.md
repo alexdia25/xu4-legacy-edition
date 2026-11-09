@@ -94,6 +94,8 @@ Maps and screen:
   from square to square.
 - **Party Colours**: names coloured by state, hit points by how low they
   are.
+- **Dim Topics Asked** (Enhanced Interface Options): talk menus show in
+  grey the topics already asked of that person, kept with the save.
 - **Frame Colour By Place**: the border turns gold at a shrine and grey
   in a dungeon.
 - **Effects Don't Stop Play**: spell flashes are brief while the sound

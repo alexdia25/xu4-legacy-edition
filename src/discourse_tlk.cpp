@@ -7,6 +7,7 @@
 #include "party.h"
 #include "screen.h"
 #include "settings.h"
+#include "textview.h"
 #include "utils.h"
 
 enum DialogueString {
@@ -583,6 +584,45 @@ static bool smsTopicUnlocked(const SmsTalk* st, TalkFunc func, TalkState* ts,
 }
 
 /*
+ * Dim Topics Asked: the topics asked of each person are kept with the
+ * heard words (saved with the game) as "=<map>.<person>.<topic>".
+ */
+static std::string askedKey(const char* who, const char* topic)
+{
+    char buf[48];
+    snprintf(buf, sizeof(buf), "=%d.%s.%s",
+             c->location ? (int) c->location->map->id : 0, who, topic);
+    return buf;
+}
+
+static std::string askedKey(const TalkState* ts, const char* topic)
+{
+    char who[8];
+    snprintf(who, sizeof(who), "%d",
+             ts->person ? (int) ts->person->discourseId() : -1);
+    return askedKey(who, topic);
+}
+
+/*
+ * Return the item for a menu, starting with grey if it was asked before
+ * and Dim Topics Asked is on.
+ */
+static const char* askedItem(std::string& buf, const char* item,
+                             const std::string& key)
+{
+    if (! xu4.settings->legacy.dimAsked || ! talkHeardWords.count(key))
+        return item;
+    buf = (char) FG_GREY;
+    buf += item;
+    return buf.c_str();
+}
+
+static void askedNote(const std::string& key)
+{
+    talkHeardWords.insert(key);
+}
+
+/*
  * Show the topic menu and return the input string the DOS logic expects,
  * or an empty string for Bye.
  */
@@ -592,21 +632,34 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
     static const char* fixedTopics[] = {
         "Bye", "Name", "Look", "Job", "Health", "Join", "Give"
     };
+    // Only what can be learned is dimmed, not Bye, Join or Give.
+    static const char* topicKeys[] = {
+        NULL, "n", "l", "j", "h", NULL, NULL
+    };
     const char* items[9];
+    const char* names[9];
+    std::string keys[9];
+    std::string dimmed[9];
     std::string words[2];
     int topicOf[9];
     int count = 0;
 
     for (int i = 0; i < 7; ++i) {
         topicOf[count] = -1 - i;
-        items[count++] = fixedTopics[i];
+        if (topicKeys[i])
+            keys[count] = askedKey(ts, topicKeys[i]);
+        names[count++] = fixedTopics[i];
     }
     for (int k = 0; k < 2; ++k) {
         if (smsTopicUnlocked(st, func, ts, k, &words[k])) {
             topicOf[count] = k;
-            items[count++] = words[k].c_str();
+            keys[count] = askedKey(ts, k ? "2" : "1");
+            names[count++] = words[k].c_str();
         }
     }
+    for (int i = 0; i < count; ++i)
+        items[i] = keys[i].empty() ? names[i]
+                                   : askedItem(dimmed[i], names[i], keys[i]);
 
     int start = (st->lastPick < count) ? st->lastPick : 1;
     // A short scrolling list keeps the last reply on screen above it.
@@ -615,7 +668,9 @@ static std::string smsChooseTopic(SmsTalk* st, TalkFunc func, TalkState* ts)
         return std::string();
     st->lastPick = n;
 
-    screenMessage("%s\n", items[n]);
+    screenMessage("%s\n", names[n]);
+    if (! keys[n].empty())
+        askedNote(keys[n]);
     int t = topicOf[n];
     if (t >= 0) {
         st->asked[t] = true;
@@ -832,6 +887,7 @@ static void runTalkDialogue(TalkFunc func, TalkState* ts)
                 message("You see %s\n", DSTRING(DS_LOOK));
             } else if (inputEq("name")) {
 tell_name:
+                askedNote(askedKey(ts, "n"));   // Told without asking.
                 soundSpeakLine(ts->voiceStream, ts->startVoiceLn + VP_I_AM);
                 message("%s says: I am %s\n",
                         DSTRING(DS_PRONOUN), DSTRING(DS_NAME));

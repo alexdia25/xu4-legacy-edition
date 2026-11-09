@@ -167,6 +167,7 @@ struct LegacyOptions {
     bool scanlines;
     bool smoothMotion;      // The map slides from square to square.
     bool partyColours;      // Party panel names & hit points coloured.
+    bool dimAsked;          // Talk menus grey the topics already asked.
     bool cheatsMenu;        // Cheats in the in-game settings.
     bool steamSaves;        // Saves also go to the Steam release's folder.
     bool journalHints;      // Journal place pages name who to ask.

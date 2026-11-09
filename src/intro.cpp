@@ -334,6 +334,7 @@ IntroController::IntroController() :
     interfaceMenu.add(MI_INTERFACE_05, new BoolMenuItem("Ultima V Shrines           %s", 2,  7,/*'s'*/  9, &settingsChanged.enhancementsOptions.u5shrines));
     interfaceMenu.add(MI_INTERFACE_06, new BoolMenuItem("Ultima V Spell Mixing      %s", 2,  8,/*'m'*/ 15, &settingsChanged.enhancementsOptions.u5spellMixing));
     interfaceMenu.add(MI_INTERFACE_08, new BoolMenuItem("Party Colours              %s", 2,  9,/*'c'*/  6, &settingsChanged.legacy.partyColours));
+    interfaceMenu.add(MI_INTERFACE_09, new BoolMenuItem("Dim Topics Asked           %s", 2, 10,/*'d'*/  0, &settingsChanged.legacy.dimAsked));
     interfaceMenu.add(USE_SETTINGS,                     "\010 Use These Settings",       2, 11,/*'u'*/  2);
     interfaceMenu.add(CANCEL,                           "\010 Cancel",                   2, 12,/*'c'*/  2);
     interfaceMenu.addShortcutKey(CANCEL, ' ');
@@ -2069,6 +2070,7 @@ void IntroController::initMenuHelp() {
         { &interfaceMenu, MI_INTERFACE_05, "Meditate at the shrines as in Ultima V." },
         { &interfaceMenu, MI_INTERFACE_06, "Mix several of a spell at once, as in Ultima V." },
         { &interfaceMenu, MI_INTERFACE_08, "Names coloured by state and hit points yellow or red when low." },
+        { &interfaceMenu, MI_INTERFACE_09, "Talk menus show in grey what was already asked of that person." },
 
         { &legacyMenu, MI_INTERFACE_07, "Menus and lists in place of letter keys, as in the Master System version." },
         { &legacyMenu, MI_LEGACY_01, "Walking into someone talks, into a foe attacks, into a door opens it." },
