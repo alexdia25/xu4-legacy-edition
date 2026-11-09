@@ -8,6 +8,7 @@
 #include "game.h"
 #include "map.h"
 #include "screen.h"
+#include "settings.h"
 #include "tileset.h"
 #include "xu4.h"
 
@@ -71,6 +72,16 @@ void Object::removeFromMaps() {
 
 void Object::animateMovement()
 {
+#ifndef GPU_RENDER
+    // Smooth Motion: redraw the view so the step glides, in towns and
+    // battles as on Britannia, in place of redrawing the two squares (which
+    // would stop the glide as it does for a flash).
+    if (xu4.settings->legacy.smoothMotion &&
+        ! (c->location->map->flags & FIRST_PERSON)) {
+        screenUpdate(&xu4.game->mapArea, true, false);
+        return;
+    }
+#endif
     //TODO abstract movement - also make screen.h and game.h not required
     screenTileUpdate(&xu4.game->mapArea, prevCoords);
     if (screenTileUpdate(&xu4.game->mapArea, coords))

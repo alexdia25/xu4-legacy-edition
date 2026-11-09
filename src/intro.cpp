@@ -341,111 +341,141 @@ IntroController::IntroController() :
     interfaceMenu.addShortcutKey(CANCEL, U4_ESC);
 
     LegacyOptions& lo = settingsChanged.legacy;
-    legacyMenu.setTitle("Legacy Edition Options:", 0, 0);
+    // The Legacy Edition options are pages in a row, with Next Page and
+    // Previous Page; Use and Cancel close them all (see runLegacyPages).
+    legacyMenu.setTitle("Legacy Edition Options (1/7):", 0, 0);
     legacyMenu.add(MI_INTERFACE_07, new BoolMenuItem("Console (SMS) Menus      %s", 2,  1,/*'m'*/ 14, &settingsChanged.enhancementsOptions.smsInterface));
-    legacyMenu.add(MI_LEGACY_01,  new BoolMenuItem("Walk Into To Act         %s", 2,  2,/*'w'*/  0, &lo.bumpToAct));
-    legacyMenu.add(MI_LEGACY_02,  new BoolMenuItem("Fold Repeated Moves      %s", 2,  3,/*'f'*/  0, &lo.foldMoves));
-    legacyMenu.add(MI_LEGACY_03,  new BoolMenuItem("Cancel Spends No Turn    %s", 2,  4,/*'n'*/ 14, &lo.freeCancel));
-    legacyMenu.add(MI_LEGACY_04,  new BoolMenuItem("Shops Compare Arms       %s", 2,  5,/*'o'*/  2, &lo.shopCompare));
-    legacyMenu.add(MI_LEGACY_05,  new BoolMenuItem("Spell Info In Lists      %s", 2,  6,/*'i'*/  6, &lo.spellInfo));
-    legacyMenu.add(MI_LEGACY_06,  new BoolMenuItem("Heal In Action Menu      %s", 2,  7,/*'h'*/  0, &lo.healShortcut));
-    legacyMenu.add(MI_LEGACY_07,  new EnumMenuItem("Auto Combat     %s",          2,  8,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
-    legacyMenu.add(MI_LEGACY_08,  new EnumMenuItem("Dungeon Map     %s",          2,  9,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
-    legacyMenu.add(MI_LEGACY_RULES,                "\010 Rules & Saving",         2, 10,/*'r'*/  2);
-    legacyMenu.add(MI_LEGACY_MORE,                 "\010 More Options",          21, 10,/*'p'*/  8);
+    legacyMenu.add(MI_LEGACY_01, new BoolMenuItem("Walk Into To Act         %s", 2,  2,/*'w'*/  0, &lo.bumpToAct));
+    legacyMenu.add(MI_LEGACY_02, new BoolMenuItem("Fold Repeated Moves      %s", 2,  3,/*'f'*/  0, &lo.foldMoves));
+    legacyMenu.add(MI_LEGACY_03, new BoolMenuItem("Cancel Spends No Turn    %s", 2,  4,/*'s'*/  7, &lo.freeCancel));
+    legacyMenu.add(MI_LEGACY_07, new EnumMenuItem("Auto Combat     %s", 2,  5,/*'a'*/  0, &lo.autoCombat, Settings::autoCombatStrings()));
+    legacyMenu.add(MI_LEGACY_08, new EnumMenuItem("Dungeon Map     %s", 2,  6,/*'d'*/  0, &lo.dungeonMap, Settings::dungeonMapStrings()));
+    legacyMenu.add(MI_LEGACY_04, new BoolMenuItem("Shops Compare Arms       %s", 2,  7,/*'o'*/  2, &lo.shopCompare));
+    legacyMenu.add(MI_LEGACY_05, new BoolMenuItem("Spell Info In Lists      %s", 2,  8,/*'i'*/  6, &lo.spellInfo));
+    legacyMenu.add(MI_LEGACY_06, new BoolMenuItem("Heal In Action Menu      %s", 2,  9,/*'h'*/  0, &lo.healShortcut));
+    legacyMenu.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2, 10,/*'n'*/  2);
     legacyMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     legacyMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     legacyMenu.addShortcutKey(CANCEL, ' ');
     legacyMenu.addShortcutKey(CANCEL, U4_ESC);
+    legacyMenu.setClosesMenu(MI_LEGACY_NEXT);
     legacyMenu.setClosesMenu(USE_SETTINGS);
     legacyMenu.setClosesMenu(CANCEL);
 
-    rulesMenu.setTitle("Rules & Saving:", 0, 0);
-    rulesMenu.add(MI_RULES_PRESET, new EnumMenuItem("Difficulty      %s",          2,  1,/*'d'*/  0, &lo.preset, Settings::legacyPresetStrings()));
-    rulesMenu.add(MI_RULES_01,     new BoolMenuItem("  Poison Kills           %s", 2,  2,/*'p'*/  2, &lo.poisonKills));
-    rulesMenu.add(MI_RULES_02,     new EnumMenuItem("  Starvation    %s",          2,  3,/*'s'*/  2, &lo.starvation, Settings::starvationStrings()));
-    rulesMenu.add(MI_RULES_03,     new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
-    rulesMenu.add(MI_RULES_04,     new EnumMenuItem("  Turn Timer    %s",          2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
-    rulesMenu.add(MI_RULES_05,     new BoolMenuItem("  Party Wipe     %s",         2,  6,/*'w'*/  8, &lo.wipeChoice));
-    rulesMenu.add(MI_RULES_MORE,                    "\010 More Rules",             2,  7,/*'m'*/  2);
-    rulesMenu.add(MI_RULES_06,     new BoolMenuItem("Autosave & History       %s", 2,  8,/*'a'*/  0, &lo.autosave));
-    rulesMenu.add(MI_RULES_08,     new BoolMenuItem("Keep Characters          %s", 2,  9,/*'k'*/  0, &lo.keepCharacters));
-    rulesMenu.add(MI_RULES_STEAM,  new BoolMenuItem("Steam Cloud Saves        %s", 2, 10,/*'c'*/  6, &lo.steamSaves));
-    rulesMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
-    rulesMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
+    rulesMenu.setTitle("Rules (2/7):", 0, 0);
+    rulesMenu.add(MI_RULES_PRESET, new EnumMenuItem("Difficulty      %s", 2,  1,/*'d'*/  0, &lo.preset, Settings::legacyPresetStrings()));
+    rulesMenu.add(MI_RULES_01, new BoolMenuItem("  Poison Kills           %s", 2,  2,/*'k'*/  9, &lo.poisonKills));
+    rulesMenu.add(MI_RULES_02, new EnumMenuItem("  Starvation    %s", 2,  3,/*'s'*/  2, &lo.starvation, Settings::starvationStrings()));
+    rulesMenu.add(MI_RULES_03, new BoolMenuItem("  Shared Experience      %s", 2,  4,/*'e'*/  9, &lo.sharedXp));
+    rulesMenu.add(MI_RULES_04, new EnumMenuItem("  Turn Timer    %s", 2,  5,/*'t'*/  2, &lo.turnTimer, Settings::turnTimerStrings()));
+    rulesMenu.add(MI_RULES_05, new BoolMenuItem("  Party Wipe     %s", 2,  6,/*'w'*/  8, &lo.wipeChoice));
+    rulesMenu.add(MI_RULES_09, new BoolMenuItem("Hit Wakes Sleepers       %s", 2,  7,/*'h'*/  0, &lo.wakeOnHit));
+    rulesMenu.add(MI_RULES_10, new EnumMenuItem("Armour Bonus    %s", 2,  8,/*'a'*/  0, &lo.armourBonus, Settings::armourBonusStrings()));
+    rulesMenu.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  9,/*'p'*/  2);
+    rulesMenu.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2, 10,/*'n'*/  2);
+    rulesMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    rulesMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu.addShortcutKey(CANCEL, ' ');
     rulesMenu.addShortcutKey(CANCEL, U4_ESC);
+    rulesMenu.setClosesMenu(MI_LEGACY_PREV);
+    rulesMenu.setClosesMenu(MI_LEGACY_NEXT);
     rulesMenu.setClosesMenu(USE_SETTINGS);
     rulesMenu.setClosesMenu(CANCEL);
-    ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
 
-    rulesMenu2.setTitle("More Rules:", 0, 0);
-    rulesMenu2.add(MI_RULES_09,    new BoolMenuItem("Hit Wakes Sleepers       %s", 2,  1,/*'h'*/  0, &lo.wakeOnHit));
-    rulesMenu2.add(MI_RULES_10,    new EnumMenuItem("Armour Bonus    %s",          2,  2,/*'a'*/  0, &lo.armourBonus, Settings::armourBonusStrings()));
-    rulesMenu2.add(MI_RULES_11,    new BoolMenuItem("Heavy Hitters            %s", 2,  3,/*'v'*/  3, &lo.heavyHitters));
-    rulesMenu2.add(MI_RULES_12,    new BoolMenuItem("Ambush Wakes Sleepers    %s", 2,  4,/*'w'*/  7, &lo.ambushWakes));
-    rulesMenu2.add(MI_RULES_13,    new BoolMenuItem("Idle Fights Pause        %s", 2,  5,/*'i'*/  0, &lo.idlePause));
-    rulesMenu2.add(MI_RULES_14,    new BoolMenuItem("Cancel Keeps Mana        %s", 2,  6,/*'k'*/  7, &lo.cancelMana));
-    rulesMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
-    rulesMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    rulesMenu2.setTitle("More Rules & Saving (3/7):", 0, 0);
+    rulesMenu2.add(MI_RULES_11, new BoolMenuItem("Heavy Hitters            %s", 2,  1,/*'v'*/  3, &lo.heavyHitters));
+    rulesMenu2.add(MI_RULES_12, new BoolMenuItem("Ambush Wakes Sleepers    %s", 2,  2,/*'w'*/  7, &lo.ambushWakes));
+    rulesMenu2.add(MI_RULES_13, new BoolMenuItem("Idle Fights Pause        %s", 2,  3,/*'i'*/  0, &lo.idlePause));
+    rulesMenu2.add(MI_RULES_14, new BoolMenuItem("Cancel Keeps Mana        %s", 2,  4,/*'k'*/  7, &lo.cancelMana));
+    rulesMenu2.add(MI_RULES_06, new BoolMenuItem("Autosave & History       %s", 2,  5,/*'a'*/  0, &lo.autosave));
+    rulesMenu2.add(MI_RULES_08, new BoolMenuItem("Keep Characters          %s", 2,  6,/*'h'*/  6, &lo.keepCharacters));
+    rulesMenu2.add(MI_MORE_PERCHAR, new BoolMenuItem("Settings Per Character   %s", 2,  7,/*'e'*/  1, &lo.perCharacter));
+    rulesMenu2.add(MI_RULES_STEAM, new BoolMenuItem("Steam Cloud Saves        %s", 2,  8,/*'t'*/  1, &lo.steamSaves));
+    rulesMenu2.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  9,/*'p'*/  2);
+    rulesMenu2.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2, 10,/*'n'*/  2);
+    rulesMenu2.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    rulesMenu2.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     rulesMenu2.addShortcutKey(CANCEL, ' ');
     rulesMenu2.addShortcutKey(CANCEL, U4_ESC);
+    rulesMenu2.setClosesMenu(MI_LEGACY_PREV);
+    rulesMenu2.setClosesMenu(MI_LEGACY_NEXT);
     rulesMenu2.setClosesMenu(USE_SETTINGS);
     rulesMenu2.setClosesMenu(CANCEL);
 
-    moreMenu.setTitle("More Legacy Options:", 0, 0);
-    moreMenu.add(MI_MORE_HINTS,   new BoolMenuItem("Journal Hints            %s", 2,  1,/*'j'*/  0, &lo.journalHints));
-    moreMenu.add(MI_MORE_TIPS,    new BoolMenuItem("Combat Tips              %s", 2,  2,/*'t'*/  7, &lo.combatTips));
-    moreMenu.add(MI_MORE_COUNTS,  new BoolMenuItem("Counts In Action Menu    %s", 2,  3,/*'o'*/  1, &lo.menuCounts));
-    moreMenu.add(MI_MORE_LIGHT,   new BoolMenuItem("Light In The Dark        %s", 2,  4,/*'l'*/  0, &lo.lightFirst));
-    moreMenu.add(MI_MORE_STEAL,   new BoolMenuItem("Name Stealing            %s", 2,  5,/*'s'*/  5, &lo.nameSteal));
-    moreMenu.add(MI_MORE_DIALS,   new BoolMenuItem("Shop Dials Stop At Gold  %s", 2,  6,/*'d'*/  5, &lo.capDials));
-    moreMenu.add(MI_MORE_XP,      new BoolMenuItem("Experience On Ztats      %s", 2,  7,/*'x'*/  0, &lo.xpOnZtats));
-    moreMenu.add(MI_MORE_FOES,    new BoolMenuItem("Creatures On Mini Map    %s", 2,  8,/*'m'*/ 13, &lo.mapCreatures));
-    moreMenu.add(MI_MORE_SNAP,    new BoolMenuItem("Snap Target Mark         %s", 2,  9,/*'k'*/ 15, &lo.snapMark));
-    moreMenu.add(MI_MORE_NEXT,                     "\010 Next Page",              2, 10,/*'n'*/  2);
-    moreMenu.add(USE_SETTINGS,                     "\010 Use These Settings",     2, 11,/*'u'*/  2);
-    moreMenu.add(CANCEL,                           "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu.setTitle("Help & Screen (4/7):", 0, 0);
+    moreMenu.add(MI_MORE_HINTS, new BoolMenuItem("Journal Hints            %s", 2,  1,/*'j'*/  0, &lo.journalHints));
+    moreMenu.add(MI_MORE_TIPS, new BoolMenuItem("Combat Tips              %s", 2,  2,/*'t'*/  7, &lo.combatTips));
+    moreMenu.add(MI_MORE_ASK, new BoolMenuItem("Ask Rules At New Game    %s", 2,  3,/*'r'*/  4, &lo.askRules));
+    moreMenu.add(MI_MORE_GUIDE, new BoolMenuItem("Spoiler Guide            %s", 2,  4,/*'g'*/  8, &lo.spoilerGuide));
+    moreMenu.add(MI_MORE_UPDATE, new BoolMenuItem("Update Notice            %s", 2,  5,/*'e'*/  5, &lo.updateNotice));
+    moreMenu.add(MI_MORE_BLOCK, new BoolMenuItem("Say What Blocks          %s", 2,  6,/*'w'*/  4, &lo.blockReason));
+    moreMenu.add(MI_MORE_QUICKFX, new BoolMenuItem("Effects Don't Stop Play  %s", 2,  7,/*'d'*/  8, &lo.quickFx));
+    moreMenu.add(MI_MORE_FRAME, new BoolMenuItem("Frame Colour By Place    %s", 2,  8,/*'f'*/  0, &lo.frameTint));
+    moreMenu.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  9,/*'p'*/  2);
+    moreMenu.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2, 10,/*'n'*/  2);
+    moreMenu.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu.addShortcutKey(CANCEL, ' ');
     moreMenu.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu.setClosesMenu(MI_LEGACY_PREV);
+    moreMenu.setClosesMenu(MI_LEGACY_NEXT);
     moreMenu.setClosesMenu(USE_SETTINGS);
     moreMenu.setClosesMenu(CANCEL);
 
-    moreMenu2.setTitle("More Legacy Options (2):", 0, 0);
-    moreMenu2.add(MI_MORE_AUTO,   new BoolMenuItem("Auto Combat Extras       %s", 2,  1,/*'a'*/  0, &lo.autoExtras));
-    moreMenu2.add(MI_MORE_SPELL,  new BoolMenuItem("Spell Card Extras        %s", 2,  2,/*'s'*/  0, &lo.spellExtras));
-    moreMenu2.add(MI_MORE_WARES,  new BoolMenuItem("Grey Wares Too Dear      %s", 2,  3,/*'g'*/  0, &lo.shopColours));
-    moreMenu2.add(MI_MORE_MIX,    new BoolMenuItem("Quick Mixing             %s", 2,  4,/*'q'*/  0, &lo.quickMix));
-    moreMenu2.add(MI_MORE_BLOCK,  new BoolMenuItem("Say What Blocks          %s", 2,  5,/*'w'*/  4, &lo.blockReason));
-    moreMenu2.add(MI_MORE_ASK,    new BoolMenuItem("Ask Rules At New Game    %s", 2,  6,/*'r'*/  4, &lo.askRules));
-    moreMenu2.add(MI_MORE_HERE,   new BoolMenuItem("Map Opens Where You Are  %s", 2,  7,/*'m'*/  0, &lo.mapHere));
-    moreMenu2.add(MI_MORE_GATES,  new BoolMenuItem("Moongates Say Where      %s", 2,  8,/*'o'*/  1, &lo.gateNotes));
-    moreMenu2.add(MI_MORE_BUYER,  new BoolMenuItem("Shop Buyer First         %s", 2,  9,/*'b'*/  5, &lo.shopBuyer));
-    moreMenu2.add(MI_MORE_NEXT2,                   "\010 Next Page",              2, 10,/*'n'*/  2);
-    moreMenu2.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
-    moreMenu2.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu2.setTitle("Action Menus & Spells (5/7):", 0, 0);
+    moreMenu2.add(MI_MORE_COUNTS, new BoolMenuItem("Counts In Action Menu    %s", 2,  1,/*'o'*/  1, &lo.menuCounts));
+    moreMenu2.add(MI_MORE_LIGHT, new BoolMenuItem("Light In The Dark        %s", 2,  2,/*'l'*/  0, &lo.lightFirst));
+    moreMenu2.add(MI_MORE_STEAL, new BoolMenuItem("Name Stealing            %s", 2,  3,/*'s'*/  5, &lo.nameSteal));
+    moreMenu2.add(MI_MORE_XP, new BoolMenuItem("Experience On Ztats      %s", 2,  4,/*'e'*/  0, &lo.xpOnZtats));
+    moreMenu2.add(MI_MORE_SPELL, new BoolMenuItem("Spell Card Extras        %s", 2,  5,/*'a'*/  7, &lo.spellExtras));
+    moreMenu2.add(MI_MORE_SPELLS, new BoolMenuItem("Quick Spells In Menus    %s", 2,  6,/*'q'*/  0, &lo.spellShortcuts));
+    moreMenu2.add(MI_MORE_MIX, new BoolMenuItem("Quick Mixing             %s", 2,  7,/*'m'*/  6, &lo.quickMix));
+    moreMenu2.add(MI_MORE_WHO, new BoolMenuItem("Who? Picks Likely One    %s", 2,  8,/*'w'*/  0, &lo.smartWho));
+    moreMenu2.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  9,/*'p'*/  2);
+    moreMenu2.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2, 10,/*'n'*/  2);
+    moreMenu2.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu2.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu2.addShortcutKey(CANCEL, ' ');
     moreMenu2.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu2.setClosesMenu(MI_LEGACY_PREV);
+    moreMenu2.setClosesMenu(MI_LEGACY_NEXT);
     moreMenu2.setClosesMenu(USE_SETTINGS);
     moreMenu2.setClosesMenu(CANCEL);
 
-    moreMenu3.setTitle("More Legacy Options (3):", 0, 0);
-    moreMenu3.add(MI_MORE_FRAME,  new BoolMenuItem("Frame Colour By Place    %s", 2,  1,/*'f'*/  0, &lo.frameTint));
-    moreMenu3.add(MI_MORE_QUICKFX, new BoolMenuItem("Effects Don't Stop Play  %s", 2,  2,/*'e'*/  0, &lo.quickFx));
-    moreMenu3.add(MI_MORE_UPDATE, new BoolMenuItem("Update Notice            %s", 2,  3,/*'n'*/  5, &lo.updateNotice));
-    moreMenu3.add(MI_MORE_STEP,   new BoolMenuItem("Step Onto To Use         %s", 2,  4,/*'s'*/  0, &lo.stepOnto));
-    moreMenu3.add(MI_MORE_PERCHAR, new BoolMenuItem("Settings Per Character   %s", 2,  5,/*'p'*/  9, &lo.perCharacter));
-    moreMenu3.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  6,/*'h'*/  0, &lo.mapPlaces));
-    moreMenu3.add(MI_MORE_GUIDE,  new BoolMenuItem("Spoiler Guide            %s", 2,  7,/*'g'*/  8, &lo.spoilerGuide));
-    moreMenu3.add(MI_MORE_REACH,  new BoolMenuItem("Out Of Reach Is Free     %s", 2,  8,/*'o'*/  0, &lo.outOfReach));
-    moreMenu3.add(MI_MORE_WHO,    new BoolMenuItem("Who? Picks Likely One    %s", 2,  9,/*'w'*/  0, &lo.smartWho));
-    moreMenu3.add(MI_MORE_SPELLS, new BoolMenuItem("Quick Spells In Menus    %s", 2, 10,/*'q'*/  0, &lo.spellShortcuts));
-    moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
-    moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu3.setTitle("Fights & Shops (6/7):", 0, 0);
+    moreMenu3.add(MI_MORE_AUTO, new BoolMenuItem("Auto Combat Extras       %s", 2,  1,/*'a'*/  0, &lo.autoExtras));
+    moreMenu3.add(MI_MORE_SNAP, new BoolMenuItem("Snap Target Mark         %s", 2,  2,/*'k'*/ 15, &lo.snapMark));
+    moreMenu3.add(MI_MORE_REACH, new BoolMenuItem("Out Of Reach Is Free     %s", 2,  3,/*'o'*/  0, &lo.outOfReach));
+    moreMenu3.add(MI_MORE_DIALS, new BoolMenuItem("Shop Dials Stop At Gold  %s", 2,  4,/*'d'*/  5, &lo.capDials));
+    moreMenu3.add(MI_MORE_WARES, new BoolMenuItem("Grey Wares Too Dear      %s", 2,  5,/*'g'*/  0, &lo.shopColours));
+    moreMenu3.add(MI_MORE_BUYER, new BoolMenuItem("Shop Buyer First         %s", 2,  6,/*'b'*/  5, &lo.shopBuyer));
+    moreMenu3.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  7,/*'p'*/  2);
+    moreMenu3.add(MI_LEGACY_NEXT,                 "\010 Next Page",              2,  8,/*'n'*/  2);
+    moreMenu3.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu3.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
     moreMenu3.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu3.setClosesMenu(MI_LEGACY_PREV);
+    moreMenu3.setClosesMenu(MI_LEGACY_NEXT);
     moreMenu3.setClosesMenu(USE_SETTINGS);
     moreMenu3.setClosesMenu(CANCEL);
+
+    moreMenu4.setTitle("Maps & Moving (7/7):", 0, 0);
+    moreMenu4.add(MI_MORE_HERE, new BoolMenuItem("Map Opens Where You Are  %s", 2,  1,/*'m'*/  0, &lo.mapHere));
+    moreMenu4.add(MI_MORE_GATES, new BoolMenuItem("Moongates Say Where      %s", 2,  2,/*'o'*/  1, &lo.gateNotes));
+    moreMenu4.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  3,/*'h'*/  0, &lo.mapPlaces));
+    moreMenu4.add(MI_MORE_FOES, new BoolMenuItem("Creatures On Mini Map    %s", 2,  4,/*'r'*/  1, &lo.mapCreatures));
+    moreMenu4.add(MI_MORE_STEP, new BoolMenuItem("Step Onto To Use         %s", 2,  5,/*'t'*/ 10, &lo.stepOnto));
+    moreMenu4.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  6,/*'p'*/  2);
+    moreMenu4.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
+    moreMenu4.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
+    moreMenu4.addShortcutKey(CANCEL, ' ');
+    moreMenu4.addShortcutKey(CANCEL, U4_ESC);
+    moreMenu4.setClosesMenu(MI_LEGACY_PREV);
+    moreMenu4.setClosesMenu(USE_SETTINGS);
+    moreMenu4.setClosesMenu(CANCEL);
+
+    ((BoolMenuItem*) rulesMenu.getItemById(MI_RULES_05))->setValueStrings("Ask To Reload", "Lord British");
 
     gameMenu.setTitle("Game Menu:", 0, 0);
     gameMenu.add(CANCEL,          "\017 Return to Game",       2,  1,/*'r'*/  2);
@@ -2072,6 +2102,18 @@ void IntroController::initMenuHelp() {
         { &interfaceMenu, MI_INTERFACE_08, "Names coloured by state and hit points yellow or red when low." },
         { &interfaceMenu, MI_INTERFACE_09, "Talk menus show in grey what was already asked of that person." },
 
+        { &legacyMenu, MI_LEGACY_NEXT, "Rules: the difficulty and the rules it sets." },
+        { &rulesMenu, MI_LEGACY_PREV, "Back to the main Legacy Edition options." },
+        { &rulesMenu, MI_LEGACY_NEXT, "More rules, autosave, characters and Steam saves." },
+        { &rulesMenu2, MI_LEGACY_PREV, "Back to the rules and the difficulty." },
+        { &rulesMenu2, MI_LEGACY_NEXT, "Hints, tips, the guide, update notice and screen options." },
+        { &moreMenu, MI_LEGACY_PREV, "Back to more rules and saving." },
+        { &moreMenu, MI_LEGACY_NEXT, "Action menu, spell and Who? helps." },
+        { &moreMenu2, MI_LEGACY_PREV, "Back to hints, tips and screen options." },
+        { &moreMenu2, MI_LEGACY_NEXT, "Fight and shop helps." },
+        { &moreMenu3, MI_LEGACY_PREV, "Back to the action menu and spell helps." },
+        { &moreMenu3, MI_LEGACY_NEXT, "Map and moving helps." },
+        { &moreMenu4, MI_LEGACY_PREV, "Back to the fight and shop helps." },
         { &legacyMenu, MI_INTERFACE_07, "Menus and lists in place of letter keys, as in the Master System version." },
         { &legacyMenu, MI_LEGACY_01, "Walking into someone talks, into a foe attacks, into a door opens it." },
         { &legacyMenu, MI_LEGACY_02, "\"North (x5)\" in place of five lines; Blocked! and Pass fold too." },
@@ -2081,9 +2123,7 @@ void IntroController::initMenuHelp() {
         { &legacyMenu, MI_LEGACY_06, "A Heal or Cure line in the action menu when someone needs it." },
         { &legacyMenu, MI_LEGACY_07, "The party fights by itself. Companions leaves the Avatar to you." },
         { &legacyMenu, MI_LEGACY_08, "A mini map beside the dungeon view, or a map from above in its place." },
-        { &legacyMenu, MI_LEGACY_RULES, "Difficulty, autosave and save history, characters, Steam saves." },
 
-        { &legacyMenu, MI_LEGACY_MORE, "Journal hints, combat tips, menu, shop & combat helps (two pages)." },
         { &moreMenu, MI_MORE_HINTS, "A place's journal page names who still knows more, not what." },
         { &moreMenu, MI_MORE_TIPS, "A tip in the log at the start of each of the first six fights." },
         { &moreMenu, MI_MORE_COUNTS, "The action menu shows the torches, gems and keys left." },
@@ -2093,8 +2133,6 @@ void IntroController::initMenuHelp() {
         { &moreMenu, MI_MORE_XP, "Ztats in the action menu shows XP against the next level." },
         { &moreMenu, MI_MORE_FOES, "The dungeon mini map marks a creature the party can see." },
         { &moreMenu, MI_MORE_SNAP, "Snap Attacks mark their target; PgUp/PgDn or L/R pick another foe." },
-        { &moreMenu, MI_MORE_NEXT, "More options on a second page." },
-        { &moreMenu2, MI_MORE_NEXT2, "More options on a third page." },
         { &moreMenu3, MI_MORE_PLACES, "The map names the places visited, and those heard of in a box." },
         { &moreMenu3, MI_MORE_REACH, "An attack with no foe in reach is not made and spends no turn." },
         { &moreMenu3, MI_MORE_WHO, "Who? starts on the likely one: the hurt for Heal, the dead to raise." },
@@ -2120,7 +2158,6 @@ void IntroController::initMenuHelp() {
         { &rulesMenu, MI_RULES_03, "The experience for a kill is shared by the whole party." },
         { &rulesMenu, MI_RULES_04, "How long the game waits before it passes a turn for you." },
         { &rulesMenu, MI_RULES_05, "A fallen party may go back to the last save or an earlier one." },
-        { &rulesMenu, MI_RULES_MORE, "Hit Wakes Sleepers, Armour Bonus, Heavy Hitters, Ambush Wakes." },
         { &rulesMenu2, MI_RULES_09, "A sleeper who is hit in a fight has an even chance to wake." },
         { &rulesMenu2, MI_RULES_10, "Armour turns blows better: Modern +16, Story +32 while fed." },
         { &rulesMenu2, MI_RULES_11, "Daemons, dragons and balrons strike for at least half their blow." },
@@ -2142,8 +2179,15 @@ void IntroController::initMenuHelp() {
         { &gameMenu, MI_HUB_MODULES, "Choose the graphics and the music." },
         { &gameMenu, MI_HUB_QUIT, "Back to the title, saving first if wanted." },
     };
+    Menu* legacyPages[] = {
+        &legacyMenu, &rulesMenu, &rulesMenu2, &moreMenu, &moreMenu2,
+        &moreMenu3, &moreMenu4
+    };
     for (const Help& h : help) {
         MenuItem* mi = h.menu->getItemById(h.id);
+        // The Legacy Edition options may be on any of their pages.
+        for (int i = 0; ! mi && isLegacyPage(h.menu) && i < 7; ++i)
+            mi = legacyPages[i]->getItemById(h.id);
         if (mi)
             mi->setHelp(h.text);
     }
@@ -2223,12 +2267,8 @@ void IntroController::dispatchMenu(const Menu *menu, MenuEvent &event) {
         updateGameplayMenu(event);
     else if (menu == &interfaceMenu)
         updateInterfaceMenu(event);
-    else if (menu == &legacyMenu)
+    else if (isLegacyPage(menu))
         updateLegacyMenu(event);
-    else if (menu == &rulesMenu || menu == &rulesMenu2)
-        updateRulesMenu(event);
-    else if (menu == &moreMenu || menu == &moreMenu2 || menu == &moreMenu3)
-        updateMoreMenu(event);
     else if (menu == &padMenu)
         updatePadMenu(event);
     else if (menu == &cheatsMenu)
@@ -2283,7 +2323,7 @@ void IntroController::updateConfMenu(MenuEvent &event) {
             runMenu(&interfaceMenu, &extendedMenuArea, true);
             break;
         case MI_CONF_LEGACY:
-            runMenu(&legacyMenu, &extendedMenuArea, true);
+            runLegacyPages();
             break;
         case MI_CONF_MODULES:
             // The module list, so a first time player with no keyboard or
@@ -2561,69 +2601,54 @@ void IntroController::updateInterfaceMenu(MenuEvent &event) {
     extendedMenuArea.textAt(2, 3, "  (Open, Jimmy, etc.)");
 }
 
+/*
+ * Run the Legacy Edition option pages from the configuration menu.  Next
+ * Page and Previous Page go from one to the next; Use These Settings and
+ * Cancel (or Escape) on any page go back to the configuration menu, saving
+ * or dropping the changes made on every page.
+ */
+void IntroController::runLegacyPages() {
+    Menu* pages[] = {
+        &legacyMenu, &rulesMenu, &rulesMenu2, &moreMenu, &moreMenu2,
+        &moreMenu3, &moreMenu4
+    };
+    const int count = sizeof(pages) / sizeof(pages[0]);
+
+    // Only for the Steam release's game files.
+    rulesMenu2.getItemById(MI_RULES_STEAM)->setVisible(steamGameFilesUsed());
+
+    legacyPage = 0;
+    while (legacyPage >= 0 && legacyPage < count) {
+        int page = legacyPage;
+        legacyPage = -1;
+        runMenu(pages[page], &extendedMenuArea, true);
+        if (legacyPage == -2)           // Previous Page
+            legacyPage = page - 1;
+        else if (legacyPage == -3)      // Next Page
+            legacyPage = page + 1;
+    }
+    legacyPage = -1;
+}
+
+bool IntroController::isLegacyPage(const Menu* menu) const {
+    return menu == &legacyMenu || menu == &rulesMenu || menu == &rulesMenu2 ||
+           menu == &moreMenu || menu == &moreMenu2 || menu == &moreMenu3 ||
+           menu == &moreMenu4;
+}
+
 void IntroController::updateLegacyMenu(MenuEvent &event) {
-    if (event.type == MenuEvent::ACTIVATE ||
-        event.type == MenuEvent::INCREMENT ||
-        event.type == MenuEvent::DECREMENT) {
-
-        switch(event.item->getId()) {
-            case MI_LEGACY_MORE:
-                runMenu(&moreMenu, &extendedMenuArea, true);
-                break;
-            case MI_LEGACY_RULES:
-                // Only for the Steam release's game files.
-                rulesMenu.getItemById(MI_RULES_STEAM)->setVisible(
-                                steamGameFilesUsed());
-                runMenu(&rulesMenu, &extendedMenuArea, true);
-                break;
-            case USE_SETTINGS:
-                xu4.settings->setData(settingsChanged);
-                xu4.settings->write();
-                break;
-            case CANCEL:
-                settingsChanged = *xu4.settings;
-                break;
-            default: break;
-        }
-    }
-
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
-    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
-}
-
-void IntroController::updateMoreMenu(MenuEvent &event) {
-    if (event.type == MenuEvent::ACTIVATE ||
-        event.type == MenuEvent::INCREMENT ||
-        event.type == MenuEvent::DECREMENT) {
-        switch(event.item->getId()) {
-            case MI_MORE_NEXT:
-                runMenu(&moreMenu2, &extendedMenuArea, true);
-                break;
-            case MI_MORE_NEXT2:
-                runMenu(&moreMenu3, &extendedMenuArea, true);
-                break;
-            case USE_SETTINGS:
-                xu4.settings->setData(settingsChanged);
-                xu4.settings->write();
-                break;
-            case CANCEL:
-                settingsChanged = *xu4.settings;
-                break;
-            default: break;
-        }
-    }
-
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
-    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
-}
-
-void IntroController::updateRulesMenu(MenuEvent &event) {
     if (event.type == MenuEvent::ACTIVATE ||
         event.type == MenuEvent::INCREMENT ||
         event.type == MenuEvent::DECREMENT) {
 
         LegacyOptions& lo = settingsChanged.legacy;
         switch(event.item->getId()) {
+            case MI_LEGACY_PREV:
+                legacyPage = -2;
+                break;
+            case MI_LEGACY_NEXT:
+                legacyPage = -3;
+                break;
             case MI_RULES_PRESET:
                 // Custom is only reached by changing one of the rules.
                 if (lo.preset == LegacyPreset_Custom)
@@ -2644,10 +2669,8 @@ void IntroController::updateRulesMenu(MenuEvent &event) {
             case MI_RULES_14:
                 lo.preset = LegacyPreset_Custom;
                 break;
-            case MI_RULES_MORE:
-                runMenu(&rulesMenu2, &extendedMenuArea, true);
-                break;
             case USE_SETTINGS:
+                // Every page shares settingsChanged, so this keeps them all.
                 xu4.settings->setData(settingsChanged);
                 xu4.settings->write();
                 break;

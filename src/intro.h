@@ -112,8 +112,8 @@ public:
     void updateGameplayMenu(MenuEvent &event);
     void updateInterfaceMenu(MenuEvent &event);
     void updateLegacyMenu(MenuEvent &event);
-    void updateRulesMenu(MenuEvent &event);
-    void updateMoreMenu(MenuEvent &event);
+    void runLegacyPages();
+    bool isLegacyPage(const Menu* menu) const;
     void updatePadMenu(MenuEvent &event);
     void updateCheatsMenu(MenuEvent &event);
     void updateGameMenu(MenuEvent &event);
@@ -277,6 +277,8 @@ private:
         MI_MORE_GUIDE,
         MI_MORE_REACH,
         MI_MORE_WHO,
+        MI_LEGACY_NEXT,
+        MI_LEGACY_PREV,
         MI_MORE_SPELLS,
         MI_MORE_SPELL,
         MI_MORE_WARES,
@@ -353,6 +355,8 @@ private:
     Menu moreMenu;
     Menu moreMenu2;
     Menu moreMenu3;
+    Menu moreMenu4;
+    int legacyPage;         // Page to show next, or -1 when done.
     Menu padMenu;
     Menu cheatsMenu;
     Menu gameMenu;

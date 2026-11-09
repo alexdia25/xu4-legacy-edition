@@ -5,8 +5,10 @@ makes Ultima IV easier to play on modern systems, especially with the free
 ## New in 1.3-pre1
 
 A pre-release for testing.  Most of what is new is optional: the new
-options are in Settings, Legacy Edition Options, More Options (now three
-pages), and How to Play lists them all.
+options are in Settings, Legacy Edition Options, now seven pages with one
+option to a line, Next Page and Previous Page, and Use These Settings or
+Cancel on any page keeping or dropping the changes made on all of them.
+How to Play lists them all.
 
 Graphics:
 
@@ -34,7 +36,7 @@ Playing:
   or Lord British's aid.  Load a Save is in the game menu.
 - **Ask Rules At New Game**: Story, Modern or Classic after choosing
   Male or Female.
-- **More Rules** (Rules & Saving), from the Ultima V port and on in
+- **More Rules** (Legacy Edition Options, pages 2 and 3), from the Ultima V port and on in
   Modern and Story, off in Classic: Hit Wakes Sleepers (a sleeper hit in
   a fight has an even chance to wake), Armour Bonus (Modern adds a tier
   of armour to every member's defence, Story two while the party has
@@ -68,7 +70,7 @@ Playing:
 - **Settings Per Character**: with Keep Characters, each character keeps
   their own play options.
 - **Steam Cloud Saves**: with the Steam release's game files, saves also
-  go to its folder for Steam Cloud (Rules & Saving).
+  go to its folder for Steam Cloud (Legacy Edition Options, page 3).
 - New Word cheat (Ctrl-C N).
 
 Shops and spells:
@@ -91,7 +93,7 @@ Maps and screen:
 - **Moongates Say Where**: a gate names the town it led to last.
 - **Creatures On Mini Map** in dungeons.
 - **Smooth Motion** (Video Options): the map slides and everyone glides
-  from square to square.
+  from square to square, in towns, castles and battles as on Britannia.
 - **Party Colours**: names coloured by state, hit points by how low they
   are.
 - **Dim Topics Asked** (Enhanced Interface Options): talk menus show in

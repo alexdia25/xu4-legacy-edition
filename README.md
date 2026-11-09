@@ -165,7 +165,11 @@ down map.
 ### Legacy Edition Options
 
 Settings > Legacy Edition Options holds the conveniences of this
-edition.  Each can be switched off for the game as it was.
+edition.  Each can be switched off for the game as it was.  They are on
+seven pages, one option to a line: Next Page and Previous Page go from
+one to the next, and Use These Settings or Cancel (Escape) on any page
+goes back to Settings, keeping or dropping the changes made on all of
+them.  Page 1 holds:
 
 ![Legacy Edition options](doc/screenshots/legacy-options.png)
 
@@ -181,60 +185,68 @@ edition.  Each can be switched off for the game as it was.
 | Auto Combat            | The party fights on its own; any key or button takes the battle back, and it stops when someone is badly hurt | Off |
 | Dungeon Map            | Off, Mini Map or Top Down                          | Mini Map |
 
-Beside Rules & Saving, **More Options** holds these, all starting on:
+The rules and saving options are on pages 2 and 3 (see Rules
+below).  Pages 4 to 7 hold these, most starting on:
+
+**Help & Screen (page 4)**
 
 | Option                     | What it does |
 |----------------------------|--------------|
 | Journal Hints              | A place's journal page names who still has clues to tell, never what |
 | Combat Tips                | A tip in the log at the start of each of the first six fights, once per character |
+| Ask Rules At New Game      | A new game asks which rules to play by (Story, Modern, Classic, or as set) after Male or Female |
+| Spoiler Guide              | Adds the Guide, a walkthrough of the whole quest, to the Books of Britannia (off at first) |
+| Update Notice              | On Windows, macOS and Linux (not the Flatpak, which updates itself), once a day the game asks GitHub for the latest release and offers its download page when a newer one is out; Not This One skips that release |
+| Say What Blocks            | "Blocked by water!", "Blocked by mountains!", "Blocked by someone!" and so on in place of "Blocked!" |
+| Effects Don't Stop Play    | A spell's screen flash is brief while its sound plays on, and a storm or whirlpool doesn't hold the game for its sound |
+| Frame Colour By Place      | The blue border turns gold at a shrine and grey in a dungeon, darker on each level down (with the DOS border picture) |
+
+**Action Menus & Spells (page 5)**
+
+| Option                     | What it does |
+|----------------------------|--------------|
 | Counts In Action Menu      | The action menu shows the torches, gems and keys left ("Ignite x3") |
 | Light In The Dark          | In a dark dungeon the action menu offers a torch, or the Light spell, first |
 | Name Stealing              | A chest in a town is offered as Steal Chest, since taking it costs virtue |
-| Shop Dials Stop At Gold    | A shop's number dial stops at what the party can pay for (and carry, for food) and shows the cost |
 | Experience On Ztats        | With Ztats under the cursor in the action menu, the party panel shows each member's XP against the next level, blue when Lord British would raise a level |
-| Creatures On Mini Map      | The dungeon mini map marks a creature in a cell the party can see |
-| Snap Target Mark           | With Snap Attacks, the foe X would strike is marked in red; Page Up/Page Down or the shoulder buttons pick another foe in reach |
+| Spell Card Extras          | Picking a caster shows each member's mana, the spells the caster can afford come first, and the spell panel shows the mixtures made |
+| Quick Spells In Menus      | In a fight the action menu offers the member's last spell again (Cast Missile, Cast Heal...) and Cast Undead when undead are on the field; on a chest it offers Cast Open, in and out of fights |
+| Quick Mixing               | With console menus, Mix offers By Recipe for a spell already mixed once: pick it and dial how many, and the reagents are taken for you |
+| Who? Picks Likely One      | A Who? list starts on the likely member: the most hurt for Heal, the poisoned for Cure, the dead to Resurrect, the most mana to Cast, the nimblest to open a chest |
 
-**Next Page** holds more:
+**Fights & Shops (page 6)**
 
 | Option                     | What it does |
 |----------------------------|--------------|
 | Auto Combat Extras         | "Auto" shows over the party panel while Auto Combat fights, the fight menu has Auto Combat (for that battle, even with the option Off), and it hands the battle back after 30 turns with no foe hurt |
-| Spell Card Extras          | Picking a caster shows each member's mana, the spells the caster can afford come first, and the spell panel shows the mixtures made |
+| Snap Target Mark           | With Snap Attacks, the foe X would strike is marked in red; Page Up/Page Down or the shoulder buttons pick another foe in reach |
+| Out Of Reach Is Free       | An attack with no foe in reach that way is not made and spends no turn |
+| Shop Dials Stop At Gold    | A shop's number dial stops at what the party can pay for (and carry, for food) and shows the cost |
 | Grey Wares Too Dear        | Weapon and armour shop lists show in grey what your gold cannot buy |
-| Quick Mixing               | With console menus, Mix offers By Recipe for a spell already mixed once: pick it and dial how many, and the reagents are taken for you |
-| Say What Blocks            | "Blocked by water!", "Blocked by mountains!", "Blocked by someone!" and so on in place of "Blocked!" |
-| Ask Rules At New Game      | A new game asks which rules to play by (Story, Modern, Classic, or as set) after Male or Female |
-| Map Opens Where You Are    | In a town, castle, shrine or dungeon the map shows that place first (a dungeon level shows the cells seen); W, Y or the World button switches to Britannia and Here back |
-| Moongates Say Where        | Zoomed in on the world map, a moongate the party has gone through names the town it led to last |
 | Shop Buyer First           | Weapon and armour shops ask who is buying (the Avatar alone is never asked); the list greys what they cannot use, and a purchase is offered to them to ready or wear |
 
-Its **Next Page** holds:
+**Maps & Moving (page 7)**
 
 | Option                     | What it does |
 |----------------------------|--------------|
-| Frame Colour By Place      | The blue border turns gold at a shrine and grey in a dungeon, darker on each level down (with the DOS border picture) |
-| Effects Don't Stop Play    | A spell's screen flash is brief while its sound plays on, and a storm or whirlpool doesn't hold the game for its sound |
-| Update Notice              | On Windows, macOS and Linux (not the Flatpak, which updates itself), once a day the game asks GitHub for the latest release and offers its download page when a newer one is out; Not This One skips that release |
-| Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
-| Settings Per Character     | With Keep Characters, each character keeps their own play options (the Legacy Edition options, rules, console menus and battle difficulty); display, sound, gamepad and saving settings stay the device's |
+| Map Opens Where You Are    | In a town, castle, shrine or dungeon the map shows that place first (a dungeon level shows the cells seen); W, Y or the World button switches to Britannia and Here back |
+| Moongates Say Where        | Zoomed in on the world map, a moongate the party has gone through names the town it led to last |
 | Heard-Of Places On Map     | The in-game world map (not the books' cloth map) names in yellow the towns, castles, villages and dungeons the party has been to, and in grey, with a box where the land is still unexplored, those someone has named in conversation |
-| Spoiler Guide              | Adds the Guide, a walkthrough of the whole quest, to the Books of Britannia (off at first) |
-| Out Of Reach Is Free       | An attack with no foe in reach that way is not made and spends no turn |
-| Who? Picks Likely One      | A Who? list starts on the likely member: the most hurt for Heal, the poisoned for Cure, the dead to Resurrect, the most mana to Cast, the nimblest to open a chest |
-| Quick Spells In Menus      | In a fight the action menu offers the member's last spell again (Cast Missile, Cast Heal...) and Cast Undead when undead are on the field; on a chest it offers Cast Open, in and out of fights |
+| Creatures On Mini Map      | The dungeon mini map marks a creature in a cell the party can see |
+| Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is
 pressed again (on by default).
 
-**Rules & Saving** sets the difficulty: Classic is the game as
+**Rules** (page 2) sets the difficulty: Classic is the game as
 it was, while Modern and Story are gentler, and each rule can also be
 set on its own (whether poison kills, starvation, shared experience, the
 turn timer, and whether a fallen party is raised by Lord British or may
 reload: when the whole party falls, it then offers the last save, an
-earlier save or Lord British's aid).  More Rules holds the combat rules
-of the Ultima V and III ports: Hit Wakes Sleepers (a sleeper hit in a fight has
+earlier save or Lord British's aid).  With them are the combat rules of
+the Ultima V and III ports, which go on to page 3, **More Rules &
+Saving**: Hit Wakes Sleepers (a sleeper hit in a fight has
 an even chance to wake), Armour Bonus (Modern adds a tier of armour, 16,
 to every member's defence; Story two tiers while the party has food),
 Heavy Hitters (daemons, dragons and balrons strike for at least half of
@@ -242,9 +254,12 @@ their full blow), Ambush Wakes Sleepers (once a camp's ambush is
 over, nobody walks on asleep), Idle Fights Pause (a fight left alone
 for a minute stops passing turns until you are back) and Cancel Keeps
 Mana (backing out of the Energy Field spell's choice costs no mana).
-Classic has them all off, Modern and Story on.  It also turns on
+Classic has them all off, Modern and Story on.  Page 3 also turns on
 autosave with a history of saves to go back to and several characters
-each with their own saves (these start off).
+each with their own saves (these start off), and Settings Per Character:
+with Keep Characters, each character keeps their own play options (the
+Legacy Edition options, rules, console menus and battle difficulty);
+display, sound, gamepad and saving settings stay the device's.
 With the Steam release's game files it also has **Steam Cloud Saves**
 (see [Steam Cloud saves](#steam-cloud-saves)).
 
@@ -264,7 +279,8 @@ The Graphics options add Scanlines, a Battery Saver, and Pause Unfocused
 (the game waits while its window is in the background).  Video Options
 adds **Smooth Motion**: the map slides from square to square as the
 party walks, and creatures, people and party members glide from square
-to square too, instead of jumping (off at first).  Enhanced Interface
+to square too, instead of jumping, in towns, castles and battles as on
+Britannia (dungeon corridors still step; off at first).  Enhanced Interface
 Options adds **Party Colours**: hit points turn yellow below half and red
 below a quarter, names are green when poisoned, purple asleep, grey when
 dead and blue when a level is due at Lord British (on at first), and
@@ -443,7 +459,7 @@ Linux or a Steam Deck where Steam installed it through Proton.
 ### Steam Cloud Saves
 
 With the Steam release's game files in use, Settings > Legacy Edition
-Options > Rules & Saving has **Steam Cloud Saves** (off at first).  The
+Options, page 3 (More Rules & Saving), has **Steam Cloud Saves** (off at first).  The
 Steam release runs the DOS game, which keeps its save (`PARTY.SAV`,
 `MONSTERS.SAV`, and `DNGMAP.SAV` & `OUTMONST.SAV` in a dungeon) in its
 install folder, and Steam Cloud carries that save between computers.
