@@ -3285,24 +3285,14 @@ static bool moveFollowPrinted;
 static void foldLine(char prompt, const char* text, int count, int color) {
     char buf[40];
     int width = TEXT_AREA_W - (prompt ? 1 : 0);
-    if (count > 1) {
-        char suffix[12];
+    char suffix[12] = "";
+    if (count > 1)
         snprintf(suffix, sizeof(suffix), " (x%d)", count);
-        int room = width - (int) strlen(suffix);
-        int len = (int) strlen(text);
-        if (len > room) {
-            // Cut at the last whole word that fits.
-            len = room;
-            while (len > 0 && text[len] != ' ')
-                --len;
-            if (len == 0)
-                len = room;
-            while (len > 0 && text[len - 1] == ' ')
-                --len;
-        }
-        snprintf(buf, sizeof(buf), "%.*s%s", len, text, suffix);
-    } else
-        snprintf(buf, sizeof(buf), "%s", text);
+    // A line too long for the count keeps its words; the move line above
+    // it carries the count.
+    if (strlen(text) + strlen(suffix) > (size_t) width)
+        suffix[0] = '\0';
+    snprintf(buf, sizeof(buf), "%s%s", text, suffix);
     // Pad to the width so a longer line folded over is cleared.
     int pad = width - (int) strlen(buf);
     if (pad < 0)
@@ -3330,10 +3320,17 @@ static void moveMessage(const char* fmt, const char* dir,
 
     snprintf(text, sizeof(text), fmt, dir);
     snprintf(key, sizeof(key), "%s\n%s", text, follow ? follow : "");
-    int lines = follow ? 2 : 1;
-    if (xu4.settings->legacy.foldMoves && c->line >= lastLines &&
-        c->col == 1 && screenMessageSerial() == lastSerial + 1 &&
-        strcmp(key, lastKey) == 0) {
+    // A long reason ("Blocked by water!") wraps onto a second line.
+    int followLen = follow ? (int) strlen(follow) : 0;
+    int lines = 1 + (followLen ? (followLen > TEXT_AREA_W ? 2 : 1) : 0);
+    bool fits = followLen <= 2 * TEXT_AREA_W;
+    // The prompt may not be printed yet when keys come quickly (a held
+    // key, Smooth Motion): then nothing at all was printed since.
+    bool onlyPrompt =
+        (c->col == 1 && screenMessageSerial() == lastSerial + 1) ||
+        (c->col == 0 && screenMessageSerial() == lastSerial);
+    if (xu4.settings->legacy.foldMoves && fits && c->line >= lastLines &&
+        onlyPrompt && strcmp(key, lastKey) == 0) {
         ++count;
         c->line -= lastLines;
         c->col = 0;
