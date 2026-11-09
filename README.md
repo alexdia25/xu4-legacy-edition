@@ -25,7 +25,7 @@ What it adds to XU4:
    difficulty presets, autosave and several characters.
  - [Graphics & music modules](#graphics--music-modules) for the Apple II,
    Commodore 64 and Sega Master System versions, read from your own disk
-   images or ROM.
+   images or ROM, and the DOS release's own four-colour CGA look.
  - [Builds](#installing) for Windows, macOS, Linux and Android, a web
    version that also installs on iPhones and iPads, and a Flatpak for the
    Steam Deck.
@@ -118,6 +118,8 @@ for the contents).  The reader also has:
    With Journal Hints, a place's page also names the people there who
    know more than has been heard from them.
  - **Map**: the whole cloth map of Britannia.
+ - **Guide** (with the Spoiler Guide option, off at first): a
+   walkthrough of the whole quest, written from the game's own data.
  - **Three text sizes**: - and + (or the shoulder buttons) change the
    size of the text, which rewraps to fit.
 
@@ -217,6 +219,8 @@ Its **Next Page** holds:
 | Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
 | Settings Per Character     | With Keep Characters, each character keeps their own play options (the Legacy Edition options, rules, console menus and battle difficulty); display, sound, gamepad and saving settings stay the device's |
 | Heard-Of Places On Map     | The in-game world map (not the books' cloth map) names in yellow the towns, castles, villages and dungeons the party has been to, and in grey, with a box where the land is still unexplored, those someone has named in conversation |
+| Spoiler Guide              | Adds the Guide, a walkthrough of the whole quest, to the Books of Britannia (off at first) |
+| Out Of Reach Is Free       | An attack with no foe in reach that way is not made and spends no turn |
 | Who? Picks Likely One      | A Who? list starts on the likely member: the most hurt for Heal, the poisoned for Cure, the dead to Resurrect, the most mana to Cast, the nimblest to open a chest |
 | Quick Spells In Menus      | In a fight the action menu offers the member's last spell again (Cast Missile, Cast Heal...) and Cast Undead when undead are on the field; on a chest it offers Cast Open, in and out of fights |
 
@@ -332,7 +336,10 @@ Getting Started
 
 ### Installing
 
-Every download is on the [releases page].  The game data
+Every download is on the [releases page].  The next version is tested
+first as a pre-release, now [1.3-pre1], with the CGA look, quick
+spells in fights and the other features listed in its release notes.
+The game data
 (`ultima4.zip`, or the files of the GOG release) goes in one of the
 [data folders](#data-folders).  The Steam release is found by itself
 wherever Steam installed it.
@@ -594,6 +601,7 @@ The original XU4 readme follows.
 [Codeberg]: https://codeberg.org/xU4/xu4
 [GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [releases page]: https://github.com/alexdia25/xu4-legacy-edition/releases/latest
+[1.3-pre1]: https://github.com/alexdia25/xu4-legacy-edition/releases/tag/legacy-1.3-pre1
 [Flatpak repository]: https://alexdia25.github.io/xu4-legacy-edition/
 [Obtainium]: https://github.com/ImranR98/Obtainium
 [play in the browser]: https://alexdia25.github.io/xu4-legacy-edition/play/
