@@ -217,6 +217,8 @@ Its **Next Page** holds:
 | Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
 | Settings Per Character     | With Keep Characters, each character keeps their own play options (the Legacy Edition options, rules, console menus and battle difficulty); display, sound, gamepad and saving settings stay the device's |
 | Heard-Of Places On Map     | The in-game world map (not the books' cloth map) names in yellow the towns, castles, villages and dungeons the party has been to, and in grey, with a box where the land is still unexplored, those someone has named in conversation |
+| Who? Picks Likely One      | A Who? list starts on the likely member: the most hurt for Heal, the poisoned for Cure, the dead to Resurrect, the most mana to Cast, the nimblest to open a chest |
+| Quick Spells In Menus      | In a fight the action menu offers the member's last spell again (Cast Missile, Cast Heal...) and Cast Undead when undead are on the field; on a chest it offers Cast Open, in and out of fights |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is
@@ -298,6 +300,13 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
    the music of the Sega Master System release, read from its ROM (see
    [SMS ROM](#sms-rom)).
 
+The **CGA** module draws the game with the DOS release's own
+four-colour CGA graphics (black, cyan, magenta and white): the tiles
+(`SHAPES.CGA`), the font (`CHARSET.CGA`) and the title and story
+pictures (the `.PIC` files), which come with every copy of the DOS game,
+GOG's included.  The dungeon walls are recoloured to the same four
+colours.  It is listed when `SHAPES.CGA` is found.
+
 The game itself (maps, rules and conversations) stays the DOS one.
 
 ![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
@@ -311,6 +320,9 @@ the moongate of the intro, the gypsy's cards and the first view of
 Britannia.
 
 ![C64 and C64-Remastered modules](doc/screenshots/c64-modules.png)
+
+![CGA tiles in Moonglow](doc/screenshots/cga-town.png)
+![CGA story picture](doc/screenshots/cga-intro.png)
 
 ![SMS tiles on the overworld](doc/screenshots/sms-overworld.png)
 ![SMS tiles in Yew, with the action menu](doc/screenshots/sms-town.png)

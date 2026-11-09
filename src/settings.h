@@ -197,6 +197,7 @@ struct LegacyOptions {
     bool outOfReach;        // An attack with no foe in reach spends no turn.
     bool capDials;          // Shop dials stop at what the party can afford.
     bool smartWho;          // Who? lists start on the likely member.
+    bool spellShortcuts;    // Menus offer last spell, Undead, Open.
     bool menuSounds;        // Menus tick as the cursor moves.
     bool smoothSound;       // Music dips under long effects; no restarts.
     uint8_t autoCombat;     // LegacyAutoCombat

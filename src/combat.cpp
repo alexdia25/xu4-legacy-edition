@@ -1036,8 +1036,8 @@ bool CombatController::keyPressed(int key) {
     case U4_ENTER:
         if (key != U4_ENTER || EventHandler::smsMenus()) {
             // Console style action menu for the current party member.
-            const char* items[11];
-            char keys[12];
+            const char* items[14];
+            char keys[15];
             int n = 0;
             int healSpell, healCaster, healSubject;
             char healName[24];
@@ -1058,6 +1058,43 @@ bool CombatController::keyPressed(int key) {
                          snapFoe->getName());
                 items[n] = snapName; keys[n++] = 'x';
             }
+            // Quick Spells: the focus member's last spell again, and
+            // Undead when an undead foe is on the field.
+            const int SP_UNDEAD = 'u' - 'a';
+            const int SP_OPEN = 'o' - 'a';
+            int againSpell = -1;
+            char againName[24];
+            bool undeadNear = false;
+            if (settings.legacy.spellShortcuts) {
+                againSpell = gameLastSpell(focus);
+                if (againSpell >= 0 &&
+                    legacyBestCaster(againSpell, focus) != focus)
+                    againSpell = -1;
+                if (againSpell >= 0) {
+                    // Short names keep the line inside the menu.
+                    const char* nm = spellGetName(againSpell);
+                    if (againSpell == 'm' - 'a')
+                        nm = "Missile";
+                    else if (againSpell == 'p' - 'a')
+                        nm = "Protect";
+                    snprintf(againName, sizeof(againName), "Cast %s", nm);
+                    items[n] = againName; keys[n++] = '"';
+                }
+                if (againSpell != SP_UNDEAD &&
+                    legacyBestCaster(SP_UNDEAD, focus) == focus) {
+                    for (const Object* obj : map->objects) {
+                        const Creature* cr = dynamic_cast<const Creature*>(obj);
+                        if (cr && obj->objType == Object::CREATURE &&
+                            cr->isUndead()) {
+                            undeadNear = true;
+                            break;
+                        }
+                    }
+                    if (undeadNear) {
+                        items[n] = "Cast Undead"; keys[n++] = '%';
+                    }
+                }
+            }
             items[n] = "Attack";     keys[n++] = 'a';
             items[n] = "Cast Spell"; keys[n++] = 'c';
             items[n] = "Use Item";   keys[n++] = 'u';
@@ -1066,6 +1103,10 @@ bool CombatController::keyPressed(int key) {
                                                WITH_GROUND_OBJECTS);
             if (tile->isChest()) {
                 items[n] = "Get Chest"; keys[n++] = 'g';
+                if (settings.legacy.spellShortcuts &&
+                    legacyBestCaster(SP_OPEN, focus) == focus) {
+                    items[n] = "Cast Open"; keys[n++] = '&';
+                }
             }
             items[n] = "Pass";       keys[n++] = ' ';
             items[n] = "Ztats";      keys[n++] = 'z';
@@ -1084,6 +1125,18 @@ bool CombatController::keyPressed(int key) {
                 autoIdleTurns = 0;
                 autoFoeState = -1;
                 autoPresses = EventHandler::pressCount;
+                return true;
+            }
+            if (keys[pick] == '"' || keys[pick] == '%' ||
+                keys[pick] == '&') {
+                int sp = (keys[pick] == '"') ? againSpell :
+                         (keys[pick] == '%') ? SP_UNDEAD : SP_OPEN;
+                screenMessage("Cast Spell!\n%s: ",
+                              c->saveGame->players[focus].name);
+                castSpellAs(focus, sp);
+                gameStampCommandTime();
+                if (xu4.eventHandler->getController() == this)
+                    c->location->turnCompleter->finishTurn();
                 return true;
             }
             if (keys[pick] == '!') {

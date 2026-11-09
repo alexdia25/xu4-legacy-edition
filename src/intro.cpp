@@ -438,6 +438,7 @@ IntroController::IntroController() :
     moreMenu3.add(MI_MORE_GUIDE,  new BoolMenuItem("Spoiler Guide            %s", 2,  7,/*'g'*/  8, &lo.spoilerGuide));
     moreMenu3.add(MI_MORE_REACH,  new BoolMenuItem("Out Of Reach Is Free     %s", 2,  8,/*'o'*/  0, &lo.outOfReach));
     moreMenu3.add(MI_MORE_WHO,    new BoolMenuItem("Who? Picks Likely One    %s", 2,  9,/*'w'*/  0, &lo.smartWho));
+    moreMenu3.add(MI_MORE_SPELLS, new BoolMenuItem("Quick Spells In Menus    %s", 2, 10,/*'q'*/  0, &lo.spellShortcuts));
     moreMenu3.add(USE_SETTINGS,                    "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu3.add(CANCEL,                          "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu3.addShortcutKey(CANCEL, ' ');
@@ -2095,6 +2096,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu3, MI_MORE_PLACES, "The map names the places visited, and those heard of in a box." },
         { &moreMenu3, MI_MORE_REACH, "An attack with no foe in reach is not made and spends no turn." },
         { &moreMenu3, MI_MORE_WHO, "Who? starts on the likely one: the hurt for Heal, the dead to raise." },
+        { &moreMenu3, MI_MORE_SPELLS, "Action menus offer the last spell again, Undead and Open." },
         { &moreMenu3, MI_MORE_GUIDE, "Adds the Guide, a walkthrough of the whole quest, to the Books." },
         { &moreMenu3, MI_MORE_PERCHAR, "With Keep Characters, each character keeps their own play options." },
         { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
@@ -3045,6 +3047,9 @@ void IntroController::getTitleSourceData()
     apple2Title = (info->fixup == FIXUP_APPLE2INTRO);
     c64Title = (info->fixup == FIXUP_C64INTRO);
     smsTitle = (info->fixup == FIXUP_SMSINTRO);
+    const std::string& tfile = info->getFilename();
+    cgaTitle = (tfile.size() > 4 &&
+                tfile.compare(tfile.size() - 4, 4, ".pic") == 0);
 
     // for each element, get the source data
     for (unsigned i=0; i < titles.size(); i++)
@@ -3284,6 +3289,8 @@ bool IntroController::updateTitle()
                     color = title->destImage->setColor(20, 207, 253);
                 else if (c64Title)
                     color = title->destImage->setColor(112, 164, 178);
+                else if (cgaTitle)
+                    color = title->destImage->setColor(255, 85, 255);
                 else
                     color = title->destImage->setColor(128, 0, 0); // dark red for the underline
 

@@ -330,6 +330,7 @@ bool Settings::read() {
     legacy.spoilerGuide = false;
     legacy.outOfReach   = true;
     legacy.smartWho     = true;
+    legacy.spellShortcuts = true;
     legacy.menuSounds   = true;
     legacy.smoothSound  = true;
     legacy.quickMix     = true;
@@ -552,6 +553,8 @@ bool Settings::read() {
             legacy.outOfReach = toInt(val);
         else if (VALUE("smartWho="))
             legacy.smartWho = toInt(val);
+        else if (VALUE("spellShortcuts="))
+            legacy.spellShortcuts = toInt(val);
         else if (VALUE("menuSounds="))
             legacy.menuSounds = toInt(val);
         else if (VALUE("smoothSound="))
@@ -843,6 +846,7 @@ bool Settings::write() {
             "spoilerGuide=%d\n"
             "outOfReach=%d\n"
             "smartWho=%d\n"
+            "spellShortcuts=%d\n"
             "menuSounds=%d\n"
             "smoothSound=%d\n"
             "quickMix=%d\n"
@@ -908,6 +912,7 @@ bool Settings::write() {
             legacy.spoilerGuide,
             legacy.outOfReach,
             legacy.smartWho,
+            legacy.spellShortcuts,
             legacy.menuSounds,
             legacy.smoothSound,
             legacy.quickMix,

@@ -2,6 +2,7 @@
  * imagemgr.cpp
  */
 
+#include <algorithm>
 #include <string.h>
 
 #include "config.h"
@@ -38,6 +39,7 @@ ImageMgr::ImageMgr() :
     baseSet = xu4.config->newImageSet();
 
     vgaGraphics = false;
+    cgaGraphics = false;
     if (baseSet) {
         std::map<Symbol, ImageInfo *>::iterator it =
             baseSet->info.find(sym.tiles);
@@ -45,6 +47,8 @@ ImageMgr::ImageMgr() :
             string fname = it->second->getFilename();
             if (fname.find(".vga") != string::npos)
                 vgaGraphics = true;
+            else if (fname.find(".cga") != string::npos)
+                cgaGraphics = true;
         }
     }
 
@@ -283,6 +287,38 @@ union UColor {
     RGBA b;
     uint32_t i;
 };
+
+/*
+ * Redraw an EGA picture (the dungeon walls, ladders and the like, which the
+ * CGA module takes from the EGA set) in the four CGA colours: greens and
+ * cyans become cyan, other colours magenta, and greys black or white.
+ */
+static void cgaRemap(Image32* img) {
+    uint32_t* it  = img->pixels;
+    uint32_t* end = it + (img->w * img->h);
+    UColor c;
+    while (it != end) {
+        c.i = *it;
+        if (c.b.a) {
+            int r = c.b.r, g = c.b.g, b = c.b.b;
+            int hi = std::max(r, std::max(g, b));
+            int lo = std::min(r, std::min(g, b));
+            uint8_t nr, ng, nb;
+            if (hi < 48) {
+                nr = ng = nb = 0;                       // Black
+            } else if (hi - lo < 48) {
+                nr = ng = nb = (hi < 96) ? 0 : 255;     // Grey
+            } else if (g >= r && g + 16 >= b) {
+                nr = 0x55; ng = nb = 0xFF;              // Cyan
+            } else {
+                nr = nb = 0xFF; ng = 0x55;              // Magenta
+            }
+            c.b.r = nr; c.b.g = ng; c.b.b = nb;
+            *it = c.i;
+        }
+        ++it;
+    }
+}
 
 void ImageMgr::fixupAbacus(Image *im) {
 
@@ -561,6 +597,8 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
 #ifdef CONF_MODULE
     if (info->filetype == FTYPE_ATLAS) {
         info->image = buildAtlas(this, info);
+        if (cgaGraphics && info->image)
+            cgaRemap(info->image);
         info->resGroup = xu4.resGroup;
         return info;
     }
@@ -692,6 +730,11 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
     out2.append(xu4.config->symbolName(info->name));
     unscaled->save(out2.append("-fixup.ppm").c_str());
 #endif
+
+    // The CGA module takes the dungeon pictures of the EGA set; the CGA
+    // pictures keep their colours.
+    if (cgaGraphics)
+        cgaRemap(unscaled);
 
     info->image = unscaled;
     //info->tex = gpu_makeTexture(info->image);

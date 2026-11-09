@@ -6,7 +6,7 @@ MFILE_OS=Makefile
 DESTDIR ?= /usr/local
 
 MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod \
-	C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod
+	C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod CGA.mod
 BORON=boron
 REND=module/render
 
@@ -46,6 +46,9 @@ SMS.mod: module/SMS/*.b
 
 SMS-Music.mod: module/SMS-Music/*.b
 	$(BORON) -s tools/pack-xu4.b module/SMS-Music
+
+CGA.mod: module/CGA/*.b
+	$(BORON) -s tools/pack-xu4.b module/CGA
 
 .PHONY: clean download mod
 

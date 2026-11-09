@@ -224,6 +224,7 @@ private:
     RGBA* greyColors;
     uint8_t* visionBuf;
     bool vgaGraphics;
+    bool cgaGraphics;       // The CGA module: EGA pictures are recoloured.
 };
 
 #endif /* IMAGEMGR_H */

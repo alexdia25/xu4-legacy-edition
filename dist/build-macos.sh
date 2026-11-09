@@ -77,7 +77,7 @@ make -s -C ${SRC}/src -j8 xu4 UI=sdl3 \
 strip -x ${SRC}/src/xu4
 lipo -info ${SRC}/src/xu4
 
-MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod"
+MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod CGA.mod"
 for f in ${MODULES}; do
     # Rebuilt when out of date; kept as is if boron cannot run.
     make -s -C ${TOP} $f || [ -f ${TOP}/$f ]

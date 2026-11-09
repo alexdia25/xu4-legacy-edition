@@ -276,6 +276,7 @@ private:
         MI_MORE_GUIDE,
         MI_MORE_REACH,
         MI_MORE_WHO,
+        MI_MORE_SPELLS,
         MI_MORE_SPELL,
         MI_MORE_WARES,
         MI_MORE_MIX,
@@ -433,6 +434,7 @@ private:
     bool bSkipTitles;
     bool apple2Title;       // Titles use Apple II colors.
     bool c64Title;          // Titles use C64 colors.
+    bool cgaTitle;          // Titles use CGA colors.
     bool smsTitle;          // Titles drawn from the SMS title image.
     bool inGame;            // Configuring during play (configureInGame).
     bool inGameMenu;        // The game menu is showing (gameMenuInGame).

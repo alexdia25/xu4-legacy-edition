@@ -1165,9 +1165,21 @@ void gameSpellEffect(int spell, int player, Sound sound) {
     }
 }
 
+static int8_t lastSpell[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+
+/*
+ * The spell a party member cast last in this session, or -1.
+ */
+int gameLastSpell(int member) {
+    return (member >= 0 && member < 8) ? lastSpell[member] : -1;
+}
+
 void gameCastSpell(unsigned int spell, int caster, int param) {
     SpellCastError spellError;
     const char* msg;
+
+    if (caster >= 0 && caster < 8)
+        lastSpell[caster] = spell;
 
     if (! spellCast(spell, caster, param, &spellError, true)) {
         msg = spellGetErrorMessage(spell, spellError);
@@ -1285,6 +1297,7 @@ static void smsQuitMenu() {
 #define HEAL_KEY    -4
 #define JOURNAL_KEY -5
 #define LIGHT_KEY   -6
+#define OPEN_KEY    -7
 #define CAST_DONE_KEY 0x1f   // A command already done; just end the turn.
 
 /*
@@ -1387,8 +1400,8 @@ static int smsActionMenu() {
         } else
             second = 't';
     }
-    const char* items[count + 1];
-    int keys[count + 1];
+    const char* items[count + 4];
+    int keys[count + 4];
     int n = 0;
 
     const LegacyOptions& lo = xu4.settings->legacy;
@@ -1523,6 +1536,28 @@ static int smsActionMenu() {
         }
     }
 
+    // Spell Shortcuts: Cast Open after Get Chest, by whoever has the most
+    // mana for it.
+    const int SP_OPEN = 'o' - 'a';
+    int openCaster = -1;
+    if (lo.spellShortcuts) {
+        for (int i = 0; i < n; ++i) {
+            if (keys[i] != 'g')
+                continue;
+            openCaster = legacyBestCaster(SP_OPEN, -1);
+            if (openCaster >= 0) {
+                for (int j = n; j > i + 1; --j) {
+                    items[j] = items[j - 1];
+                    keys[j] = keys[j - 1];
+                }
+                items[i + 1] = "Cast Open";
+                keys[i + 1] = OPEN_KEY;
+                ++n;
+            }
+            break;
+        }
+    }
+
     int pick;
     if (lo.xpOnZtats) {
         actionMenuKeys = keys;
@@ -1550,6 +1585,13 @@ static int smsActionMenu() {
     }
     if (keys[pick] == HEAL_KEY)
         return castHealShortcut(healSpell, healCaster, healSubject);
+    if (keys[pick] == OPEN_KEY) {
+        screenMessage("Cast Spell!\n%s: %s\n",
+                      c->saveGame->players[openCaster].name,
+                      spellGetName(SP_OPEN));
+        gameCastSpell(SP_OPEN, openCaster, 0);
+        return CAST_DONE_KEY;
+    }
     if (keys[pick] == LIGHT_KEY) {
         screenMessage("Cast Spell!\n%s: %s\n",
                       c->saveGame->players[lightCaster].name,
@@ -2733,6 +2775,13 @@ void castSpell(int player) {
     if (spell == -1)
         return;
 
+    castSpellAs(player, spell);
+}
+
+/*
+ * Cast a spell already chosen: ask for its target or direction and cast it.
+ */
+void castSpellAs(int player, int spell) {
     screenMessage("%s!\n", spellGetName(spell)); //Prints spell name at prompt
     if (xu4.settings->legacy.spellInfo)
         screenMessage("%c%dmp %s%c\n", FG_GREY, spellGetRequiredMP(spell),

@@ -24,6 +24,7 @@ enum LegacyCheat {
 const char* legacyCheat(int cheat);
 const char* legacySpellEffect(int spell);
 bool legacyHealShortcut(int* spell, int* caster, int* subject, int onlyCaster);
+int legacyBestCaster(int spell, int onlyCaster);
 
 
 // Saves & characters.

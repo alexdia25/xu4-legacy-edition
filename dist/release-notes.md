@@ -8,6 +8,14 @@ A pre-release for testing.  Most of what is new is optional: the new
 options are in Settings, Legacy Edition Options, More Options (now three
 pages), and How to Play lists them all.
 
+Graphics:
+
+- **CGA module**: the DOS release's four-colour CGA look (black, cyan,
+  magenta and white), read from the game's own `SHAPES.CGA`,
+  `CHARSET.CGA` and `.PIC` files: tiles, font, title and story
+  pictures, with the dungeon walls in the same colours.  Pick it in
+  Graphics & Music.
+
 Help and books:
 
 - **Tips**: a book of pointers on talking, virtue, food, healing,
@@ -39,6 +47,9 @@ Playing:
 - **Who? Picks Likely One**: a Who? list starts on the most hurt for
   Heal, the poisoned for Cure, the dead to Resurrect, the caster with
   the most mana to Cast and the nimblest to open a chest.
+- **Quick Spells In Menus**: in a fight the action menu offers the
+  member's last spell again and Cast Undead when undead are on the
+  field, and on a chest it offers Cast Open.
 - **Out Of Reach Is Free**: an attack with no foe in reach that way is
   not made and spends no turn.
 - **Snap Attacks**: X (or Strike in the action menu) hits a foe in

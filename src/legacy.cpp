@@ -224,6 +224,30 @@ bool legacyHealShortcut(int* spell, int* caster, int* subject, int onlyCaster) {
     return true;
 }
 
+/*
+ * The member with the most magic points who can cast a spell now (it is
+ * mixed, fits the place and they have the mana), or -1 if none can.
+ * If onlyCaster is not negative only that member is considered.
+ */
+int legacyBestCaster(int spell, int onlyCaster) {
+    Party* party = c->party;
+    int best = -1, bestMp = -1;
+    for (int i = 0; i < party->size(); i++) {
+        if (onlyCaster >= 0 && i != onlyCaster)
+            continue;
+        PartyMember* pm = party->member(i);
+        if (pm->isDisabled())
+            continue;
+        if (spellCheckPrerequisites(spell, i) != CASTERR_NOERROR)
+            continue;
+        if (pm->getMp() > bestMp) {
+            bestMp = pm->getMp();
+            best = i;
+        }
+    }
+    return best;
+}
+
 //--------------------------------------------------------------------------
 // Saves & characters
 //

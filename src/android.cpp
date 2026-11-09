@@ -24,7 +24,7 @@ extern "C" const char* androidInternalData();
 static const char* moduleFiles[] = {
     "render.pak", "Ultima-IV.mod", "U4-Upgrade.mod", "Apple-II.mod",
     "Apple-II-Music.mod", "C64.mod", "C64-Music.mod", "C64-Remastered.mod",
-    "SMS.mod", "SMS-Music.mod", NULL
+    "SMS.mod", "SMS-Music.mod", "CGA.mod", NULL
 };
 
 /*

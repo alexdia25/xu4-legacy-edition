@@ -124,6 +124,8 @@ void gameTintFrameRect(int x, int y, int w, int h);
 
 /* spell functions */
 void castSpell(int player = -1);
+void castSpellAs(int player, int spell);
+int gameLastSpell(int member);
 void gameSpellEffect(int spell, int player, Sound sound);
 void gameCastSpell(unsigned int spell, int caster, int param);
 int gameSave(const char* userPath);
