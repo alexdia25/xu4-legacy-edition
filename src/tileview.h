@@ -53,7 +53,8 @@ public:
     bool setFill(bool fill);
     bool filled() const { return fillMode; }
     void drawTile(const MapTile &mapTile, int x, int y);
-    void drawTile(std::vector<MapTile> &tiles, int x, int y);
+    void drawTile(std::vector<MapTile> &tiles, int x, int y,
+                  const Image* ground = NULL, int groundY = 0);
     void drawFocus(int x, int y);
     void drawTargetMark(int x, int y);
     void loadTile(const MapTile &mapTile);

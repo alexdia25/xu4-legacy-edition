@@ -585,7 +585,8 @@ from NES pieces in their own colours (the ship's mast and wheel, the
 bull, the corpse, the city, the ruins, the runes and the twister).  The first-person dungeon view is
 drawn by running the NES game's own drawing code on the dungeon in
 front of you, with its walls, doors, ladders, chests, orbs, fountains and
-altars; monsters there are the NES sprites.  The title is the NES book
+altars; monsters there are the NES sprites.  On the world map, grass,
+brush, hills and water take the NES shore edges where land meets water.  The title is the NES book
 cover with its logo, with a daemon and a dragon at its sides and the map
 in a frame of NES windows, and the gypsy deals the NES cards on its green
 table with the NES abacus and beads.  The NES game has no story pictures,

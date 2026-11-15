@@ -722,6 +722,85 @@ static void screenLoadLayoutsFromConf(Screen* scr) {
         errorFatal("no dungeon gem layout found!\n");
 }
 
+/*
+ * Shore edges on the world map, for a graphics module with a "shore_nes"
+ * image (see nesShore in imageloader_nes.cpp): grass, brush, hills & water
+ * squares that meet water (or for water, land) on a side take the tile with
+ * the edge on those sides.
+ */
+struct ShoreEdges {
+    const Image* image;
+    const Tileset* tileset;
+    TileId ground[4];       // grass, brush, hills, water
+    TileId wet[3];          // sea, water, shallows
+};
+
+static bool shoreInit(ShoreEdges& se, const Map* map) {
+    se.image = NULL;
+    if (map->id != MAP_WORLD)
+        return false;
+    Symbol name = xu4.config->intern("shore_nes");
+    if (! xu4.imageMgr->lookup(name))
+        return false;
+    ImageInfo* info = xu4.imageMgr->get(name);
+    if (! info || ! info->image)
+        return false;
+    static const char* groundNames[4] = { "grass", "brush", "hills", "water" };
+    static const char* wetNames[3] = { "sea", "water", "shallows" };
+    se.tileset = map->tileset;
+    for (int i = 0; i < 4; ++i) {
+        const Tile* t = se.tileset->getByName(xu4.config->intern(groundNames[i]));
+        if (! t)
+            return false;
+        se.ground[i] = t->getId();
+    }
+    for (int i = 0; i < 3; ++i) {
+        const Tile* t = se.tileset->getByName(xu4.config->intern(wetNames[i]));
+        if (! t)
+            return false;
+        se.wet[i] = t->getId();
+    }
+    se.image = info->image;
+    return true;
+}
+
+static bool shoreIsWet(const ShoreEdges& se, const Map* map, Coords co) {
+    map_wrap(co, map);
+    if (MAP_IS_OOB(map, co))
+        return true;
+    TileId t = map->getTileFromData(co);
+    return t == se.wet[0] || t == se.wet[1] || t == se.wet[2];
+}
+
+/*
+ * Return the image row of the edge tile for the square at tc, or -1 if it
+ * keeps its own tile.
+ */
+static int shoreGround(const ShoreEdges& se, const Map* map,
+                       const Coords& tc, TileId ground) {
+    int g;
+    for (g = 0; g < 4; ++g)
+        if (se.ground[g] == ground)
+            break;
+    if (g == 4)
+        return -1;
+    Coords co = tc;
+    map_wrap(co, map);
+    if (MAP_IS_OOB(map, co) || map->getTileFromData(co) != ground)
+        return -1;      // Not the ground of the map (a bridge, a ship...)
+
+    bool wet = (g == 3);
+    bool n = shoreIsWet(se, map, Coords(co.x, co.y - 1)) != wet;
+    bool s = shoreIsWet(se, map, Coords(co.x, co.y + 1)) != wet;
+    bool w = shoreIsWet(se, map, Coords(co.x - 1, co.y)) != wet;
+    bool e = shoreIsWet(se, map, Coords(co.x + 1, co.y)) != wet;
+    int dy = (n == s) ? 0 : (n ? -1 : 1);
+    int dx = (w == e) ? 0 : (w ? -1 : 1);
+    if (! dx && ! dy)
+        return -1;
+    return g * 9 + (dy + 1) * 3 + (dx + 1);
+}
+
 vector<MapTile> screenViewportTile(unsigned int width, unsigned int height, int x, int y, bool &focus) {
     Map* map = c->location->map;
     Coords center = c->location->coords;
@@ -983,12 +1062,28 @@ void screenUpdate(TileView *view, bool showmap, bool blackout) {
 
         screenFindLineOfSight(vw, vh);
 
+        ShoreEdges shore;
+        const Map* map = c->location->map;
+        bool edges = shoreInit(shore, map) &&
+                     shore.image->width() == view->tileWidth;
         const uint8_t* lineOfSight = XU4_SCREEN->screenLos;
         for (y = 0; y < vh; y++) {
             for (x = 0; x < vw; x++) {
-                if (*lineOfSight++)
-                    view->drawTile(viewTiles[x][y], x, y);
-                else
+                if (*lineOfSight++) {
+                    int row = -1;
+                    if (edges) {
+                        Coords tc = c->location->coords;
+                        tc.x += x - vw / 2;
+                        tc.y += y - vh / 2;
+                        row = shoreGround(shore, map, tc,
+                                          viewTiles[x][y].back().id);
+                    }
+                    if (row >= 0)
+                        view->drawTile(viewTiles[x][y], x, y, shore.image,
+                                       row * view->tileHeight);
+                    else
+                        view->drawTile(viewTiles[x][y], x, y);
+                } else
                     view->drawTile(black, x, y);
             }
         }

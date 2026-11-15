@@ -811,6 +811,30 @@ static Image* nesBeasts(const std::vector<uint8_t>& prg)
     return img;
 }
 
+/*
+ * Shore edges: the NES world has each grass, brush, hills & water square
+ * that meets the water (or for water, the land) drawn with an edge on those
+ * sides, the 3x3 metatiles around the plain one (rows of 8).  nesshore holds
+ * the nine of each in that order, top left first, for grass, brush, hills &
+ * water (see screenShoreGround).
+ */
+static Image* nesShore(const std::vector<uint8_t>& prg)
+{
+    if (prg.size() < NES_BANK(16))
+        return NULL;
+    static const uint8_t plain[4] = { 0x0C, 0x09, 0x21, 0x24 };
+    NesRom rom(prg);
+    NesTileBuilder tb(rom);
+    Image* img = Image::create(16, 16 * 36);
+    img->fill(Image::black);
+    for (int g = 0; g < 4; ++g)
+        for (int i = 0; i < 9; ++i)
+            tb.mapTile(img, (g * 9 + i) * 16, 0,
+                       plain[g] + (i / 3 - 1) * 8 + (i % 3 - 1), 0xFF,
+                       nesNoColor);
+    return img;
+}
+
 static Image* loadImage_nes(U4FILE* file, int ftype)
 {
     std::vector<uint8_t> data(file->length());
@@ -829,6 +853,8 @@ static Image* loadImage_nes(U4FILE* file, int ftype)
             return nesCards(data);
         case FTYPE_NESBEASTS:
             return nesBeasts(data);
+        case FTYPE_NESSHORE:
+            return nesShore(data);
     }
     return NULL;
 }

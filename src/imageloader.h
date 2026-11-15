@@ -53,6 +53,7 @@ enum ImageFiletype {
     FTYPE_NESGYPSY,
     FTYPE_NESCARDS,
     FTYPE_NESBEASTS,
+    FTYPE_NESSHORE,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

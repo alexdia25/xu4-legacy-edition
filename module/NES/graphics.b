@@ -205,6 +205,9 @@ graphics: [
         spiritualitycard 384,0, 64,104
         humilitycard     448,0, 64,104
     ]
+    ; The edges of grass, brush, hills & water where land meets water on
+    ; the world map.
+    image (name: shore_nes filename: "nes/0,40000" filetype: nesshore)
     ; The dungeon view is drawn by the game's own program (see
     ; src/imageloader_nes.cpp).
     image (name: dung_nes filename: "nes/0,40000" filetype: nesdngd)

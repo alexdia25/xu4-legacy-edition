@@ -193,7 +193,12 @@ void TileView::drawTile(const MapTile &mapTile, int x, int y) {
     }
 }
 
-void TileView::drawTile(vector<MapTile> &tiles, int x, int y) {
+/*
+ * Draw the tiles of a square, the last one (the ground) first.  If ground is
+ * given, the tile at groundY of that image takes the place of the ground.
+ */
+void TileView::drawTile(vector<MapTile> &tiles, int x, int y,
+                        const Image* ground, int groundY) {
     ASSERT(x < columns, "x value of %d out of range", x);
     ASSERT(y < rows, "y value of %d out of range", y);
     int layer = 0;
@@ -212,7 +217,11 @@ void TileView::drawTile(vector<MapTile> &tiles, int x, int y) {
         }
 
         // draw the tile to the screen
-        if (frontTileType->getAnim()) {
+        if (ground && layer == 0) {
+            ground->drawSubRectOn(animated, 0, 0, 0, groundY,
+                                  tileWidth, tileHeight);
+        }
+        else if (frontTileType->getAnim()) {
             // First, create our animated version of the tile
             frontTileType->getAnim()->draw(animated, frontTileType, frontTile, DIR_NONE);
         }
