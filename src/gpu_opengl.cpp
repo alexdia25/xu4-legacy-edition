@@ -942,6 +942,8 @@ void gpu_drawImage(void* res, uint32_t tex, const float* rect,
  */
 void gpu_clear(void* res, const float* color)
 {
+    // All of it, whatever an earlier draw left set.
+    glDisable(GL_SCISSOR_TEST);
     glClearColor(color[0], color[1], color[2], color[3]);
     glClear(GL_COLOR_BUFFER_BIT);
 }

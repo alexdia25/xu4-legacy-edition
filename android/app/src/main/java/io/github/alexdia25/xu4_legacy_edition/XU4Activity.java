@@ -6,7 +6,13 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.provider.OpenableColumns;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -39,7 +45,59 @@ public class XU4Activity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        hideSystemBars();
         checkForUpdate();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        hideSystemBars();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus)
+            hideSystemBars();
+    }
+
+    /**
+     * Play on the whole screen with the status & navigation bars hidden
+     * (a swipe from the edge shows them for a moment).  SDL asks for this
+     * with the old system UI flags, which newer Android versions & some
+     * handhelds no longer honour, leaving the navigation bar over the
+     * bottom of the game.
+     */
+    private void hideSystemBars() {
+        Window window = getWindow();
+        if (window == null)
+            return;
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            lp.layoutInDisplayCutoutMode = (Build.VERSION.SDK_INT >= 30)
+                ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            window.setAttributes(lp);
+        }
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.setDecorFitsSystemWindows(false);
+            WindowInsetsController ic = window.getInsetsController();
+            if (ic != null) {
+                ic.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                ic.hide(WindowInsets.Type.statusBars() |
+                        WindowInsets.Type.navigationBars());
+            }
+        } else {
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
     }
 
     /**
