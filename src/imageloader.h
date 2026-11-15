@@ -48,6 +48,7 @@ enum ImageFiletype {
     FTYPE_CGAPIC,
     FTYPE_NESTILES,
     FTYPE_NESFONT,
+    FTYPE_NESDNGD,      // Dungeon view from the ROM (not an image).
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

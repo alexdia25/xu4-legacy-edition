@@ -35,6 +35,8 @@
 
 #include <string.h>
 #include <vector>
+#include "c64cpu.h"
+#include "nesrom.h"
 
 #define NES_BANK(b)     ((b) * 0x4000)
 
@@ -184,7 +186,8 @@ static void nesPut(Image* img, int x, int y, int color, bool keepBlack)
 
 // Draw an 8x8 pattern of vram (two bit planes).
 static void nesPattern(Image* img, int x0, int y0, const uint8_t* pat,
-                       const uint8_t* pal4, bool hflip, bool background)
+                       const uint8_t* pal4, bool hflip, bool background,
+                       bool keepBlack = true)
 {
     for (int r = 0; r < 8; ++r) {
         for (int c = 0; c < 8; ++c) {
@@ -192,9 +195,9 @@ static void nesPattern(Image* img, int x0, int y0, const uint8_t* pat,
             int v = ((pat[r] >> bit) & 1) | (((pat[r + 8] >> bit) & 1) << 1);
             int x = x0 + (hflip ? 7 - c : c);
             if (v)
-                nesPut(img, x, y0 + r, pal4[v], true);
+                nesPut(img, x, y0 + r, pal4[v], keepBlack);
             else if (background)
-                nesPut(img, x, y0 + r, pal4[0], true);
+                nesPut(img, x, y0 + r, pal4[0], keepBlack);
         }
     }
 }
@@ -527,4 +530,196 @@ static Image* loadImage_nes(U4FILE* file, int ftype)
             return nesFont(data);
     }
     return NULL;
+}
+
+//----------------------------------------------------------------------------
+// Dungeon view
+
+/*
+ * The NES draws its dungeon view as 18 columns of 18 background tiles (144
+ * x 144 pixels).  Code in bank 9 picks a "strip" for each column from the
+ * cells in sight ($86D5); a strip is 18 tile numbers in a table at $8A8A.
+ * Standing in a doorway puts a frame over the top of the middle columns.
+ * The nearest ladder, chest, orb, fountain or altar is then made of 8x8
+ * sprites listed for each distance at $925E.
+ *
+ * The program is run as is on Cpu6502 with these inputs:
+ *
+ *   $44, $45   Position
+ *   $4F, $50   Pointer to the level, 8x8 cells
+ *   $06C0      Facing: 0 north, 1 east, 2 south, 3 west
+ *   $68E7      Light left (0 is dark)
+ *
+ * Level cells: below $10 open (1 up ladder, 2 down ladder, 3 both,
+ * 5 chest, 6 orb, 8 fountain, $0F altar), $1F wall, $20-$2F a door on the
+ * sides whose bits are clear (8 south, 4 west, 2 north, 1 east) and $30 up
+ * a door all round.
+ */
+
+#define NESD_LEVEL      0x6200
+#define NESD_STRIPS     0x0418
+#define NESD_CELLS      0x0400      // Cell in front at each distance.
+
+struct NesDungeonView {
+    uint8_t mem[0x10000];
+    uint8_t vram[0x2000];
+    uint8_t frame[2][5];            // Doorway frame tiles ($8FF4, $8FF9).
+};
+
+// Sprite palettes the game sets in dungeons.
+static const uint8_t nesDungeonSpritePal[4][4] = {
+    {0x0F,0x0F,0x00,0x10}, {0x0F,0x0F,0x00,0x21},
+    {0x0F,0x04,0x25,0x15}, {0x0F,0x15,0x25,0x30}
+};
+
+NesDungeonView* nes_dungeonOpen()
+{
+    const std::vector<uint8_t>* prg = nes_rom();
+    if (! prg || prg->size() < NES_BANK(16))
+        return NULL;
+    NesRom rom(*prg);
+    NesDungeonView* dv = new NesDungeonView;
+    memset(dv->mem, 0, sizeof(dv->mem));
+    memcpy(dv->mem + 0x8000, prg->data() + NES_BANK(9), NES_BANK_SIZE);
+    memcpy(dv->mem + 0xC000, prg->data() + NES_BANK(15), NES_BANK_SIZE);
+
+    // Walls are background patterns at $1000, objects sprites at $0000.
+    memset(dv->vram, 0, sizeof(dv->vram));
+    rom.chunk(0, dv->vram);
+    rom.chunk(1, dv->vram);
+    rom.chunk(2, dv->vram);
+    rom.chunk(3, dv->vram);
+    rom.chunk(4, dv->vram);
+    for (int i = 0; i < 5; ++i) {
+        dv->frame[0][i] = rom.rd(9, 0x8FF4 + i);
+        dv->frame[1][i] = rom.rd(9, 0x8FF9 + i);
+    }
+    return dv;
+}
+
+void nes_dungeonClose(NesDungeonView* dv)
+{
+    delete dv;
+}
+
+static void nesDungeonSprite(const NesDungeonView* dv, Image* dest,
+                             int x0, int y0, int tile, int attr)
+{
+    const uint8_t* pat = dv->vram + (tile & 0xFF) * 16;
+    const uint8_t* pal = nesDungeonSpritePal[attr & 3];
+    for (int r = 0; r < 8; ++r) {
+        int y = y0 + r;
+        if (y < 0 || y >= 144)
+            continue;
+        for (int c = 0; c < 8; ++c) {
+            int bit = 7 - c;
+            int v = ((pat[r] >> bit) & 1) | (((pat[r + 8] >> bit) & 1) << 1);
+            int x = x0 + ((attr & 0x40) ? 7 - c : c);
+            if (v && x >= 0 && x < 144)
+                nesPut(dest, x, y, pal[v], false);
+        }
+    }
+}
+
+/*
+ * Draw object k of the table at $925E at distance d (0-2 for cells 1-3
+ * ahead), as the program at $91D2 does.  Positions are on the NES screen,
+ * where the view starts at 8, 48.
+ */
+static void nesDungeonObject(const NesDungeonView* dv, Image* img, int k,
+                             int d)
+{
+    const uint8_t* m = dv->mem;
+    int ptr = m[0x925E + k] | (m[0x925F + k] << 8);
+    int hdr = ptr + m[0x9260 + k + d];
+    int count = m[hdr], base = m[hdr + 1];
+    int x = m[hdr + 2] - 8;
+    for (int col = 0; col < count; ++col, x += 8) {
+        int q = ptr + m[hdr + 4 + col];
+        int rows = m[q];
+        int y = m[hdr + 3] - 48 + 1;    // Sprites show a line lower.
+        for (int r = 0; r < rows; ++r, y += 8) {
+            int b = m[q + 1 + r];
+            if (b == 0xFF)
+                continue;
+            int attr = ((b >> 6) & 3) | ((b & 0x20) << 1);
+            nesDungeonSprite(dv, img, x, y, (b & 0x1F) + base, attr);
+        }
+    }
+}
+
+void nes_dungeonDraw(NesDungeonView* dv, int dx, int dy,
+                     const uint8_t* level, int x, int y, int facing,
+                     bool light)
+{
+    static Image* view = NULL;
+    uint8_t* m = dv->mem;
+    Cpu6502 cpu(m);
+    cpu.romStart = 0x8000;
+
+    memset(m, 0, 0x8000);
+    memcpy(m + NESD_LEVEL, level, 64);
+    m[0x4F] = NESD_LEVEL & 0xFF;
+    m[0x50] = NESD_LEVEL >> 8;
+    m[0x44] = x & 7;
+    m[0x45] = y & 7;
+    m[0x6C0] = facing & 3;
+    m[0x68E7] = light ? 100 : 0;
+
+    // The order of the program at $86D5.
+    cpu.call(0x87B3);
+    for (int e = 4; e >= 1; --e) {
+        m[0x1E] = e;
+        cpu.call(0x8845);
+        cpu.call(0x887A);
+        cpu.call(0x891E);
+    }
+    m[0x1E] = 0;
+    m[0x1F] = 0;
+    cpu.call(0x87E9);
+    m[NESD_CELLS] = cpu.a;
+    if (cpu.a >= 0x10)
+        cpu.call(0x8968);
+    else {
+        cpu.call(0x8845);
+        cpu.call(0x887A);
+    }
+    if (! light)
+        cpu.call(0x87B3);
+
+    if (! view)
+        view = Image::create(144, 144);
+
+    // Walls, with background palette 0 (bank 9, $85AF).
+    const uint8_t pal[4] = { 0x0F, m[0x85B0], m[0x85B1], m[0x85B2] };
+    bool doorway = (m[0x1F] & 0x80) && light;
+    for (int col = 0; col < 18; ++col) {
+        int strip = m[NESD_STRIPS + col];
+        const uint8_t* tiles = m + 0x8A8A + strip * 18;
+        for (int row = 0; row < 18; ++row) {
+            int t = tiles[row];
+            if (doorway && col >= 5 && col <= 12 && row < 5)
+                t = dv->frame[(col & 1) ^ 1][row];
+            nesPattern(view, col * 8, row * 8, dv->vram + 0x1000 + t * 16,
+                       pal, false, true, false);
+        }
+    }
+
+    // The nearest object, if not standing in a doorway ($91A3).
+    if (light && m[NESD_CELLS] < 0x10) {
+        for (int d = 0; d < 3; ++d) {
+            int cell = m[NESD_CELLS + 1 + d];
+            if (cell >= 0x10)
+                break;
+            int k = m[0x9207 + cell];
+            if (k & 0x80)
+                continue;
+            if (cell == 3)
+                nesDungeonObject(dv, view, 0, d);
+            nesDungeonObject(dv, view, (cell == 3) ? 5 : k, d);
+            break;
+        }
+    }
+
+    view->draw(dx, dy);
 }

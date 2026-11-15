@@ -580,8 +580,11 @@ own sound driver on a model of the console's 6502 & sound unit.  The NES
 game draws Lord British's castle as two tiles, so the square west of its
 gate shows grass.  A few DOS tiles have no NES picture; they are drawn
 from NES pieces in their own colours (the ship's mast and wheel, the
-bull, the corpse, the city, the ruins, the runes and the twister).  The title, story pictures and dungeons still use the DOS
-pictures, and the game itself stays the DOS one.
+bull, the corpse, the city, the ruins, the runes and the twister).  The first-person dungeon view is
+drawn by running the NES game's own drawing code on the dungeon in
+front of you, with its walls, doors, ladders, chests, orbs, fountains and
+altars; monsters there are the NES sprites.  The title and story pictures
+still use the DOS pictures, and the game itself stays the DOS one.
 
 The ROM must be the USA release (256 KB of program data, SHA-1
 `f603c7f274cb6db9be0508a9aa150521ff27d14c` for the `.nes` file with its

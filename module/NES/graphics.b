@@ -156,6 +156,9 @@ graphics: [
         at 0,1120 tile_fire_phantom 2
     ]
     image (name: charset filename: "nes/0,40000" filetype: nesfont tiles: 256)
+    ; The dungeon view is drawn by the game's own program (see
+    ; src/imageloader_nes.cpp).
+    image (name: dung_nes filename: "nes/0,40000" filetype: nesdngd)
 ]
 
 tileanim: [

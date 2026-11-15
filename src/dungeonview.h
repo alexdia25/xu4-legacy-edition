@@ -29,6 +29,7 @@ class SubImage;
 class DungeonView : public TileView {
 public:
     DungeonView(int x, int y, int columns, int rows);
+    ~DungeonView();
 
     void cacheGraphicData();
     void display(Context * c, TileView *view);
@@ -53,6 +54,7 @@ private:
     void drawApple2(Context* c, Direction dir);
     int  apple2Shape(const MapTile& mt) const;
     int  apple2NamedShape(const char* name) const;
+    void drawNES(Context* c, Direction dir);
 
     struct GraphicData {
         const ImageInfo* info;
@@ -77,6 +79,7 @@ private:
     GraphicData graphic[84];
     uint8_t a2data[168];        // Apple II view tables from the disk.
     std::vector<uint8_t> a2shapes;  // Apple II tile bytes (SHP0 + SHP1).
+    struct NesDungeonView* nesView; // Draw the view like the NES version.
 };
 
 #endif /* DUNGEONVIEW_H */

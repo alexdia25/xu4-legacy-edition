@@ -13,6 +13,7 @@
 #include "imageloader.h"
 #include "imagemgr.h"
 #include "legacy.h"
+#include "nesrom.h"
 #include "party.h"
 #include "settings.h"
 #include "scale.h"
@@ -25,7 +26,7 @@
 
 
 DungeonView::DungeonView(int x, int y, int columns, int rows) : TileView(x, y, rows, columns)
-, screen3dDungeonViewEnabled(true)
+, screen3dDungeonViewEnabled(true), nesView(NULL)
 {
     viewBottom = y + height;
     spotTrapRange = -1;
@@ -42,6 +43,10 @@ DungeonView::DungeonView(int x, int y, int columns, int rows) : TileView(x, y, r
     memset(seenNow, 0, sizeof(seenNow));
 
     cacheGraphicData();
+}
+
+DungeonView::~DungeonView() {
+    nes_dungeonClose(nesView);
 }
 
 /*
@@ -110,7 +115,10 @@ void DungeonView::display(Context * c, TileView *view)
         const int farthest_non_wall_tile_visibility = 4;
 
         screenEraseMapArea();
-        if (apple2) {
+        if (nesView) {
+            drawNES(c, (Direction) c->saveGame->orientation);
+        }
+        else if (apple2) {
             drawApple2(c, (Direction) c->saveGame->orientation);
         }
         else if (c->party->getTorchDuration() > 0) {
@@ -635,6 +643,13 @@ void DungeonView::cacheGraphicData() {
 
     egaGraphics = (graphic[1].info->fixup == FIXUP_DUNGNS);
     apple2 = loadApple2Geometry();
+
+    nes_dungeonClose(nesView);
+    nesView = NULL;
+    const ImageInfo* info =
+        xu4.imageMgr->lookup(xu4.config->intern("dung_nes"));
+    if (info && info->filetype == FTYPE_NESDNGD)
+        nesView = nes_dungeonOpen();
 }
 
 static void drawGraphic(const ImageInfo* info, const SubImage* subimage,
@@ -1178,4 +1193,65 @@ void DungeonView::drawApple2(Context* c, Direction dir) {
     a2_drawHgr(xu4.screenImage, x, y, pg.bytes[A2_VIEW_TOP],
                A2_VIEW_BOTTOM - A2_VIEW_TOP + 1, A2_VIEW_LEFT,
                A2_VIEW_LEFT + 153);
+}
+
+
+//----------------------------------------------------------------------------
+// NES view
+
+// The cell of the NES levels for each dungeon token (see imageloader_nes.cpp).
+static uint8_t nesCell(DungeonToken tok) {
+    switch (tok) {
+    case DUNGEON_LADDER_UP:     return 0x01;
+    case DUNGEON_LADDER_DOWN:   return 0x02;
+    case DUNGEON_LADDER_UPDOWN: return 0x03;
+    case DUNGEON_CHEST:         return 0x05;
+    case DUNGEON_MAGIC_ORB:     return 0x06;
+    case DUNGEON_FOUNTAIN:      return 0x08;
+    case DUNGEON_ALTAR:         return 0x0F;
+    case DUNGEON_DOOR:
+    case DUNGEON_ROOM:          return 0x20;
+    case DUNGEON_SECRET_DOOR:
+    case DUNGEON_WALL:          return 0x1F;
+    default:                    return 0x00;
+    }
+}
+
+/*
+ * Draw the view on the screen like the NES version.  Its walls & objects
+ * come from the game's own program; monsters are the xu4 ones.
+ */
+void DungeonView::drawNES(Context* c, Direction dir) {
+    // Facing for DIR_NONE, DIR_WEST, DIR_NORTH, DIR_EAST & DIR_SOUTH.
+    static const uint8_t facing[5] = { 0, 3, 0, 1, 2 };
+    const Dungeon* dungeon = static_cast<const Dungeon*>(c->location->map);
+    const Coords& pos = c->location->coords;
+    bool light = c->party->getTorchDuration() > 0;
+    uint8_t level[64];
+    Coords co(0, 0, pos.z);
+
+    for (co.y = 0; co.y < 8; ++co.y)
+        for (co.x = 0; co.x < 8; ++co.x)
+            level[co.y * 8 + co.x] = nesCell(dungeon->tokenAt(co));
+
+    // The 144 x 144 view is centred in the 176 x 176 map area.
+    nes_dungeonDraw(nesView, x + 16, y + 16, level, pos.x, pos.y,
+                    facing[dir <= DIR_SOUTH ? dir : 0], light);
+
+    if (! light)
+        return;
+
+    // The nearest monster in sight.
+    std::vector<MapTile> tiles;
+    for (int d = 1; d < 4; ++d) {
+        dungeonGetTiles(co, tiles, d, 0);
+        int token = dungeon->tokenAt(co);
+        if (token >= DUNGEON_DOOR)
+            break;
+        if (tiles.size() > 1 && tilesToGraphic(dungeon, tiles) ==
+                                DNGGRAPHIC_BASETILE) {
+            drawInDungeon(tiles.front(), 0, d, dir);
+            break;
+        }
+    }
 }
