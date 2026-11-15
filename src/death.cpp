@@ -40,8 +40,11 @@ void deathStart(int delaySeconds) {
     if (dynamic_cast<DeathController *>(eh->getController()))
         return;
 
-    // stop playing music
-    musicFadeOut(1000);
+    // stop playing music, or play the death tune of a music module
+    if (musicAvailable(MUSIC_DEATH))
+        musicPlay(MUSIC_DEATH);
+    else
+        musicFadeOut(1000);
     screenHideCursor();
 
     if (delaySeconds > 0) {

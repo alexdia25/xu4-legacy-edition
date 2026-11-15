@@ -88,7 +88,10 @@ void codexStart() {
 
     // change the view mode so the dungeon doesn't get shown
     gameSetViewMode(VIEW_CUTSCENE);
-    musicFadeOut(1000);
+    if (musicAvailable(MUSIC_CODEX))
+        musicPlay(MUSIC_CODEX);
+    else
+        musicFadeOut(1000);
 
     pausedMessage(4, "\n\n\n\nThere is a sudden darkness, and you find yourself alone in an empty chamber.\n");
 
@@ -381,6 +384,8 @@ static void codexHandleEndgame(Codex* codex) {
     int i;
 
     screenShowCursor();
+    if (musicAvailable(MUSIC_ENDING))
+        musicPlay(MUSIC_ENDING);
 
     for (i = 0; i < 10; ++i) {
         if (i == 0) {

@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "error.h"
 #include "event.h"
+#include "map.h"
 #include "settings.h"
 #include "u4file.h"
 #include "xu4.h"
@@ -743,7 +744,7 @@ static bool music_playApple2(const CDIEntry* ent, int mode)
  * is already playing or it cannot be loaded then false is returned.
  */
 static bool music_start(int track, int mode) {
-    ASSERT(track < MUSIC_MAX, "Invalid music_start() track id");
+    ASSERT(track < MUSIC_PLACE_END, "Invalid music_start() track id");
 
     // Track already loaded
     if (track == currentTrack || ! musicStream)
@@ -786,9 +787,40 @@ void musicPlay(int track)
         music_start(track, PLAY_LOOP);
 }
 
+/*
+ * Return the tune for where the party is.  A music module may add tunes
+ * for a situation or for one place (see sound.h); the tune of the map's
+ * kind is used when it doesn't.
+ */
+static int localeTrack()
+{
+    const Location* loc = c->location;
+    const Map* map = loc->map;
+    int alt = MUSIC_NONE;
+
+    if (loc->context & CTX_WORLDMAP) {
+        if (c->transportContext == TRANSPORT_SHIP)
+            alt = MUSIC_SAILING;
+        else if (c->transportContext == TRANSPORT_BALLOON)
+            alt = MUSIC_BALLOON;
+    } else if (loc->context & CTX_ALTAR_ROOM) {
+        alt = MUSIC_ALTAR;
+    } else if (loc->context & CTX_COMBAT) {
+        if (loc->prev && (loc->prev->context & CTX_DUNGEON))
+            alt = MUSIC_DUNGEON_COMBAT;
+    }
+    if (alt == MUSIC_NONE && ! (loc->context & CTX_COMBAT) &&
+        MUSIC_PLACE + map->id < MUSIC_PLACE_END)
+        alt = MUSIC_PLACE + map->id;
+
+    if (alt != MUSIC_NONE && musicAvailable(alt))
+        return alt;
+    return map->music;
+}
+
 void musicPlayLocale()
 {
-    musicPlay(c->location->map->music);
+    musicPlay(localeTrack());
 }
 
 void musicStop()
@@ -830,7 +862,7 @@ void musicFadeIn(int msec, bool loadFromMap)
     }
 
     if (loadFromMap || currentTrack == MUSIC_NONE)
-        music_start(c->location->map->music, mode);
+        music_start(localeTrack(), mode);
 }
 
 void musicUpdate() {}

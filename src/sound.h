@@ -70,7 +70,19 @@ enum MusicTrack {
     // Tunes a music module may add (after any voices); the intro uses them
     // if present.
     MUSIC_TITLE = 60,   // The title, in place of Towns.
-    MUSIC_STORY         // The story & the gypsy.
+    MUSIC_STORY,        // The story & the gypsy.
+    MUSIC_SAILING,      // The world map aboard a ship.
+    MUSIC_BALLOON,      // The world map in the balloon.
+    MUSIC_DUNGEON_COMBAT, // Fights in dungeons, in place of Combat.
+    MUSIC_ALTAR,        // The altar rooms.
+    MUSIC_CODEX,        // The chamber of the Codex.
+    MUSIC_ENDING,       // The end of the game.
+    MUSIC_DEATH,        // The party is dead.
+
+    // A tune for one place, in place of the tune of its kind: MUSIC_PLACE
+    // plus the map id (see mapmgr.h).
+    MUSIC_PLACE = 70,
+    MUSIC_PLACE_END = MUSIC_PLACE + 64
 };
 
 bool musicAvailable(int track);

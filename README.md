@@ -578,7 +578,12 @@ and the font of Ultima: Quest of the Avatar for the NES straight from its
 ROM, and the NES-Music soundtrack plays its music by running the game's
 own sound driver on a model of the console's 6502 & sound unit, with
 the NES title tune at the title and its story tune for the story and the
-gypsy.  The NES
+gypsy.  It also plays the NES tunes where the NES game does: the village
+tune in Paws, Vesper and Cove, the Abyss tune in the Abyss, the sailing
+and balloon tunes aboard, the dungeon battle tune for fights in
+dungeons, the altar room tune, the Codex hall tune in the Codex chamber,
+the ending tune at the end and a tune when the party dies.  Other music
+modules can add these tunes too (see `src/sound.h`).  The NES
 game draws Lord British's castle as two tiles, so the square west of its
 gate shows grass.  A few DOS tiles have no NES picture; they are drawn
 from NES pieces in their own colours (the ship's mast and wheel, the

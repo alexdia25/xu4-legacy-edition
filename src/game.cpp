@@ -2776,6 +2776,7 @@ void board() {
 
     c->party->setTransport(obj->tile);
     c->location->map->removeObject(obj);
+    musicPlayLocale();      // A music module may have a sailing tune.
 }
 
 
@@ -4328,6 +4329,7 @@ static void exitTransport()
         c->party->setTransport(avatar->getId());
         c->horseSpeed = 0;
         screenMessage("X-it\n");
+        musicPlayLocale();
     } else
         screenMessage("%cX-it What?%c\n", FG_GREY, FG_WHITE);
 }
