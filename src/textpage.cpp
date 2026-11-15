@@ -8,6 +8,7 @@
 #include "gpu.h"
 #include "image.h"
 #include "imagemgr.h"
+#include "packframe.h"
 #include "screen.h"
 #include "xu4.h"
 
@@ -121,6 +122,15 @@ void TextPage::fill(int x, int y, int w, int h, uint32_t color)
  */
 void TextPage::frame(int x, int y, int w, int h, int thick)
 {
+    // The frame of the graphics module's own windows, if it has one, at
+    // twice its size as the page is.
+    PackFrame pf;
+    if (packFrame(&pf)) {
+        packFrameDraw(pf, img.pixels, img.w, img.h, x, y, w, h, 2);
+        dirty = true;
+        return;
+    }
+
     // Rows cut from the outer corners, from the top down in pixel pairs.
     static const uint8_t inset[9] = { 18, 12, 8, 6, 4, 4, 2, 2, 2 };
     int i;

@@ -9,6 +9,8 @@
 #include "error.h"
 #include "imageloader.h"
 #include "imagemgr.h"
+#include "packframe.h"
+#include "u4.h"
 #include "a2disk.h"
 #include "c64disk.h"
 #include "smsrom.h"
@@ -744,6 +746,29 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
     // pictures keep their colours.
     if (cgaGraphics)
         cgaRemap(unscaled);
+
+    // A graphics module with a window frame of its own (packframe.cpp)
+    // has the DOS frame of the game screen made again of its pieces.
+    // The bar drawn along the top of the party list is a letter of the
+    // character set, which then takes the top side of the frame.
+    if (info->name == BKGD_BORDERS &&
+        info->getFilename().compare("u4/start.ega") == 0) {
+        PackFrame pf;
+        if (packFrame(&pf)) {
+            Image* framed = packFrameBorders(pf);
+            if (framed) {
+                delete unscaled;
+                unscaled = framed;
+            }
+        }
+    } else if (info->name == BKGD_CHARSET && unscaled->width() == 8 &&
+               unscaled->height() >= 8 * (CHARSET_HORIZBAR + 1)) {
+        PackFrame pf;
+        if (packFrame(&pf)) {
+            uint32_t* bar = unscaled->pixels + CHARSET_HORIZBAR * 8 * 8;
+            memcpy(bar, pf.px[PackFrame::T], sizeof(pf.px[0]));
+        }
+    }
 
     info->image = unscaled;
     //info->tex = gpu_makeTexture(info->image);

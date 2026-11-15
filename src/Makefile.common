@@ -46,6 +46,7 @@ CXXSRCS=\
         docreader.cpp \
         help.cpp \
         textpage.cpp \
+        packframe.cpp \
         docs.cpp \
         dungeonview.cpp \
         error.cpp \

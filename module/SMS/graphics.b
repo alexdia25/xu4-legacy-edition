@@ -165,6 +165,15 @@ graphics: [
         t_title      40,48, 240,48
         t_subtitle   40,41,   8, 4
         t_map         0,96, 320,96
+        ; The pieces of the frame of the SMS windows (see packframe.cpp).
+        frame_tl      0, 96, 8,8
+        frame_t       8, 96, 8,8
+        frame_tr    312, 96, 8,8
+        frame_l       0,112, 8,8
+        frame_r     312,112, 8,8
+        frame_bl      0,184, 8,8
+        frame_b       8,184, 8,8
+        frame_br    312,184, 8,8
     ]
     ; The figure (left) and the dragon with its fire (right), one frame
     ; for each of the 56 steps of the SMS animation.
