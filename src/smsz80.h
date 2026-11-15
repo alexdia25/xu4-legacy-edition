@@ -5,7 +5,8 @@
  * A model of the Z80 to run the sound driver of the Sega Master System
  * release of Ultima IV.  Memory is a flat 64K: the ROM banks are copied
  * in by the caller and writes below $C000 are ignored.  Writes to the PSG
- * sound chip (ports $40-$7F) are logged with the cycle count.
+ * sound chip (ports $40-$7F) and to the FM sound unit's YM2413 (ports $F0
+ * & $F1) are logged with the cycle count.
  */
 
 #ifndef SMSZ80_H
@@ -17,6 +18,7 @@
 struct PsgWrite {
     uint32_t cycle;         // Cycle count of the processor.
     uint8_t value;
+    uint8_t port;           // 0: PSG, $F0: FM register, $F1: FM data.
 };
 
 struct Z80Cpu {
@@ -55,8 +57,14 @@ struct Z80Cpu {
 
     uint8_t in(uint16_t) { return 0xFF; }
     void out(uint16_t port, uint8_t v) {
-        if ((port & 0xC0) == 0x40 && writes) {
-            PsgWrite pw = { cycles, v };
+        if (! writes)
+            return;
+        uint8_t p = uint8_t(port);
+        if ((p & 0xC0) == 0x40) {
+            PsgWrite pw = { cycles, v, 0 };
+            writes->push_back(pw);
+        } else if (p == 0xF0 || p == 0xF1) {
+            PsgWrite pw = { cycles, v, p };
             writes->push_back(pw);
         }
     }

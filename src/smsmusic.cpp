@@ -8,6 +8,11 @@
  * writes it makes to the PSG sound chip (an SN76489) are timed by the
  * cycles taken and played on a model of the PSG.
  *
+ * Each tune also has a version for the FM Sound Unit (a YM2413), which the
+ * driver plays instead when it is told the unit is fitted.  The PSG is then
+ * kept silent and the writes to the unit are played on emu2413, a model of
+ * the chip (MIT licence, src/support/emu2413.c).
+ *
  * The tune is run until the driver comes back to a state it was in
  * before; the part between is the loop of the tune, which is what is
  * rendered.
@@ -15,11 +20,13 @@
 
 #include <string.h>
 #include <math.h>
+#include <algorithm>
 #include <vector>
 #include <unordered_map>
 #include "smsmusic.h"
 #include "smsrom.h"
 #include "smsz80.h"
+#include "support/emu2413.h"
 
 #define SMS_CPU_HZ      3579545     // NTSC
 #define FRAME_CYCLES    59736       // 262 lines of 228 cycles.
@@ -165,17 +172,18 @@ static uint64_t stateHash(const uint8_t* mem)
  * frames.  The loop is found by comparing the state at the ticks only, so
  * its length is rounded to whole frames.
  */
-static int runDriver(uint8_t* mem, int tune, std::vector<Frame>& frames,
-                     std::vector<PsgWrite>& writes)
+static int runDriver(uint8_t* mem, int tune, bool fm,
+                     std::vector<Frame>& frames, std::vector<PsgWrite>& writes)
 {
     Z80Cpu cpu(mem);
     cpu.writes = &writes;
 
     mem[0xC001] = 1;            // NTSC timing.
-    mem[0xC002] = 0;            // No FM sound unit.
+    mem[0xC002] = fm ? 1 : 0;   // The FM sound unit is fitted.
 
-    // Start the tune as play_music ($0621) does.
-    cpu.a = 0;
+    // Start the tune as sound_reset ($05C7) & play_music ($0621) do; the
+    // driver is told of the FM unit with A = $C0.
+    cpu.a = fm ? 0xC0 : 0;
     if (! cpu.call(SND_INIT) || ! cpu.call(SND_STOP))
         return -1;
     cpu.a = uint8_t(tune);
@@ -219,15 +227,23 @@ static int runDriver(uint8_t* mem, int tune, std::vector<Frame>& frames,
     return -1;
 }
 
+// Brings the FM tunes up to about the loudness of the PSG ones.
+#define FM_LEVEL    4.0
+
+static void chipWrite(Psg& psg, OPLL* opll, const PsgWrite& w)
+{
+    if (w.port == 0)
+        psg.write(w.value);
+    else if (opll)
+        OPLL_writeIO(opll, w.port & 1, w.value);
+}
+
 /*
  * Render the loop of a tune to 16-bit stereo samples.
  */
-bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples)
+static bool renderTune(const std::vector<uint8_t>* rom, int tune, int rate,
+                       bool fm, std::vector<int16_t>& samples)
 {
-    const std::vector<uint8_t>* rom = sms_rom();
-    if (! rom || tune < 1 || tune > 0x7F)
-        return false;
-
     // Banks 0 & 1 in the first two slots, the driver's bank in the third.
     std::vector<uint8_t> mem(0x10000, 0);
     memcpy(&mem[0], rom->data(), 2 * SMS_BANK_SIZE);
@@ -235,11 +251,20 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples)
 
     std::vector<Frame> frames;
     std::vector<PsgWrite> writes;
-    int loopStart = runDriver(mem.data(), tune, frames, writes);
+    int loopStart = runDriver(mem.data(), tune, fm, frames, writes);
     if (loopStart < 0 || loopStart >= (int) frames.size())
         return false;
 
     Psg psg;
+    OPLL* opll = NULL;
+    if (fm) {
+        opll = OPLL_new(SMS_CPU_HZ, rate);
+        if (! opll)
+            return false;
+        OPLL_setChipType(opll, 0);      // YM2413
+        OPLL_resetPatch(opll, OPLL_2413_TONE);
+        OPLL_reset(opll);
+    }
     const double clocksPerSample = double(SMS_CPU_HZ) / 16.0 / rate;
     double pending = 0.0;       // PSG clocks not yet rendered.
     double acc = 0.0;           // PSG clocks of the current sample.
@@ -249,7 +274,7 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples)
 
     // Writes made while starting the tune.
     for (size_t w = 0; w < frames[0].first; ++w)
-        psg.write(writes[w].value);
+        chipWrite(psg, opll, writes[w]);
 
     samples.clear();
     for (size_t t = 0; t < frames.size(); ++t) {
@@ -276,6 +301,8 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples)
                     // Average the clocks of a sample & remove the DC.
                     double v = double(sum) / count;
                     sum = count = 0;
+                    if (opll)
+                        v += OPLL_calc(opll) * FM_LEVEL;
                     dcOut = v - dcIn + dcPole * dcOut;
                     dcIn = v;
                     if (out) {
@@ -290,8 +317,72 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples)
                 }
             }
             if (w < end)
-                psg.write(writes[w].value);
+                chipWrite(psg, opll, writes[w]);
         }
     }
+    if (opll)
+        OPLL_delete(opll);
     return ! samples.empty();
+}
+
+//----------------------------------------------------------------------------
+
+/*
+ * The last tunes rendered, kept (in mono) so that going back and forth
+ * between places doesn't render them again; an FM tune takes about a
+ * second.
+ */
+#define CACHE_TUNES     3
+
+struct CachedTune {
+    const uint8_t* rom;
+    int tune, rate;
+    bool fm;
+    std::vector<int16_t> mono;
+};
+
+static std::vector<CachedTune> cache;   // The most recent first.
+
+/*
+ * Render the loop of a tune to 16-bit stereo samples.  With fm, the tune
+ * is the version for the FM Sound Unit.
+ */
+bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
+                     bool fm)
+{
+    const std::vector<uint8_t>* rom = sms_rom();
+    if (! rom || tune < 1 || tune > 0x7F)
+        return false;
+
+    size_t i;
+    for (i = 0; i < cache.size(); ++i) {
+        const CachedTune& ct = cache[i];
+        if (ct.rom == rom->data() && ct.tune == tune && ct.rate == rate &&
+            ct.fm == fm)
+            break;
+    }
+    if (i == cache.size()) {
+        if (! renderTune(rom, tune, rate, fm, samples))
+            return false;
+        if (cache.size() >= CACHE_TUNES)
+            cache.pop_back();
+        cache.insert(cache.begin(), CachedTune());
+        CachedTune& ct = cache.front();
+        ct.rom = rom->data();
+        ct.tune = tune;
+        ct.rate = rate;
+        ct.fm = fm;
+        ct.mono.resize(samples.size() / 2);
+        for (size_t n = 0; n < ct.mono.size(); ++n)
+            ct.mono[n] = samples[n * 2];
+        return true;
+    }
+
+    if (i > 0)
+        std::rotate(cache.begin(), cache.begin() + i, cache.begin() + i + 1);
+    const std::vector<int16_t>& mono = cache.front().mono;
+    samples.resize(mono.size() * 2);
+    for (size_t n = 0; n < mono.size(); ++n)
+        samples[n * 2] = samples[n * 2 + 1] = mono[n];
+    return true;
 }

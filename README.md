@@ -325,7 +325,8 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
  - **SMS** and **SMS-Music**: the title, map tiles, font, story pictures,
    the gypsy's cards, the shrine visions and the endgame pictures, and
    the music of the Sega Master System release, read from its ROM (see
-   [SMS ROM](#sms-rom)).
+   [SMS ROM](#sms-rom)).  **SMS-FM-Music** is the game's second
+   soundtrack, for the FM Sound Unit.
  - **NES** and **NES-Music**: the title (the NES book, with the menu on
    its cover), map tiles with the NES shore edges, character sprites,
    font, the first-person dungeon view drawn by the NES game's own code,
@@ -589,7 +590,12 @@ the gypsy's abacus & virtue cards, the shrine visions and the pictures of
 the end (the Codex, infinity and the stone circle) of Ultima IV: Quest of
 the Avatar for the Sega Master System straight from its ROM, and the
 SMS-Music soundtrack plays its music by running the game's own sound driver
-on a model of the console's Z80 & PSG sound chip.  The dungeons still use
+on a model of the console's Z80 & PSG sound chip.  The game also has an FM
+version of every tune for the FM Sound Unit (the YM2413 chip of the Japanese
+Master System and the Mark III's add-on); the SMS-FM-Music soundtrack plays
+those by telling the driver the unit is fitted, on Mitsutaka Okazaki's
+[emu2413](https://github.com/digital-sound-antiques/emu2413) model of the
+chip (MIT licence).  The dungeons still use
 the DOS pictures, and the game itself (maps, dungeons, talk) stays the DOS
 one.
 

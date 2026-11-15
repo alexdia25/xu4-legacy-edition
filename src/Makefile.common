@@ -6,6 +6,7 @@ VERSION=DR-1.0
 CSRCS=\
         lzw/hash.c \
         lzw/lzw.c \
+        support/emu2413.c \
         support/notify.c \
         support/sfx_gen.c \
         support/stb_vorbis.c \

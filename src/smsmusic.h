@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <vector>
 
-bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples);
+bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
+                     bool fm = false);
 
 #endif

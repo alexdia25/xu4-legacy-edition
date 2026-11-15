@@ -690,8 +690,9 @@ static bool music_playApple2(const CDIEntry* ent, int mode)
 
     std::vector<int16_t> samples;
     if (spec.compare(0, 4, "sms/") == 0) {
-        // The tune is played by the game's sound driver.
-        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples))
+        // The tune is played by the game's sound driver; sms/fm is the
+        // version for the FM Sound Unit.
+        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples, spec == "sms/fm"))
             return false;
     } else if (spec.compare(0, 4, "nes/") == 0) {
         // The tune is played by the game's sound driver.
