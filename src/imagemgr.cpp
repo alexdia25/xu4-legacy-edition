@@ -710,12 +710,17 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
         fixupTransparent(unscaled, Image::black);
         break;
     case FIXUP_BLACKTRANSPARENCYHACK:
+    case FIXUP_BLACKTRANSPARENCY:
         //Apply transparency shadow hack to ultima4 ega and vga upgrade classic graphics.
+        // The console sets (SMS, NES) draw their own outlines round the
+        // figures, so they get no shadow, only the transparent black.
         if (xu4.settings->enhancements &&
             xu4.settings->enhancementsOptions.u4TileTransparencyHack)
         {
             int transparency_shadow_size =xu4.settings->enhancementsOptions.u4TrileTransparencyHackShadowBreadth;
             int opacity = xu4.settings->enhancementsOptions.u4TileTransparencyHackPixelShadowOpacity;
+            if (info->fixup == FIXUP_BLACKTRANSPARENCY)
+                transparency_shadow_size = 0;
 
             // NOTE: The first 16 tiles are landscape and must be fully opaque!
             int f = (info->name == BKGD_SHAPES) ? 16 : 0;

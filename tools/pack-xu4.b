@@ -899,7 +899,7 @@ process-cfg [
 			enum-value [
 				none intro abyss abacus dungns transparent0
 				blackTransparencyHack fmtownsscreen apple2intro c64intro
-				smsintro
+				smsintro blackTransparency
 			] at/fixup
 		]
 

@@ -5,7 +5,7 @@ graphics: [
         charset 17,33
     ]
     ; The map graphics are in the order of the DOS tiles.
-    image (name: tiles filename: "sms/7c83,10+18000,8000" filetype: smstiles tiles: 256 fixup: blackTransparencyHack) [
+    image (name: tiles filename: "sms/7c83,10+18000,8000" filetype: smstiles tiles: 256 fixup: blackTransparency) [
         at 0,0 size 12,12
         ; subimages
         tile_sea

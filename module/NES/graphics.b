@@ -9,7 +9,7 @@ graphics: [
     ]
     ; The map graphics in the order of the DOS tiles, put together from the
     ; NES map tiles & sprites.
-    image (name: tiles filename: "nes/0,40000" filetype: nestiles tiles: 256 fixup: blackTransparencyHack) [
+    image (name: tiles filename: "nes/0,40000" filetype: nestiles tiles: 256 fixup: blackTransparency) [
         at 0,0 size 16,16
         ; subimages
         tile_sea
