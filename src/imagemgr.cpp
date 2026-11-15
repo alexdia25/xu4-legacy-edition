@@ -761,12 +761,14 @@ ImageInfo* ImageMgr::load(ImageInfo* info) {
                 unscaled = framed;
             }
         }
-    } else if (info->name == BKGD_CHARSET && unscaled->width() == 8 &&
+    } else if (info->name == BKGD_CHARSET && unscaled->width() <= 8 &&
                unscaled->height() >= 8 * (CHARSET_HORIZBAR + 1)) {
         PackFrame pf;
         if (packFrame(&pf)) {
-            uint32_t* bar = unscaled->pixels + CHARSET_HORIZBAR * 8 * 8;
-            memcpy(bar, pf.px[PackFrame::T], sizeof(pf.px[0]));
+            int cw = unscaled->width();     // The Apple letters are 7 wide.
+            uint32_t* bar = unscaled->pixels + CHARSET_HORIZBAR * 8 * cw;
+            for (int y = 0; y < 8; ++y)
+                memcpy(bar + y * cw, pf.px[PackFrame::T][0] + y * 8, cw * 4);
         }
     }
 

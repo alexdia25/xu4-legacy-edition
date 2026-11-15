@@ -20,8 +20,9 @@
 
 static bool blank(uint32_t p)
 {
+    // Black, or nearly (the NES keeps its black opaque as 8,8,8).
     const uint8_t* c = (const uint8_t*) &p;
-    return c[3] == 0 || (c[0] | c[1] | c[2]) == 0;
+    return c[3] == 0 || (c[0] < 16 && c[1] < 16 && c[2] < 16);
 }
 
 /*
@@ -43,13 +44,26 @@ bool packFrame(PackFrame* pf)
         if (! info || ! sub || ! info->image)
             return false;
         const Image* img = info->image;
-        if (sub->x < 0 || sub->y < 0 || sub->x + 8 > img->width() ||
-            sub->y + 8 > img->height())
+        bool across = (i == PackFrame::T || i == PackFrame::B);
+        bool down   = (i == PackFrame::L || i == PackFrame::R);
+        int n = ((across && sub->width >= 16) ||
+                 (down && sub->height >= 16)) ? 2 : 1;
+        int w = (across && n == 2) ? 16 : 8;
+        int h = (down && n == 2) ? 16 : 8;
+        if (sub->x < 0 || sub->y < 0 || sub->x + w > img->width() ||
+            sub->y + h > img->height())
             return false;
+        pf->cells[i] = n;
         const uint32_t* src = img->pixelData();
-        for (int y = 0; y < 8; ++y)
-            memcpy(pf->px[i] + y * 8,
-                   src + (sub->y + y) * img->width() + sub->x, 8 * 4);
+        for (int k = 0; k < n; ++k) {
+            int x0 = sub->x + (across ? 8 * k : 0);
+            int y0 = sub->y + (down ? 8 * k : 0);
+            for (int y = 0; y < 8; ++y)
+                memcpy(pf->px[i][k] + y * 8,
+                       src + (y0 + y) * img->width() + x0, 8 * 4);
+        }
+        if (n == 1)
+            memcpy(pf->px[i][1], pf->px[i][0], sizeof(pf->px[i][0]));
     }
     return true;
 }
@@ -145,38 +159,46 @@ Image* packFrameBorders(const PackFrame& pf)
     img->fill(Image::black);
     uint32_t* dst = img->pixels;
 
+    // Count the cells of each straight run, so that a side of two cells
+    // starts with its first after a corner.
     int first, last;
+    int across = 0, down[40];
+    memset(down, 0, sizeof(down));
     for (int cy = 0; cy < 25; ++cy) {
         const char* row = screenCells[cy];
         for (int cx = 0; cx < 40; ++cx) {
-            switch (row[cx]) {
-            case 'a': putPiece(dst, cx, cy, pf.px[PackFrame::TL]); break;
-            case 'b': putPiece(dst, cx, cy, pf.px[PackFrame::TR]); break;
-            case 'c': putPiece(dst, cx, cy, pf.px[PackFrame::BL]); break;
-            case 'd': putPiece(dst, cx, cy, pf.px[PackFrame::BR]); break;
-            case '-': putPiece(dst, cx, cy, pf.px[PackFrame::T]);  break;
-            case '_': putPiece(dst, cx, cy, pf.px[PackFrame::B]);  break;
-            case '[': putPiece(dst, cx, cy, pf.px[PackFrame::L]);  break;
-            case ']': putPiece(dst, cx, cy, pf.px[PackFrame::R]);  break;
+            char ch = row[cx];
+            int a = across, d = down[cx];
+            across  = (ch == '-' || ch == '_') ? across + 1 : 0;
+            down[cx] = (ch == '[' || ch == ']') ? d + 1 : 0;
+            switch (ch) {
+            case 'a': putPiece(dst, cx, cy, pf.px[PackFrame::TL][0]); break;
+            case 'b': putPiece(dst, cx, cy, pf.px[PackFrame::TR][0]); break;
+            case 'c': putPiece(dst, cx, cy, pf.px[PackFrame::BL][0]); break;
+            case 'd': putPiece(dst, cx, cy, pf.px[PackFrame::BR][0]); break;
+            case '-': putPiece(dst, cx, cy, pf.side(PackFrame::T, a)); break;
+            case '_': putPiece(dst, cx, cy, pf.side(PackFrame::B, a)); break;
+            case '[': putPiece(dst, cx, cy, pf.side(PackFrame::L, d)); break;
+            case ']': putPiece(dst, cx, cy, pf.side(PackFrame::R, d)); break;
             case 'T':
                 // The top side, with the left side below its line.
-                putPiece(dst, cx, cy, pf.px[PackFrame::T]);
-                inkRows(pf.px[PackFrame::T], &first, &last);
-                putPiece(dst, cx, cy, pf.px[PackFrame::L], 0, last + 1,
+                putPiece(dst, cx, cy, pf.px[PackFrame::T][0]);
+                inkRows(pf.px[PackFrame::T][0], &first, &last);
+                putPiece(dst, cx, cy, pf.px[PackFrame::L][0], 0, last + 1,
                          8, 8, true);
                 break;
             case '>':
                 // The left side, with the bottom side right of its line.
-                putPiece(dst, cx, cy, pf.px[PackFrame::L]);
-                inkCols(pf.px[PackFrame::L], &first, &last);
-                putPiece(dst, cx, cy, pf.px[PackFrame::B], last + 1, 0,
+                putPiece(dst, cx, cy, pf.px[PackFrame::L][0]);
+                inkCols(pf.px[PackFrame::L][0], &first, &last);
+                putPiece(dst, cx, cy, pf.px[PackFrame::B][0], last + 1, 0,
                          8, 8, true);
                 break;
             case '<':
                 // The right side, with the bottom side left of its line.
-                putPiece(dst, cx, cy, pf.px[PackFrame::R]);
-                inkCols(pf.px[PackFrame::R], &first, &last);
-                putPiece(dst, cx, cy, pf.px[PackFrame::B], 0, 0,
+                putPiece(dst, cx, cy, pf.px[PackFrame::R][0]);
+                inkCols(pf.px[PackFrame::R][0], &first, &last);
+                putPiece(dst, cx, cy, pf.px[PackFrame::B][0], 0, 0,
                          first, 8, true);
                 break;
             }
@@ -211,18 +233,18 @@ void packFrameDraw(const PackFrame& pf, uint32_t* dst, int dw, int dh,
     };
 
     // The sides, the last piece cut short, then the corners over them.
-    for (int i = S; i < w - S; i += S) {
+    for (int i = S, n = 0; i < w - S; i += S, ++n) {
         int cw = (i + S > w - S) ? w - S - i : S;
-        put(x + i, y,         pf.px[PackFrame::T], cw, S);
-        put(x + i, y + h - S, pf.px[PackFrame::B], cw, S);
+        put(x + i, y,         pf.side(PackFrame::T, n), cw, S);
+        put(x + i, y + h - S, pf.side(PackFrame::B, n), cw, S);
     }
-    for (int j = S; j < h - S; j += S) {
+    for (int j = S, n = 0; j < h - S; j += S, ++n) {
         int ch = (j + S > h - S) ? h - S - j : S;
-        put(x,         y + j, pf.px[PackFrame::L], S, ch);
-        put(x + w - S, y + j, pf.px[PackFrame::R], S, ch);
+        put(x,         y + j, pf.side(PackFrame::L, n), S, ch);
+        put(x + w - S, y + j, pf.side(PackFrame::R, n), S, ch);
     }
-    put(x,         y,         pf.px[PackFrame::TL], S, S);
-    put(x + w - S, y,         pf.px[PackFrame::TR], S, S);
-    put(x,         y + h - S, pf.px[PackFrame::BL], S, S);
-    put(x + w - S, y + h - S, pf.px[PackFrame::BR], S, S);
+    put(x,         y,         pf.px[PackFrame::TL][0], S, S);
+    put(x + w - S, y,         pf.px[PackFrame::TR][0], S, S);
+    put(x,         y + h - S, pf.px[PackFrame::BL][0], S, S);
+    put(x + w - S, y + h - S, pf.px[PackFrame::BR][0], S, S);
 }

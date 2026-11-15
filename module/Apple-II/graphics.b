@@ -164,6 +164,18 @@ graphics: [
         t_subtitle    40,80, 241,13
         t_map          0,96, 320,96
     ]
+    ; The title again, without its fixup (which needs the intro), for the
+    ; pieces of the frame round its map (see packframe.cpp).
+    image (name: frame filename: "a2/program/BGND" filetype: a2hgr) [
+        frame_tl      20, 96, 8,8
+        frame_t       28, 96, 8,8
+        frame_tr     291, 96, 8,8
+        frame_l       20,104, 8,8
+        frame_r      291,104, 8,8
+        frame_bl      20,184, 8,8
+        frame_b       28,184, 8,8
+        frame_br     291,184, 8,8
+    ]
     image (name: beasties filename: "a2/program/ANIM" filetype: a2hgr) [
         beast0frame00  20,  0, 49,31
         beast0frame01  20, 32, 49,31

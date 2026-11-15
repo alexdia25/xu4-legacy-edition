@@ -162,6 +162,18 @@ graphics: [
         t_title     56,33, 204,47
         t_subtitle  36,80, 242,14
     ]
+    ; The title again, without its fixup (which needs the intro), for the
+    ; pieces of the frame round its map (see packframe.cpp).
+    image (name: frame filename: "c64/program/mnu0+col0" filetype: c64hires) [
+        frame_tl     0, 96, 8,8
+        frame_t      8, 96, 8,8
+        frame_tr   312, 96, 8,8
+        frame_l      0,104, 8,8
+        frame_r    312,104, 8,8
+        frame_bl     0,184, 8,8
+        frame_b      8,184, 8,8
+        frame_br   312,184, 8,8
+    ]
     image (name: beasties filename: "c64/program/mnu1" filetype: c64hires) [
         beast0frame00   0,  0, 55,31
         beast0frame01   0, 32, 55,31

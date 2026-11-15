@@ -18,7 +18,13 @@ class Image;
  */
 struct PackFrame {
     enum Piece { TL, T, TR, L, R, BL, B, BR, PIECES };
-    uint32_t px[PIECES][64];    // RGBA pixels, row by row.
+    uint32_t px[PIECES][2][64]; // RGBA pixels, row by row.
+    int cells[PIECES];          // 2 if a side repeats every two cells.
+
+    // Cell n of a side (the sides of the NES chain alternate two links).
+    const uint32_t* side(int piece, int n) const {
+        return px[piece][n % cells[piece]];
+    }
 };
 
 bool   packFrame(PackFrame* pf);

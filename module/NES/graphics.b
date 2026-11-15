@@ -171,6 +171,16 @@ graphics: [
         t_title      0,  0, 320, 96
         t_subtitle   0,  0,   1,  1
         t_map        0, 96, 320,104
+        ; The pieces of the chain frame (see packframe.cpp), from the
+        ; lower panel.
+        frame_tl     8,296,  8, 8
+        frame_t     16,296, 16, 8
+        frame_tr   304,296,  8, 8
+        frame_l      8,304,  8,16
+        frame_r    304,304,  8,16
+        frame_bl     8,384,  8, 8
+        frame_b     16,384, 16, 8
+        frame_br   304,384,  8, 8
     ]
     ; A daemon (left) and a dragon (right) turning as NES creatures do.
     image (name: beasties filename: "nes/0,40000" filetype: nesbeasts) [
