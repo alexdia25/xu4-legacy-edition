@@ -30,7 +30,8 @@
  *             Tile Backgrounds option can make it transparent; the black
  *             of everything else is drawn very dark grey to stay opaque.
  *   nesfont   The NES text glyphs in place of the DOS letters, digits &
- *             punctuation (32-127) of charset.ega, which keeps the others.
+ *             punctuation (32-127) of charset.ega, and the NES arrow for
+ *             the prompt & cursor and its male & female signs.
  */
 
 #include <string.h>
@@ -327,12 +328,14 @@ static int nesGlyph(int ch)
 
 // Draw glyph g (in pattern memory at $1000 + g * 16) with color rgb.
 static void nesDrawGlyph(Image* img, int x0, int y0, const uint8_t* vram,
-                         int g, uint32_t rgb, int scale = 1)
+                         int g, uint32_t rgb, int scale = 1,
+                         bool bothPlanes = false)
 {
     const uint8_t* pat = vram + 0x1000 + g * 16;
     for (int r = 0; r < 8 * scale; ++r)
         for (int c = 0; c < 8 * scale; ++c)
-            if ((pat[r / scale] >> (7 - c / scale)) & 1)
+            if (((pat[r / scale] |
+                  (bothPlanes ? pat[r / scale + 8] : 0)) >> (7 - c / scale)) & 1)
                 img->putPixel(x0 + c, y0 + r, rgb >> 16, (rgb >> 8) & 0xFF,
                               rgb & 0xFF, IM_OPAQUE);
 }
@@ -496,6 +499,7 @@ static Image* nesFont(const std::vector<uint8_t>& prg)
     uint8_t vram[0x2000];
     memset(vram, 0, sizeof(vram));
     rom.chunk(0, vram);
+    rom.chunk(1, vram);     // The arrow.
 
     Image* img = NULL;
     U4FILE* dos = u4fopen("charset.ega");
@@ -515,6 +519,25 @@ static Image* nesFont(const std::vector<uint8_t>& prg)
         img->fillRect(0, ch * 8, 8, 8, 0, 0, 0);
         nesDrawGlyph(img, 0, ch * 8, vram, g, 0xFFFFFF);
     }
+
+    // The symbols of the game the NES has as well: the arrow of its
+    // prompt & cursor (which blinks), and the male & female signs.
+    static const uint8_t symbols[][2] = {
+        { 11, 0xC7 }, { 12, 0xCA }, { 16, 0x78 },
+        { 28, 0x78 }, { 29, 0x78 }, { 30, 0x7F }, { 31, 0x7F }
+    };
+    for (const auto& sym : symbols) {
+        img->fillRect(0, sym[0] * 8, 8, 8, 0, 0, 0);
+        nesDrawGlyph(img, 0, sym[0] * 8, vram, sym[1], 0xFFFFFF, 1, true);
+    }
+    // 17 closes a title opened by 16: the arrow turned round.
+    img->fillRect(0, 17 * 8, 8, 8, 0, 0, 0);
+    for (int y = 0; y < 8; ++y)
+        for (int x = 0; x < 8; ++x) {
+            RGBA c;
+            img->getPixel(x, 16 * 8 + y, c);
+            img->putPixel(7 - x, 17 * 8 + y, c.r, c.g, c.b, IM_OPAQUE);
+        }
     return img;
 }
 
