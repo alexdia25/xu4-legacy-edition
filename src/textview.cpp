@@ -25,6 +25,7 @@ TextView::TextView(int x, int y, int columns, int rows)
     _cursorY = 0;
     colorFG = FONT_COLOR_INDEX(FG_WHITE);
     colorBG = FONT_COLOR_INDEX(BG_NORMAL);
+    bgColor = NULL;
     cursorVisible = false;
     cursorFollowsText = false;
 
@@ -100,7 +101,8 @@ void TextView::drawChar(int chr, int x, int y) {
                         0, chr * CHAR_HEIGHT,
                         _charW, CHAR_HEIGHT,
                         (chr < ' ') ? NULL : fontColor + colorFG,
-                        fontColor + colorBG);
+                        (bgColor && colorBG == FONT_COLOR_INDEX(BG_NORMAL)) ?
+                            bgColor : fontColor + colorBG);
 }
 
 /**

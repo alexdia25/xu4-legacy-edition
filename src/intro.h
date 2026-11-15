@@ -97,6 +97,9 @@ public:
     void updateScreen();
     void reinitViews();
     void graphicsChanged();
+    void drawMenuBackground(bool map);
+    void drawOptionsBackground();
+    void drawOptionsTop();
     void timerFired();
     void configureInGame();
     void gameMenuInGame();
@@ -442,6 +445,9 @@ private:
     bool c64Title;          // Titles use C64 colors.
     bool cgaTitle;          // Titles use CGA colors.
     bool smsTitle;          // Titles drawn from the SMS title image.
+    bool bookTitle;         // The menu is on the title (NES book cover).
+    RGBA coverColor;        // Behind the menu text of bookTitle.
+    Symbol beastBackground; // Image drawn under the beasties.
     bool inGame;            // Configuring during play (configureInGame).
     bool inGameMenu;        // The game menu is showing (gameMenuInGame).
     const char* hubStatus;  // Message under the game menu.

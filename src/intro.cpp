@@ -191,6 +191,8 @@ IntroController::IntroController() :
     apple2Title(false),
     c64Title(false),
     smsTitle(false),
+    bookTitle(false),
+    beastBackground(BKGD_INTRO),
     inGame(false),
     inGameMenu(false),
     hubStatus("")
@@ -595,7 +597,55 @@ void IntroController::graphicsChanged() {
     extendedMenuArea.setCharWidth(cw);
     questionArea.setCharWidth(cw);
 
+    // A title with a map_frame (NES) has the menu written on its cover, a
+    // row higher, and its map framed.
+    const SubImage* sub;
+    ImageInfo* info = xu4.imageMgr->imageInfo(xu4.config->intern("map_frame"),
+                                              &sub);
+    bookTitle = (info && sub);
+    menuArea.y = (bookTitle ? 12 : 13) * CHAR_HEIGHT;
+    if (bookTitle) {
+        info->image->getPixel(U4_SCREEN_W / 2, 17 * CHAR_HEIGHT, coverColor);
+        menuArea.setBackground(&coverColor);
+    } else
+        menuArea.setBackground(NULL);
+
     reinitViews();
+}
+
+/*
+ * Draw the top of the configuration screens.
+ */
+void IntroController::drawOptionsTop() {
+    beastBackground = BKGD_OPTIONS_TOP;
+    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+}
+
+/*
+ * Draw the background of the option screens: the title with a panel for
+ * text at the bottom.
+ */
+void IntroController::drawOptionsBackground() {
+    beastBackground = BKGD_INTRO;
+    menuArea.setBackground(NULL);
+    backgroundArea.draw(BKGD_INTRO);
+    if (bookTitle)
+        backgroundArea.draw(xu4.config->intern("map_frame"), 0, 96);
+    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+}
+
+/*
+ * Draw the background of the intro menu or map.
+ */
+void IntroController::drawMenuBackground(bool map) {
+    beastBackground = BKGD_INTRO;
+    menuArea.setBackground(bookTitle ? &coverColor : NULL);
+    backgroundArea.draw(BKGD_INTRO);
+    if (bookTitle) {
+        if (map)
+            backgroundArea.draw(xu4.config->intern("map_frame"), 0, 96);
+    } else if (! map)
+        backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
 bool IntroController::init() {
@@ -1019,10 +1069,20 @@ void IntroController::drawBeastie(int beast, int vertoffset, int frame) {
     if (beastSteps && frame == 0)
         h = si[1].height;
 
-    beastiesImg->image->drawSubRect(
-                        backgroundArea.x + beastiePos[beast][0],
-                        backgroundArea.y + beastiePos[beast][1] + vertoffset,
-                        si->x, si->y, si->width, h);
+    // On a book cover (NES) the creatures are drawn over it, with the
+    // background under them put back first.
+    int px = backgroundArea.x + beastiePos[beast][0];
+    int py = backgroundArea.y + beastiePos[beast][1] + vertoffset;
+    if (bookTitle) {
+        const SubImage* sub;
+        ImageInfo* info = xu4.imageMgr->imageInfo(beastBackground, &sub);
+        if (info && info->image)
+            info->image->drawSubRect(px, py, px + (sub ? sub->x : 0),
+                                     py + (sub ? sub->y : 0), si->width, h);
+    }
+    int blend = Image::enableBlend(bookTitle);
+    beastiesImg->image->drawSubRect(px, py, si->x, si->y, si->width, h);
+    Image::enableBlend(blend);
 }
 
 /**
@@ -1134,7 +1194,7 @@ void IntroController::updateScreen() {
 
     switch (mode) {
     case INTRO_MAP:
-        backgroundArea.draw(BKGD_INTRO);
+        drawMenuBackground(true);
         drawMap();
         drawBeasties();
         // display the profile name if a local profile is being used
@@ -1147,8 +1207,7 @@ void IntroController::updateScreen() {
 
     case INTRO_MENU:
         // draw the extended background for all option screens
-        backgroundArea.draw(BKGD_INTRO);
-        backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+        drawMenuBackground(false);
 
         // if there is an error message to display, show it
         if (xu4.errorMessage)
@@ -1163,8 +1222,7 @@ void IntroController::updateScreen() {
             // wait for a couple seconds
             EventHandler::wait_msecs(3000);
             // clear the screen again
-            backgroundArea.draw(BKGD_INTRO);
-            backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+            drawMenuBackground(false);
         }
 
         menuArea.textAt(1,  1, "In another world, in a time to come.");
@@ -1194,8 +1252,7 @@ void IntroController::updateScreen() {
  */
 void IntroController::initiateNewGame() {
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_INTRO);
-    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    drawOptionsBackground();
 
     // display name prompt and read name from keyboard
     menuArea.textAt(3, 3, "By what name shalt thou be known");
@@ -1217,8 +1274,7 @@ void IntroController::initiateNewGame() {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_INTRO);
-    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    drawOptionsBackground();
 
     // display sex prompt and read sex from keyboard
     menuArea.textAt(3, 3, "Art thou Male or Female?");
@@ -1657,8 +1713,11 @@ void IntroController::startGame(bool reload) {
  * Draw a list screen in the menu area with a title and hint.
  */
 void IntroController::drawListScreen(const char* title, const char* hint) {
+    beastBackground = BKGD_INTRO;
+    menuArea.setBackground(bookTitle ? &coverColor : NULL);
     backgroundArea.draw(BKGD_INTRO);
-    menuArea.clear();
+    if (! bookTitle)
+        menuArea.clear();       // The book cover is behind the menu text.
     screenHideCursor();
     menuArea.textAt(1, 0, title);
     if (hint)
@@ -1755,8 +1814,7 @@ int IntroController::chooseJourney() {
  */
 void IntroController::about() {
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_INTRO);
-    backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
+    drawOptionsBackground();
 
     screenHideCursor();
     menuArea.textAtFmt(14, 1, "%s", xu4_versionLE());
@@ -1869,7 +1927,7 @@ void IntroController::beginInGame() {
     settingsChanged = *xu4.settings;
     listenerId = gs_listen(1<<SENDER_MENU, introNotice, this);
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -1906,7 +1964,7 @@ void IntroController::settingsFromGameMenu() {
     backItem->setText(inGameMenu ? "\017 Return to Menu"
                                  : "\017 Return to Game");
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
     runMenu(&confMenu, &extendedMenuArea, false);
 
@@ -1952,7 +2010,7 @@ bool IntroController::loadSaveInGame() {
 
     bool chosen = false;
     for (;;) {
-        backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+        drawOptionsTop();
         backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
         extendedMenuArea.clear();
         screenHideCursor();
@@ -2351,7 +2409,7 @@ void IntroController::updateConfMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2393,7 +2451,7 @@ void IntroController::updateVideoMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2413,7 +2471,7 @@ void IntroController::updateGfxMenu(MenuEvent &event)
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2450,7 +2508,7 @@ void IntroController::updateSoundMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2481,7 +2539,7 @@ void IntroController::updateInputMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 
     // after drawing the menu, extra menu text can be added here
@@ -2518,7 +2576,7 @@ void IntroController::updatePadMenu(MenuEvent &event) {
         }
     }
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
     extendedMenuArea.textAt(2, 10, "In menus A & X pick, B backs out.");
 }
@@ -2547,7 +2605,7 @@ void IntroController::updateSpeedMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2578,7 +2636,7 @@ void IntroController::updateGameplayMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2602,7 +2660,7 @@ void IntroController::updateInterfaceMenu(MenuEvent &event) {
     }
 
     // draw the extended background for all option screens
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 
     // after drawing the menu, extra menu text can be added here
@@ -2689,7 +2747,7 @@ void IntroController::updateLegacyMenu(MenuEvent &event) {
         }
     }
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 
@@ -2704,7 +2762,7 @@ void IntroController::updateCheatsMenu(MenuEvent &event) {
             done = "";
     }
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
     extendedMenuArea.textAt(2, 11, done);
 }
@@ -2763,7 +2821,7 @@ void IntroController::updateGameMenu(MenuEvent &event) {
         case MI_HUB_QUIT:
             quitMenu.getItemById(MI_QUIT_SAVE)->setVisible(
                     (c->location->context & CTX_CAN_SAVE_GAME) != 0);
-            backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+            drawOptionsTop();
             backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
             runMenu(&quitMenu, &extendedMenuArea, false);
             break;
@@ -2771,7 +2829,7 @@ void IntroController::updateGameMenu(MenuEvent &event) {
         }
     }
 
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
     extendedMenuArea.textAt(2, 12, hubStatus);
 }
@@ -2785,7 +2843,7 @@ void IntroController::updateQuitMenu(MenuEvent &event) {
                 // Not saved: stay in the game.
                 hubStatus = "Not saved!  The game goes on.";
                 quitMenu.setClosed(true);
-                backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+                drawOptionsTop();
                 backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
                 return;
             }
@@ -2794,7 +2852,7 @@ void IntroController::updateQuitMenu(MenuEvent &event) {
             xu4.eventHandler->quitGame();
         }
     }
-    backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
+    drawOptionsTop();
     backgroundArea.draw(BKGD_OPTIONS_BTM, 0, 120);
 }
 

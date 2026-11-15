@@ -615,11 +615,14 @@ struct NesScreen {
 };
 
 /*
- * The title: the NES title screen's book cover, widened to the screen, with
- * two of its chain framed panels: the logo ("Ultima IV" of the intro) at
- * the top & the map and the menu below.  Each tile is copied with its
- * palette from a place on the NES screen (column, row).  The rest of the
- * intro elements are empty.
+ * The title, 320 x 400.  The top half is the NES title screen: the blue
+ * book with the logo panel, widened to fit the menu, which is written on
+ * the cover where the NES says PUSH START.  The bottom half is the same
+ * book filled by two chain framed panels, the logo at the top and a panel
+ * for text below, for the other intro screens (options_top, options_btm)
+ * and round the map (map_frame).  Each tile is copied with its palette
+ * from a place on the NES screen (column, row).  The rest of the intro
+ * elements are empty.
  */
 static Image* nesTitle(const std::vector<uint8_t>& prg)
 {
@@ -636,7 +639,7 @@ static Image* nesTitle(const std::vector<uint8_t>& prg)
     rom.chunk(2, vram);
     rom.chunk(0x2D, vram);
 
-    Image* img = Image::create(320, 200);
+    Image* img = Image::create(320, 400);
     img->fill(Image::black);
 
     auto put = [&](int dc, int dr, int sc, int sr) {
@@ -646,48 +649,81 @@ static Image* nesTitle(const std::vector<uint8_t>& prg)
     };
 
     // A panel of the NES logo's frame (columns 6-27, rows 4-15 on the NES
-    // screen) on columns 1-38 & rows r0-r1, black inside.
-    auto panel = [&](int r0, int r1) {
+    // screen) on columns c0-c1 & rows r0-r1, black inside.
+    auto panel = [&](int c0, int c1, int r0, int r1) {
         for (int r = r0; r <= r1; ++r) {
             int side = ((r - r0) & 1) ? 5 : 6;  // Alternate the chain links.
-            for (int c = 1; c <= 38; ++c) {
-                int link = (c & 1) ? 7 : 8;
+            for (int c = c0; c <= c1; ++c) {
+                int link = ((c - c0) & 1) ? 7 : 8;
+                int sc = (c == c0) ? 6 : (c == c1) ? 27 : link;
                 if (r == r0)
-                    put(c, r, (c == 1) ? 6 : (c == 38) ? 27 : link, 4);
+                    put(c, r, sc, 4);
                 else if (r == r1)
-                    put(c, r, (c == 1) ? 6 : (c == 38) ? 27 : link, 15);
-                else if (c == 1)
-                    put(c, r, 6, side);
-                else if (c == 38)
-                    put(c, r, 27, side);
+                    put(c, r, sc, 15);
+                else if (c == c0 || c == c1)
+                    put(c, r, sc, side);
                 else
                     put(c, r, 7, 5);
             }
         }
     };
 
-    // The cover: the spine on the left & the pages' edge on the right.
-    for (int r = 0; r < 24; ++r) {
-        put(0, r, 1, 10);
-        for (int c = 1; c < 39; ++c)
-            put(c, r, (c == 1) ? 3 : (c == 38) ? 29 : 10, 20);
-        put(39, r, 30, 10);
-    }
-    // The bottom of the book.
-    put(0, 24, 1, 28);
-    put(1, 24, 2, 28);
-    for (int c = 2; c < 39; ++c)
-        put(c, 24, 10, 28);
-    put(39, 24, 30, 28);
+    // The NES row sr of the book (NES columns 1-30) on row dr, as wide as
+    // columns c0-c1: the spine, the cover's groove, more cover, the groove
+    // & the pages' edge.
+    auto bookRow = [&](int dr, int sr, int c0, int c1) {
+        for (int c = c0; c <= c1; ++c) {
+            int sc;
+            if (c == c0)            sc = 1;
+            else if (c == c0 + 1)   sc = 2;
+            else if (c == c0 + 2)   sc = 3;
+            else if (c == c1 - 1)   sc = 29;
+            else if (c == c1)       sc = 30;
+            else                    sc = (sr == 2 || sr >= 27) ? 10 : 4;
+            put(c, dr, sc, sr);
+        }
+    };
 
-    // The logo panel on rows 0-10 with the logo (NES rows 6-14) centred.
-    panel(0, 10);
+    // Top: the book on the grey of the NES screen, columns 1-38.
+    for (int r = 0; r < 25; ++r) {
+        put(0, r, 0, 0);
+        put(39, r, 31, 0);
+    }
+    bookRow(0, 2, 1, 38);
+    for (int r = 1; r <= 21; ++r)
+        bookRow(r, 20, 1, 38);
+    bookRow(22, 27, 1, 38);
+    bookRow(23, 28, 1, 38);
+    for (int c = 1; c <= 38; ++c)
+        put(c, 24, (c == 1) ? 1 : 10, 29);
+
+    // The logo panel (NES rows 4 & 6-15, without the empty row 5).
+    for (int r = 4; r <= 15; ++r) {
+        if (r == 5)
+            continue;
+        for (int c = 6; c <= 27; ++c)
+            put(c + 3, r - (r > 5 ? 4 : 3), c, r);
+    }
+
+    // Bottom: the book filled by the logo panel & the text panel.
+    const int B = 25;   // Rows.
+    for (int r = 0; r < 24; ++r) {
+        put(0, B + r, 1, 10);
+        for (int c = 1; c < 39; ++c)
+            put(c, B + r, (c == 1) ? 3 : (c == 38) ? 29 : 10, 20);
+        put(39, B + r, 30, 10);
+    }
+    put(0, B + 24, 1, 28);
+    put(1, B + 24, 2, 28);
+    for (int c = 2; c < 39; ++c)
+        put(c, B + 24, 10, 28);
+    put(39, B + 24, 30, 28);
+
+    panel(1, 38, B + 0, B + 10);
     for (int r = 6; r <= 14; ++r)
         for (int c = 7; c <= 26; ++c)
-            put(c + 3, r - 5, c, r);
-
-    // The panel of the map & the menu on rows 12-23.
-    panel(12, 23);
+            put(c + 3, B + r - 5, c, r);
+    panel(1, 38, B + 12, B + 23);
     return img;
 }
 
@@ -824,7 +860,7 @@ static Image* nesBeasts(const std::vector<uint8_t>& prg)
     NesRom rom(prg);
     NesTileBuilder tb(rom);
     Image* small = Image::create(16, 64);
-    small->fill(Image::black);
+    small->fillRect(0, 0, 16, 64, 0, 0, 0, 0);    // Clear around them.
     for (int i = 0; i < 4; ++i)
         tb.sprite(small, i * 16, beast[i >> 1], 0, NES_PAL_GAME,
                   (i & 1) ^ (i >> 1), nesNoColor);
@@ -834,7 +870,7 @@ static Image* nesBeasts(const std::vector<uint8_t>& prg)
     for (int y = 0; y < 128; ++y)
         for (int x = 0; x < 32; ++x) {
             small->getPixel(x / 2, y / 2, r, g, b, a);
-            img->putPixel(x, y, r, g, b, IM_OPAQUE);
+            img->putPixel(x, y, r, g, b, a);
         }
     delete small;
     return img;

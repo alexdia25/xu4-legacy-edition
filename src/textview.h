@@ -58,6 +58,8 @@ public:
     void scroll();
 
     void setCursorFollowsText(bool follows) { cursorFollowsText = follows; }
+    // A colour in place of the black behind the letters (NULL for black).
+    void setBackground(const RGBA* color) { bgColor = color; }
     void setCursorPos(int x, int y);
     void showCursor();
     void hideCursor();
@@ -76,6 +78,7 @@ protected:
     uint8_t _charW;             // character cell width in pixels
     int16_t _cursorX, _cursorY; // current position of cursor
     uint8_t colorBG;
+    const RGBA* bgColor;        // Overrides the BG_NORMAL color if set.
     uint8_t colorFG;
     bool cursorVisible;         // whether the cursor is enabled
     bool cursorFollowsText;     // places cursor after last char. written

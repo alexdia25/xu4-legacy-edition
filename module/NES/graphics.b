@@ -156,25 +156,27 @@ graphics: [
         at 0,1120 tile_fire_phantom 2
     ]
     image (name: charset filename: "nes/0,40000" filetype: nesfont tiles: 256)
-    ; The title: the NES book cover with its logo panel as the "Ultima IV"
-    ; of the intro, and a panel like it round the map and the menu.
+    ; The title: the NES title screen's book with its logo panel; the menu
+    ; is written on the cover.  Below it (y 200-400) the book is filled by
+    ; two chain framed panels for the other intro screens and the map.
     image (name: title filename: "nes/0,40000" filetype: nestitle fixup: smsintro) [
-        options_top  0, 32, 320,128
-        options_btm  0,120, 320, 80
+        options_top  0,232, 320,128
+        options_btm  0,320, 320, 80
+        map_frame    0,296, 320,104
         t_signature  0,  0,   1,  1
         t_and        0,  0,   1,  1
         t_bar        0,  0,   1,  1
         t_origin     0,  0,   1,  1
         t_present    0,  0,   1,  1
-        t_title      0,  0, 320, 88
+        t_title      0,  0, 320, 96
         t_subtitle   0,  0,   1,  1
-        t_map        0, 96, 320, 96
+        t_map        0, 96, 320,104
     ]
     ; A daemon (left) and a dragon (right) turning as NES creatures do.
     image (name: beasties filename: "nes/0,40000" filetype: nesbeasts) [
         at 0,0  size 32,32 beast0frame00 2
         at 0,64 size 32,32 beast1frame00 2
-        beast0_pos   32,12, 1,1
+        beast0_pos   36,12, 1,1
         beast1_pos  256,12, 1,1
         beast_steps   0,0, 2,400
     ]
