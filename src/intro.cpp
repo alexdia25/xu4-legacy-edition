@@ -601,7 +601,7 @@ void IntroController::graphicsChanged() {
 bool IntroController::init() {
 
     justInitiatedNewGame = false;
-    introMusic = MUSIC_TOWNS;
+    introMusic = musicAvailable(MUSIC_TITLE) ? MUSIC_TITLE : MUSIC_TOWNS;
 
     uint16_t saveGroup = xu4_setResourceGroup(StageIntro);
 
@@ -1386,6 +1386,8 @@ void IntroController::showStory() {
     treeSub[1] = treeImg->subImageIndex[sym[1]];
 
     beastiesVisible = false;
+    if (musicAvailable(MUSIC_STORY))
+        musicPlay(MUSIC_STORY);
 
     questionArea.setCursorFollowsText(true);
 

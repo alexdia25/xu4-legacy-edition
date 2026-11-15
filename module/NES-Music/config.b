@@ -13,7 +13,7 @@ module [
 ; The tunes are played by the game's own sound driver on an emulated 6502 &
 ; sound unit.  The NES keeps the castle tune while talking to Lord British
 ; and Hawkwind, who are in his castle.  Tune 1 is the title and 2 the story
-; & character creation.
+; & character creation, which the intro plays as its title & story tunes.
 music: [
     "nes/music:5"   ; Outside
     "nes/music:6"   ; Towns
@@ -24,4 +24,7 @@ music: [
     "nes/music:10"  ; Dungeons
     "nes/music:16"  ; Combat
     "nes/music:8"   ; Castles
+    59
+    "nes/music:1"   ; Title (MUSIC_TITLE)
+    "nes/music:2"   ; Story & gypsy (MUSIC_STORY)
 ]

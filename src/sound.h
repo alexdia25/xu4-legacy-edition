@@ -65,8 +65,15 @@ enum MusicTrack {
     VOICE_LB = MUSIC_MAX,
     VOICE_HW,
     VOICE_GYPSY,
-    VOICE_SPELL = 31
+    VOICE_SPELL = 31,
+
+    // Tunes a music module may add (after any voices); the intro uses them
+    // if present.
+    MUSIC_TITLE = 60,   // The title, in place of Towns.
+    MUSIC_STORY         // The story & the gypsy.
 };
+
+bool musicAvailable(int track);
 
 int soundInit(void);
 void soundDelete(void);

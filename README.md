@@ -576,7 +576,9 @@ ROM is found.  Nothing from the ROM is stored in the modules.
 The NES module reads the map tiles, the character and creature sprites
 and the font of Ultima: Quest of the Avatar for the NES straight from its
 ROM, and the NES-Music soundtrack plays its music by running the game's
-own sound driver on a model of the console's 6502 & sound unit.  The NES
+own sound driver on a model of the console's 6502 & sound unit, with
+the NES title tune at the title and its story tune for the story and the
+gypsy.  The NES
 game draws Lord British's castle as two tiles, so the square west of its
 gate shows grass.  A few DOS tiles have no NES picture; they are drawn
 from NES pieces in their own colours (the ship's mast and wheel, the

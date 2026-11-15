@@ -774,6 +774,11 @@ static bool music_start(int track, int mode) {
     return true;
 }
 
+bool musicAvailable(int track)
+{
+    return config_musicFile(track) != NULL;
+}
+
 void musicPlay(int track)
 {
     TEST_SOUND_EVENT('m', track);
