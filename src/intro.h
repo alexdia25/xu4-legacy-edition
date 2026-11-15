@@ -447,7 +447,6 @@ private:
     bool smsTitle;          // Titles drawn from the SMS title image.
     bool bookTitle;         // The menu is on the title (NES book cover).
     RGBA coverColor;        // Behind the menu text of bookTitle.
-    Symbol beastBackground; // Image drawn under the beasties.
     bool inGame;            // Configuring during play (configureInGame).
     bool inGameMenu;        // The game menu is showing (gameMenuInGame).
     const char* hubStatus;  // Message under the game menu.

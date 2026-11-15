@@ -192,7 +192,6 @@ IntroController::IntroController() :
     c64Title(false),
     smsTitle(false),
     bookTitle(false),
-    beastBackground(BKGD_INTRO),
     inGame(false),
     inGameMenu(false),
     hubStatus("")
@@ -617,7 +616,6 @@ void IntroController::graphicsChanged() {
  * Draw the top of the configuration screens.
  */
 void IntroController::drawOptionsTop() {
-    beastBackground = BKGD_OPTIONS_TOP;
     backgroundArea.draw(BKGD_OPTIONS_TOP, 0, 0);
 }
 
@@ -626,7 +624,6 @@ void IntroController::drawOptionsTop() {
  * text at the bottom.
  */
 void IntroController::drawOptionsBackground() {
-    beastBackground = BKGD_INTRO;
     menuArea.setBackground(NULL);
     backgroundArea.draw(BKGD_INTRO);
     if (bookTitle)
@@ -638,7 +635,6 @@ void IntroController::drawOptionsBackground() {
  * Draw the background of the intro menu or map.
  */
 void IntroController::drawMenuBackground(bool map) {
-    beastBackground = BKGD_INTRO;
     menuArea.setBackground(bookTitle ? &coverColor : NULL);
     backgroundArea.draw(BKGD_INTRO);
     if (bookTitle) {
@@ -1035,7 +1031,7 @@ void IntroController::drawMapAnimated() {
  * Draws the animated beasts in the upper corners of the screen.
  */
 void IntroController::drawBeasties() {
-    if (inGame || ! binData)
+    if (inGame || ! binData || bookTitle)   // No creatures on the NES book.
         return;
     if (beastSteps) {
         int step = (getTicks() / beastStepMs) % beastSteps;
@@ -1069,20 +1065,10 @@ void IntroController::drawBeastie(int beast, int vertoffset, int frame) {
     if (beastSteps && frame == 0)
         h = si[1].height;
 
-    // On a book cover (NES) the creatures are drawn over it, with the
-    // background under them put back first.
-    int px = backgroundArea.x + beastiePos[beast][0];
-    int py = backgroundArea.y + beastiePos[beast][1] + vertoffset;
-    if (bookTitle) {
-        const SubImage* sub;
-        ImageInfo* info = xu4.imageMgr->imageInfo(beastBackground, &sub);
-        if (info && info->image)
-            info->image->drawSubRect(px, py, px + (sub ? sub->x : 0),
-                                     py + (sub ? sub->y : 0), si->width, h);
-    }
-    int blend = Image::enableBlend(bookTitle);
-    beastiesImg->image->drawSubRect(px, py, si->x, si->y, si->width, h);
-    Image::enableBlend(blend);
+    beastiesImg->image->drawSubRect(
+                        backgroundArea.x + beastiePos[beast][0],
+                        backgroundArea.y + beastiePos[beast][1] + vertoffset,
+                        si->x, si->y, si->width, h);
 }
 
 /**
@@ -1225,7 +1211,12 @@ void IntroController::updateScreen() {
             drawMenuBackground(false);
         }
 
-        menuArea.textAt(1,  1, "In another world, in a time to come.");
+        if (bookTitle) {
+            // On the NES book the line is wrapped inside its borders.
+            menuArea.textAt(10, 0, "In another world,");
+            menuArea.textAt(10, 1, "in a time to come.");
+        } else
+            menuArea.textAt(1,  1, "In another world, in a time to come.");
         menuArea.textAt(14, 3, "Options:");
         menuArea.textAtKey(10, 5, "Return to the view", 0);
         menuArea.textAtKey(10, 6, "Journey Onward", 0);
@@ -1713,7 +1704,6 @@ void IntroController::startGame(bool reload) {
  * Draw a list screen in the menu area with a title and hint.
  */
 void IntroController::drawListScreen(const char* title, const char* hint) {
-    beastBackground = BKGD_INTRO;
     menuArea.setBackground(bookTitle ? &coverColor : NULL);
     backgroundArea.draw(BKGD_INTRO);
     if (! bookTitle)
