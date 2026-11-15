@@ -108,6 +108,94 @@ static void inkCols(const uint32_t* p, int* first, int* last)
             }
 }
 
+// True if every column of a piece is one colour from top to bottom.
+static bool banded(const uint32_t* p)
+{
+    for (int x = 0; x < 8; ++x)
+        for (int y = 1; y < 8; ++y)
+            if (p[y * 8 + x] != p[x])
+                return false;
+    return true;
+}
+
+/*
+ * The side between the map & the party list faces both.  It is made of
+ * the right side's inner stripes, the outer stripe, then the left side's
+ * inner stripes (so both edges look like the inside of the frame).  Sides
+ * that are not plain stripes (the NES chain) take the left half of the
+ * right side & the right half of the left side.
+ */
+static bool middleSide(const PackFrame& pf, uint32_t* both, int* outer0,
+                       int* outer1)
+{
+    const uint32_t* l = pf.px[PackFrame::L][0];
+    const uint32_t* r = pf.px[PackFrame::R][0];
+    int lf, ll, rf, rl;
+    inkCols(l, &lf, &ll);
+    inkCols(r, &rf, &rl);
+    if (! banded(l) || ! banded(r) || ll < 0 || rl < 0) {
+        for (int i = 0; i < 64; ++i)
+            both[i] = ((i & 7) < 4) ? r[i] : l[i];
+        return false;
+    }
+
+    // The stripes (runs of one colour) from the map side to the party side.
+    uint32_t col[24];
+    int run[24], n = 0;
+    auto add = [&](uint32_t c) {
+        if (n && col[n - 1] == c)
+            ++run[n - 1];
+        else {
+            col[n] = c;
+            run[n++] = 1;
+        }
+    };
+    int lo = lf;                        // The outer stripe of the left side.
+    while (lo + 1 <= ll && l[lo + 1] == l[lf])
+        ++lo;
+    int ro = rl;                        // The outer stripe of the right side.
+    while (ro - 1 >= rf && r[ro - 1] == r[rl])
+        --ro;
+    for (int x = rf; x < ro; ++x)
+        add(r[x]);
+    for (int x = lf; x <= lo; ++x)
+        add(l[x]);
+    for (int x = lo + 1; x <= ll; ++x)
+        add(l[x]);
+
+    // Narrow the widest stripes until they fit in a cell.
+    int w = 0;
+    for (int i = 0; i < n; ++i)
+        w += run[i];
+    while (w > 8) {
+        int m = 0;
+        for (int i = 1; i < n; ++i)
+            if (run[i] > run[m] || (run[i] == run[m] && i == n / 2))
+                m = i;
+        if (run[m] < 2)
+            break;
+        --run[m];
+        --w;
+    }
+
+    uint32_t line[8];
+    for (int x = 0; x < 8; ++x)
+        line[x] = 0xff000000;   // Opaque black (RGBA bytes).
+
+    int x = (8 - w) / 2;
+    for (int i = 0; i < n; ++i) {
+        if (col[i] == l[lf])
+            *outer0 = x;
+        for (int k = 0; k < run[i] && x < 8; ++k)
+            line[x++] = col[i];
+        if (col[i] == l[lf])
+            *outer1 = x - 1;
+    }
+    for (int i = 0; i < 64; ++i)
+        both[i] = line[i & 7];
+    return true;
+}
+
 /*
  * The DOS game screen in 8x8 cells: the map (left), the party (top right),
  * food & gold, and the messages (bottom right, which have no frame below
@@ -115,34 +203,35 @@ static void inkCols(const uint32_t* p, int* first, int* last)
  *
  *   a b c d  corners (top left, top right, bottom left, bottom right)
  *   - _      top & bottom sides     [ ]  left & right sides
+ *   |        the side between the map & the party, a left & right side
  *   T        a side joining from below (top row)
  *   >        a side going right from the middle column
  *   <        a side going left from the right column
  */
 static const char* const screenCells[25] = {
     "a----------  ----------T---------------b",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
-    "[                      [               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
+    "[                      |               ]",
     "[                      >_______________<",
-    "[                      [               ]",
+    "[                      |               ]",
     "[                      >_______________d",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
-    "[                      [                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
+    "[                      |                ",
     "c______          ______d                ",
     "                                        "
 };
@@ -164,6 +253,23 @@ Image* packFrameBorders(const PackFrame& pf)
     int first, last;
     int across = 0, down[40];
     memset(down, 0, sizeof(down));
+    // The side between the map & the party list faces both.
+    uint32_t both[64];
+    // Sides of plain stripes join at a T: the outer stripes meet & the
+    // inner ones turn the corner.
+    int mid0 = 0, mid1 = 7;
+    bool stripes = middleSide(pf, both, &mid0, &mid1);
+    const uint32_t* top = pf.px[PackFrame::T][0];
+    const uint32_t* bot = pf.px[PackFrame::B][0];
+    const uint32_t* rgt = pf.px[PackFrame::R][0];
+    int rOuter = 8;             // Where the right side's outer stripe starts.
+    if (stripes) {
+        inkCols(rgt, &first, &last);
+        rOuter = last;
+        while (rOuter - 1 >= first && rgt[rOuter - 1] == rgt[last])
+            --rOuter;
+    }
+
     for (int cy = 0; cy < 25; ++cy) {
         const char* row = screenCells[cy];
         for (int cx = 0; cx < 40; ++cx) {
@@ -179,22 +285,43 @@ Image* packFrameBorders(const PackFrame& pf)
             case '-': putPiece(dst, cx, cy, pf.side(PackFrame::T, a)); break;
             case '_': putPiece(dst, cx, cy, pf.side(PackFrame::B, a)); break;
             case '[': putPiece(dst, cx, cy, pf.side(PackFrame::L, d)); break;
+            case '|': putPiece(dst, cx, cy, both); break;
             case ']': putPiece(dst, cx, cy, pf.side(PackFrame::R, d)); break;
             case 'T':
+                if (stripes) {
+                    // The middle side's stripes cross the top's inner ones.
+                    putPiece(dst, cx, cy, top);
+                    inkRows(top, &first, &last);
+                    for (int y = 0; y < 8; ++y)
+                        if (top[y * 8] != top[first * 8])
+                            putPiece(dst, cx, cy, both, 0, y, 8, y + 1);
+                    break;
+                }
                 // The top side, with the left side below its line.
                 putPiece(dst, cx, cy, pf.px[PackFrame::T][0]);
                 inkRows(pf.px[PackFrame::T][0], &first, &last);
-                putPiece(dst, cx, cy, pf.px[PackFrame::L][0], 0, last + 1,
-                         8, 8, true);
+                putPiece(dst, cx, cy, both, 0, last + 1, 8, 8, true);
                 break;
             case '>':
+                if (stripes) {
+                    // The bottom side from the middle's outer stripe on.
+                    putPiece(dst, cx, cy, both);
+                    putPiece(dst, cx, cy, bot, mid1 + 1, 0, 8, 8);
+                    break;
+                }
                 // The left side, with the bottom side right of its line.
-                putPiece(dst, cx, cy, pf.px[PackFrame::L][0]);
-                inkCols(pf.px[PackFrame::L][0], &first, &last);
+                putPiece(dst, cx, cy, both);
+                inkCols(both, &first, &last);
                 putPiece(dst, cx, cy, pf.px[PackFrame::B][0], last + 1, 0,
                          8, 8, true);
                 break;
             case '<':
+                if (stripes) {
+                    // The bottom side up to the right's outer stripe.
+                    putPiece(dst, cx, cy, rgt);
+                    putPiece(dst, cx, cy, bot, 0, 0, rOuter, 8);
+                    break;
+                }
                 // The right side, with the bottom side left of its line.
                 putPiece(dst, cx, cy, pf.px[PackFrame::R][0]);
                 inkCols(pf.px[PackFrame::R][0], &first, &last);

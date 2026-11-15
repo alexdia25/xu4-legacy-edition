@@ -170,7 +170,7 @@ graphics: [
         frame_tl      20, 96, 8,8
         frame_t       28, 96, 8,8
         frame_tr     291, 96, 8,8
-        frame_l       20,104, 8,8
+        frame_l       20,171, 8,8
         frame_r      291,104, 8,8
         frame_bl      20,184, 8,8
         frame_b       28,184, 8,8
