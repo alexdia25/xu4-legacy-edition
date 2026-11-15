@@ -24,8 +24,10 @@ What it adds to XU4:
  - [Legacy Edition options](#legacy-edition-options): conveniences,
    difficulty presets, autosave and several characters.
  - [Graphics & music modules](#graphics--music-modules) for the Apple II,
-   Commodore 64 and Sega Master System versions, read from your own disk
-   images or ROM, and the DOS release's own four-colour CGA look.
+   Commodore 64, Sega Master System and NES versions, read from your own
+   disk images or ROMs, each framing the game screen in that version's own
+   window borders, and the DOS release's own four-colour CGA look.  They
+   can be switched anywhere in play.
  - [Builds](#installing) for Windows, macOS, Linux and Android, a web
    version that also installs on iPhones and iPads, and a Flatpak for the
    Steam Deck.
@@ -324,8 +326,11 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
    the gypsy's cards, the shrine visions and the endgame pictures, and
    the music of the Sega Master System release, read from its ROM (see
    [SMS ROM](#sms-rom)).
- - **NES** and **NES-Music**: the map tiles, character sprites, font and
-   music of the NES release, read from its ROM (see [NES ROM](#nes-rom)).
+ - **NES** and **NES-Music**: the title (the NES book, with the menu on
+   its cover), map tiles with the NES shore edges, character sprites,
+   font, the first-person dungeon view drawn by the NES game's own code,
+   the gypsy's cards, and the music of the NES release with its tunes for
+   each place and its jingles, read from its ROM (see [NES ROM](#nes-rom)).
 
 The **CGA** module draws the game with the DOS release's own
 four-colour CGA graphics (black, cyan, magenta and white): the tiles
@@ -335,6 +340,18 @@ GOG's included.  The dungeon walls are recoloured to the same four
 colours.  It is listed when `SHAPES.CGA` is found.
 
 The game itself (maps, rules and conversations) stays the DOS one.
+
+The SMS, NES, C64 and Apple II modules also frame the game screen in the
+borders of their own version: the SMS its window frame, the NES the
+chain of its title panels, and the C64 and Apple II the frame round the
+map on their titles.  The same frame runs between the map and the party
+list, along the top of the party list, and round the full screen pages
+(the module list, the books and the world map).  Paused is shown in a
+box with that frame, written in the module's font (the DOS graphics keep
+the DOS frame).  The NES font also brings its own prompt arrow, blinking
+cursor and male and female signs.  The SMS and NES figures have outlines
+of their own, so they are drawn without the soft shadow XU4 puts round
+the DOS figures.
 
 ![Apple II tiles on the overworld](doc/screenshots/apple2-overworld.png)
 ![Apple II tiles in Yew, with the action menu](doc/screenshots/apple2-town.png)
@@ -354,6 +371,18 @@ Britannia.
 ![SMS tiles on the overworld](doc/screenshots/sms-overworld.png)
 ![SMS tiles in Yew, with the action menu](doc/screenshots/sms-town.png)
 
+The game screen framed by the SMS module, with the Paused box, the title
+map and the module list:
+
+![SMS frames](doc/screenshots/frames-sms.png)
+
+The NES, C64 and Apple II frames:
+
+![NES, C64 and Apple II frames](doc/screenshots/frames-nes-c64-apple2.png)
+
+![NES title](doc/screenshots/nes-title.png)
+![NES gypsy's cards](doc/screenshots/nes-gypsy.png)
+
 Getting Started
 ---------------
 
@@ -362,6 +391,8 @@ Getting Started
 Every download is on the [releases page].  The next version is tested
 first as a pre-release, now [1.3-pre1], with the CGA look, quick
 spells in fights and the other features listed in its release notes.
+The 1.3 release will also bring the NES modules and the console window
+frames described under [Graphics & Music Modules](#graphics--music-modules).
 The game data
 (`ultima4.zip`, or the files of the GOG release) goes in one of the
 [data folders](#data-folders).  The Steam release is found by itself
@@ -573,8 +604,8 @@ ROM is found.  Nothing from the ROM is stored in the modules.
 
 ### NES ROM
 
-The NES module reads the map tiles, the character and creature sprites
-and the font of Ultima: Quest of the Avatar for the NES straight from its
+The NES module reads the map tiles, the character and creature sprites,
+the font and the title's chain frame of Ultima: Quest of the Avatar for the NES straight from its
 ROM, and the NES-Music soundtrack plays its music by running the game's
 own sound driver on a model of the console's 6502 & sound unit, with
 the NES title tune at the title and its story tune for the story and the
