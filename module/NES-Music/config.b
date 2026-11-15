@@ -18,7 +18,9 @@ module [
 ; $8000 & $8712): tunes 14 & 15 follow the balloon & ship, 12 the fights in
 ; dungeons, 13 the altar rooms & 3 the hall of the Codex.  The jingles were
 ; placed by their code: 20 is next to the experience table (level up), 22
-; reads the party size (joined) and 23 is with the inn.
+; reads the party size (joined) and 23 is with the inn.  28 is the bell: it
+; plays before the first step of the Abyss rite (bell, book, candle).  29 is
+; the horn: it plays before the check for the daemons by Humility's shrine.
 music: [
     "nes/music:5"   ; Outside
     "nes/music:6"   ; Towns
@@ -42,6 +44,8 @@ music: [
     "nes/music:20"  ; Level up (MUSIC_LEVEL_UP)
     "nes/music:22"  ; Joined party (MUSIC_JOINED)
     "nes/music:23"  ; Inn (MUSIC_INN)
+    "nes/music:28"  ; Bell of Courage (MUSIC_BELL)
+    "nes/music:29"  ; Silver Horn (MUSIC_HORN)
     ; Places with their own tune (MUSIC_PLACE 80 + map id).  The villages
     ; have the village tune and the Abyss its own dungeon tune.
     92

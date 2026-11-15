@@ -82,6 +82,8 @@ enum MusicTrack {
     MUSIC_LEVEL_UP,     // A party member goes up a level.
     MUSIC_JOINED,       // A companion joins the party.
     MUSIC_INN,          // Morning at an inn.
+    MUSIC_BELL,         // The Bell of Courage is rung.
+    MUSIC_HORN,         // The Silver Horn is blown.
 
     // A tune for one place, in place of the tune of its kind: MUSIC_PLACE
     // plus the map id (see mapmgr.h).

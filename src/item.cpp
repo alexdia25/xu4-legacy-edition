@@ -10,6 +10,7 @@
 #include "mapmgr.h"
 #include "portal.h"
 #include "screen.h"
+#include "sound.h"
 #include "tileset.h"
 #include "weapon.h"
 #include "xu4.h"
@@ -189,6 +190,10 @@ void useBBC(int item) {
     }
     /* somewhere else */
     else screenMessage("\nHmm...No effect!\n");
+
+    // The NES rings its bell tune wherever the bell is used.
+    if (item == ITEM_BELL)
+        musicJingle(MUSIC_BELL);
 }
 
 /**
@@ -196,6 +201,7 @@ void useBBC(int item) {
  */
 void useHorn(int item) {
     screenMessage("\nThe Horn sounds an eerie tone!\n");
+    musicJingle(MUSIC_HORN);
     c->aura.set(Aura::HORN, 10);
 }
 
