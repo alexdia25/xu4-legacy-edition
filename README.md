@@ -388,14 +388,9 @@ Getting Started
 
 ### Installing
 
-Every download is on the [releases page].  The next version is tested
-first as a pre-release, now [1.3-pre1], with the CGA look, quick
-spells in fights and the other features listed in its release notes.
-The 1.3 release will also bring the NES modules, the console window
-frames described under [Graphics & Music Modules](#graphics--music-modules),
-and an Android fix: the status and navigation bars are hidden so they no
-longer cover the bottom of the game, and nothing is left over in the
-margins beside it.
+Every download is on the [releases page]; the latest is [1.3], with
+the NES modules, the CGA look, the console window frames and the other
+features listed in its release notes.
 The game data
 (`ultima4.zip`, or the files of the GOG release) goes in one of the
 [data folders](#data-folders).  The Steam release is found by itself
@@ -694,7 +689,7 @@ The original XU4 readme follows.
 [Codeberg]: https://codeberg.org/xU4/xu4
 [GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [releases page]: https://github.com/alexdia25/xu4-legacy-edition/releases/latest
-[1.3-pre1]: https://github.com/alexdia25/xu4-legacy-edition/releases/tag/legacy-1.3-pre1
+[1.3]: https://github.com/alexdia25/xu4-legacy-edition/releases/tag/legacy-1.3
 [Flatpak repository]: https://alexdia25.github.io/xu4-legacy-edition/
 [Obtainium]: https://github.com/ImranR98/Obtainium
 [play in the browser]: https://alexdia25.github.io/xu4-legacy-edition/play/

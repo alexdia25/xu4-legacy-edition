@@ -2,21 +2,44 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
-## New in 1.3-pre1
+## New in 1.3
 
-A pre-release for testing.  Most of what is new is optional: the new
-options are in Settings, Legacy Edition Options, now seven pages with one
-option to a line, Next Page and Previous Page, and Use These Settings or
-Cancel on any page keeping or dropping the changes made on all of them.
-How to Play lists them all.
+Most of what is new is optional: the new options are in Settings,
+Legacy Edition Options, now seven pages with one option to a line, Next
+Page and Previous Page, and Use These Settings or Cancel on any page
+keeping or dropping the changes made on all of them.  How to Play lists
+them all.
 
-Graphics:
+Graphics & music:
 
+- **NES module**: the look of Ultima: Quest of the Avatar for the NES,
+  read from your own ROM (the USA release, `.nes`): map tiles with the
+  NES shore edges, character and creature sprites in the game's own
+  colours, the font with its prompt arrow, cursor and male and female
+  signs, the title as the NES book with the menu on its cover, the
+  gypsy's cards on the NES table with its abacus, and the first-person
+  dungeon view drawn by the NES game's own code.  See "NES ROM" in the
+  README.
+- **NES-Music**: the NES soundtrack played by the game's own sound
+  driver on a model of the console's 6502 and sound unit, with the NES
+  tunes where the NES game plays them (title, story, towns, villages,
+  castles, shrines, dungeons and their fights, ships and the balloon,
+  the altar rooms, the Abyss, the Codex, the ending and the party's
+  death) and its jingles for a new level, a member joining, a night at
+  an inn, the Bell, the Horn and the healers.
 - **CGA module**: the DOS release's four-colour CGA look (black, cyan,
   magenta and white), read from the game's own `SHAPES.CGA`,
   `CHARSET.CGA` and `.PIC` files: tiles, font, title and story
   pictures, with the dungeon walls in the same colours.  Pick it in
   Graphics & Music.
+- **Console frames**: the SMS, NES, C64 and Apple II modules frame the
+  game screen in the borders of their own version (the SMS window
+  frame, the NES title's chain, the C64 and Apple II title frames),
+  between the map and the party list and round the full screen pages
+  too, and Paused is shown in a box with that frame in the module's
+  font.
+- The SMS and NES figures are drawn without the soft shadow XU4 puts
+  round the DOS ones, since they have outlines of their own.
 - **Switch graphics anywhere**: picking other graphics in Graphics &
   Music during play now swaps the tiles, font and music in place, in a
   town, a dungeon, a battle or after a conversation, without saving or
@@ -126,6 +149,14 @@ Input and system:
 - **Menu Sounds** and **Smoother Sound** (Sound Options): the pick lists
   tick and click, the music dips under a long effect and an effect does
   not restart over itself.
+
+Fixes:
+
+- With a gamepad, picking other modules at the title no longer starts
+  the game as if Journey Onward had been chosen.
+- Android: the status and navigation bars are hidden, so they no longer
+  cover the bottom of the game, and nothing is left over in the margins
+  beside it.
 
 ## New in 1.2
 
