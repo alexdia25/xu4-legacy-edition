@@ -584,7 +584,7 @@ and balloon tunes aboard, the dungeon battle tune for fights in
 dungeons, the altar room tune, the Codex hall tune in the Codex chamber,
 the ending tune at the end and a tune when the party dies, and its
 jingles when someone goes up a level, joins the party, wakes at an
-inn, rings the bell or blows the horn.  Other music
+inn, rings the bell, blows the horn or is healed by a healer.  Other music
 modules can add these tunes too (see `src/sound.h`).  The NES
 game draws Lord British's castle as two tiles, so the square west of its
 gate shows grass.  A few DOS tiles have no NES picture; they are drawn

@@ -856,7 +856,9 @@ CFUNC(cf_pcHeal)
     if (player > 0) {
         if (CFUNC_OPTIONS & 1) {
             screenHideCursor();
-            gameSpellEffect('r', -1, SOUND_MAGIC);
+            // The NES healers' tune, else the resurrect spell effect.
+            if (! musicJingle(MUSIC_HEALER))
+                gameSpellEffect('r', -1, SOUND_MAGIC);
             screenShowCursor();
        }
 

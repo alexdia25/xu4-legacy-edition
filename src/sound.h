@@ -84,6 +84,7 @@ enum MusicTrack {
     MUSIC_INN,          // Morning at an inn.
     MUSIC_BELL,         // The Bell of Courage is rung.
     MUSIC_HORN,         // The Silver Horn is blown.
+    MUSIC_HEALER,       // A healer heals, cures or raises someone.
 
     // A tune for one place, in place of the tune of its kind: MUSIC_PLACE
     // plus the map id (see mapmgr.h).

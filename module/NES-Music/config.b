@@ -21,6 +21,7 @@ module [
 ; reads the party size (joined) and 23 is with the inn.  28 is the bell: it
 ; plays before the first step of the Abyss rite (bell, book, candle).  29 is
 ; the horn: it plays before the check for the daemons by Humility's shrine.
+; 24 is the healers' tune, played as they heal.  30 is the NES-only flute.
 music: [
     "nes/music:5"   ; Outside
     "nes/music:6"   ; Towns
@@ -46,6 +47,7 @@ music: [
     "nes/music:23"  ; Inn (MUSIC_INN)
     "nes/music:28"  ; Bell of Courage (MUSIC_BELL)
     "nes/music:29"  ; Silver Horn (MUSIC_HORN)
+    "nes/music:24"  ; Healers (MUSIC_HEALER)
     ; Places with their own tune (MUSIC_PLACE 80 + map id).  The villages
     ; have the village tune and the Abyss its own dungeon tune.
     92
