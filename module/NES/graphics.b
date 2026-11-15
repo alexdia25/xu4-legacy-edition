@@ -156,6 +156,55 @@ graphics: [
         at 0,1120 tile_fire_phantom 2
     ]
     image (name: charset filename: "nes/0,40000" filetype: nesfont tiles: 256)
+    ; The title: the NES book cover with its logo is the "Ultima IV" of the
+    ; intro; a frame of NES windows goes round the map.
+    image (name: title filename: "nes/0,40000" filetype: nestitle fixup: smsintro) [
+        options_top  0, 32, 320,128
+        options_btm  0,112, 320, 80
+        t_signature  0,  0,   1,  1
+        t_and        0,  0,   1,  1
+        t_bar        0,  0,   1,  1
+        t_origin     0,  0,   1,  1
+        t_present    0,  0,   1,  1
+        t_title     40,  0, 240, 96
+        t_subtitle   0,  0,   1,  1
+        t_map        0, 96, 320, 96
+    ]
+    ; A daemon (left) and a dragon (right) turning as NES creatures do.
+    image (name: beasties filename: "nes/0,40000" filetype: nesbeasts) [
+        at 0,0  size 32,32 beast0frame00 2
+        at 0,64 size 32,32 beast1frame00 2
+        beast0_pos    4,8, 1,1
+        beast1_pos  284,8, 1,1
+        beast_steps   0,0, 2,400
+    ]
+    ; The gypsy's table and abacus.  A bead of the chosen (white) and the
+    ; rejected (black) virtue goes on the rung of each question, in the
+    ; column of the virtue.
+    image (name: abacus filename: "nes/0,40000" filetype: nesgypsy) [
+        bead_pos  128,16,   8,16
+        card_pos   40,24, 176, 1
+    ]
+    image (name: beads filename: "nes/0,40000" filetype: nescards) [
+        whitebead 512,0, 8,16
+        blackbead 520,0, 8,16
+    ]
+    image (name: cards1 filename: "nes/0,40000" filetype: nescards) [
+        honestycard        0,0, 64,104
+        compassioncard    64,0, 64,104
+    ]
+    image (name: cards2 filename: "nes/0,40000" filetype: nescards) [
+        valorcard        128,0, 64,104
+        justicecard      192,0, 64,104
+    ]
+    image (name: cards3 filename: "nes/0,40000" filetype: nescards) [
+        sacrificecard    256,0, 64,104
+        honorcard        320,0, 64,104
+    ]
+    image (name: cards4 filename: "nes/0,40000" filetype: nescards) [
+        spiritualitycard 384,0, 64,104
+        humilitycard     448,0, 64,104
+    ]
     ; The dungeon view is drawn by the game's own program (see
     ; src/imageloader_nes.cpp).
     image (name: dung_nes filename: "nes/0,40000" filetype: nesdngd)

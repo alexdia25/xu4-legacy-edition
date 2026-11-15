@@ -205,6 +205,10 @@ Image* loadImage(U4FILE *file, int ftype, int width, int height, int bpp) {
 
     case FTYPE_NESTILES:
     case FTYPE_NESFONT:
+    case FTYPE_NESTITLE:
+    case FTYPE_NESGYPSY:
+    case FTYPE_NESCARDS:
+    case FTYPE_NESBEASTS:
         return loadImage_nes(file, ftype);
 
     case FTYPE_CGATILES:

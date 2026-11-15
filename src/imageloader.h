@@ -49,6 +49,10 @@ enum ImageFiletype {
     FTYPE_NESTILES,
     FTYPE_NESFONT,
     FTYPE_NESDNGD,      // Dungeon view from the ROM (not an image).
+    FTYPE_NESTITLE,
+    FTYPE_NESGYPSY,
+    FTYPE_NESCARDS,
+    FTYPE_NESBEASTS,
     FTYPE_ATLAS         // Special internal type for ImageInfo.
 };
 

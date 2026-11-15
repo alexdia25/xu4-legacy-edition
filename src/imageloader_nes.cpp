@@ -518,6 +518,299 @@ static Image* nesFont(const std::vector<uint8_t>& prg)
     return img;
 }
 
+//----------------------------------------------------------------------------
+// Full-screen pictures
+
+/*
+ * The game keeps the name tables of its screens (the title, the gypsy's
+ * table, ...) packed with a code of its own ($E6DF).  For screen n, $E6B0
+ * gives a table in the bank at $E6B6; the table's first word points to the
+ * attributes (64 bytes) followed by the background palette (12 bytes).  Then
+ * comes the packed name table: a byte with the offset of the bit stream from
+ * the next byte, the byte values, then the bit stream.  A value is coded as
+ * a number of 2 bits, or if all ones then 3 bits, and so on; numbers of n
+ * bits index the values from 0, 3, $A, $19, $38 & $77.  The $81 run code
+ * of the pattern chunks applies to the values.
+ */
+enum NesScreenId { NES_SCR_DUNGEON, NES_SCR_GYPSY, NES_SCR_TITLE };
+
+struct NesScreen {
+    uint8_t names[960];
+    uint8_t attr[64];
+    uint8_t pal[16];
+
+    bool load(const NesRom& rom, int n) {
+        static const uint8_t base[6] = { 0x00, 0x03, 0x0A, 0x19, 0x38, 0x77 };
+        int bank = rom.fixed(0xE6B6 + n);
+        int sub = rom.rd16(bank, 0x8000 + 2 * rom.fixed(0xE6B0 + n));
+        int attrAddr = rom.rd16(bank, sub);
+        int dict = sub + 3;
+        int bits = dict + rom.rd(bank, sub + 2);
+        int count = 0, byte = 0;
+
+        for (int i = 0; i < 64; ++i)
+            attr[i] = rom.rd(bank, attrAddr + i);
+        for (int i = 0, j = 0; i < 16; ++i)
+            pal[i] = (i & 3) ? rom.rd(bank, attrAddr + 0x40 + j++) : 0x0F;
+
+        int last = 0;
+        for (int i = 0; i < 960; ) {
+            int v = 0;
+            for (int len = 2; len < 8; ++len) {
+                int num = 0;
+                for (int b = 0; b < len; ++b) {
+                    if (! count) {
+                        if (bits >= 0xC000)
+                            return false;
+                        byte = rom.rd(bank, bits++);
+                        count = 8;
+                    }
+                    num = (num << 1) | ((byte >> 7) & 1);
+                    byte <<= 1;
+                    --count;
+                }
+                if (num != (1 << len) - 1) {
+                    v = rom.rd(bank, dict + base[len - 2] + num);
+                    break;
+                }
+                if (len == 7)
+                    return false;
+            }
+            // The run code: $81 then the count (0 is a $81).
+            if (v == 0x81 && ! runPending) {
+                runPending = true;
+                continue;
+            }
+            if (runPending) {
+                runPending = false;
+                if (v == 0) {
+                    names[i++] = last = 0x81;
+                } else {
+                    for (int k = 1; k < v && i < 960; ++k)
+                        names[i++] = last;
+                }
+                continue;
+            }
+            names[i++] = last = v;
+        }
+        return true;
+    }
+
+    int palAt(int col, int row) const {
+        int a = attr[(row / 4) * 8 + col / 4];
+        return (a >> (((row & 2) << 1) | (col & 2))) & 3;
+    }
+
+    // Draw the names of columns c0-c1 & rows r0-r1 with their top left at x, y.
+    void draw(Image* img, int x, int y, const uint8_t* vram, int c0, int r0,
+              int c1, int r1) const {
+        for (int r = r0; r <= r1; ++r)
+            for (int c = c0; c <= c1; ++c)
+                nesPattern(img, x + (c - c0) * 8, y + (r - r0) * 8,
+                           vram + 0x1000 + names[r * 32 + c] * 16,
+                           pal + palAt(c, r) * 4, false, true);
+    }
+
+    bool runPending = false;
+};
+
+/*
+ * The title: the top of the NES title (the book with the logo) as the
+ * "Ultima IV" of the intro, then a frame of the game's windows around the
+ * map, as wide as the screen.  The rest of the intro elements are empty.
+ */
+static Image* nesTitle(const std::vector<uint8_t>& prg)
+{
+    if (prg.size() < NES_BANK(16))
+        return NULL;
+    NesRom rom(prg);
+    NesScreen scr;
+    if (! scr.load(rom, NES_SCR_TITLE))
+        return NULL;
+    uint8_t vram[0x2000];
+    memset(vram, 0, sizeof(vram));
+    rom.chunk(0, vram);
+    rom.chunk(1, vram);
+    rom.chunk(2, vram);
+    rom.chunk(0x2D, vram);
+
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
+    scr.draw(img, 40, 0, vram, 1, 4, 30, 15);
+
+    // The frame of the map, with the window tiles (chunk 1).
+    rom.chunk(1, vram);
+    const int rows = 12, cols = 40, fy = 96;
+    const uint8_t* pal = scr.pal + 2 * 4;
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols; ++c) {
+            int t;
+            if (r == 0)
+                t = (c == 0) ? 0x70 : (c == cols - 1) ? 0x71 : 0x74;
+            else if (r == rows - 1)
+                t = (c == 0) ? 0x72 : (c == cols - 1) ? 0x73 : 0x75;
+            else if (c == 0)
+                t = 0x76;
+            else if (c == cols - 1)
+                t = 0x77;
+            else
+                continue;
+            nesPattern(img, c * 8, fy + r * 8, vram + 0x1000 + t * 16, pal,
+                       false, true);
+        }
+    }
+    return img;
+}
+
+/*
+ * The gypsy's table ($A3FD in bank $0D).  nesgypsy is the green table with
+ * the abacus and no cards, 320 wide (the NES screen at x 32).  nescards is
+ * a sheet of the eight cards (64 x 104 each) then the white & black beads
+ * (8 x 16).  A card is its frame with the picture palette from $A43F, the
+ * name from $A49F (18 bytes each, rows 12-14) & the picture of 4x4 sprites:
+ * its first pattern at $A5BB, which of the 16 are drawn in two bytes at
+ * $A5C3 & their palettes, two bits each, from $A5D3.
+ */
+#define NES_CARD_W      64
+#define NES_CARD_H      104
+
+static void nesGypsyVram(const NesRom& rom, uint8_t* vram)
+{
+    memset(vram, 0, 0x2000);
+    rom.chunk(0, vram);
+    rom.chunk(1, vram);
+    rom.chunk(2, vram);
+    rom.chunk(0x2E, vram);
+    rom.chunk(0x2F, vram);
+}
+
+static Image* nesGypsy(const std::vector<uint8_t>& prg)
+{
+    if (prg.size() < NES_BANK(16))
+        return NULL;
+    NesRom rom(prg);
+    NesScreen scr;
+    if (! scr.load(rom, NES_SCR_GYPSY))
+        return NULL;
+    uint8_t vram[0x2000];
+    nesGypsyVram(rom, vram);
+
+    // The table without the cards.
+    for (int r = 0; r < 18; ++r)
+        for (int c = 0; c < 32; ++c)
+            if (c < 10 || c > 21)
+                scr.names[r * 32 + c] = 0x7C;
+
+    Image* img = Image::create(320, 200);
+    img->fill(Image::black);
+    scr.draw(img, 32, 0, vram, 0, 0, 31, 17);
+    // The table where the cards go and at the sides, in its own colours.
+    const uint8_t* table = vram + 0x1000 + 0x7C * 16;
+    for (int r = 0; r < 18; ++r)
+        for (int x = 0; x < 320; x += 8)
+            if (x < 32 + 10 * 8 || x >= 32 + 22 * 8)
+                nesPattern(img, x, r * 8, table, scr.pal, false, true);
+    return img;
+}
+
+static Image* nesCards(const std::vector<uint8_t>& prg)
+{
+    if (prg.size() < NES_BANK(16))
+        return NULL;
+    NesRom rom(prg);
+    NesScreen scr;
+    if (! scr.load(rom, NES_SCR_GYPSY))
+        return NULL;
+    uint8_t vram[0x2000];
+    nesGypsyVram(rom, vram);
+    uint8_t spal[4][4];
+    for (int p = 0; p < 4; ++p) {
+        spal[p][0] = 0x0F;
+        for (int i = 0; i < 3; ++i)
+            spal[p][i + 1] = rom.rd(13, 0xA3F1 + p * 3 + i);
+    }
+
+    Image* img = Image::create(8 * NES_CARD_W + 16, NES_CARD_H);
+    img->fill(Image::black);
+    for (int v = 0; v < 8; ++v) {
+        int x0 = v * NES_CARD_W;
+        int picPal = rom.rd(13, 0xA43F + v) & 3;
+        // The frame: rows 3-15, columns 1-8 of the left card.
+        for (int r = 3; r <= 15; ++r) {
+            for (int c = 1; c <= 8; ++c) {
+                int t = scr.names[r * 32 + c];
+                if (r >= 12 && r <= 14 && c >= 2 && c <= 7)
+                    t = rom.rd(13, 0xA49F + v * 18 + (r - 12) * 6 + (c - 2));
+                int p = (r >= 4 && r <= 11 && c >= 2 && c <= 7)
+                      ? picPal : scr.palAt(c, r);
+                nesPattern(img, x0 + (c - 1) * 8, (r - 3) * 8,
+                           vram + 0x1000 + t * 16, scr.pal + p * 4,
+                           false, true);
+            }
+        }
+        // The picture.
+        int tile = rom.rd(13, 0xA5BB + v);
+        int mask = (rom.rd(13, 0xA5C3 + 2 * v) << 8) |
+                    rom.rd(13, 0xA5C4 + 2 * v);
+        int palByte = 0, palLeft = 0, palAddr = 0xA5D3 + 4 * v;
+        for (int k = 0; k < 16; ++k) {
+            if (! (mask & (0x8000 >> k)))
+                continue;
+            if (! palLeft) {
+                palByte = rom.rd(13, palAddr++);
+                palLeft = 4;
+            }
+            int p = (palByte >> 6) & 3;
+            palByte <<= 2;
+            --palLeft;
+            nesPattern(img, x0 + 16 + (k & 3) * 8, 27 + (k >> 2) * 8,
+                       vram + tile * 16, spal[p], false, false);
+            ++tile;
+        }
+    }
+
+    // The beads: white (patterns 0 & $10) and black (1 & $11).  As on the
+    // NES they replace the abacus where they are, rung & table included.
+    int bx = 8 * NES_CARD_W;
+    const uint8_t* bpal = scr.pal + scr.palAt(12, 2) * 4;
+    for (int b = 0; b < 2; ++b) {
+        nesPattern(img, bx + b * 8, 0, vram + 0x1000 + b * 16, bpal,
+                   false, true);
+        nesPattern(img, bx + b * 8, 8, vram + 0x1000 + (0x10 + b) * 16,
+                   bpal, false, true);
+    }
+    return img;
+}
+
+/*
+ * The beasties of the intro: a daemon & a dragon, the creature turning
+ * each step as the NES draws creatures, at twice the size.  Each is two
+ * frames of 32x32, one above the other.
+ */
+static Image* nesBeasts(const std::vector<uint8_t>& prg)
+{
+    if (prg.size() < NES_BANK(16))
+        return NULL;
+    static const uint8_t beast[2] = { 0x28, 0x29 };     // daemon, dragon
+    NesRom rom(prg);
+    NesTileBuilder tb(rom);
+    Image* small = Image::create(16, 64);
+    small->fill(Image::black);
+    for (int i = 0; i < 4; ++i)
+        tb.sprite(small, i * 16, beast[i >> 1], 0, NES_PAL_GAME,
+                  (i & 1) ^ (i >> 1), nesNoColor);
+
+    Image* img = Image::create(32, 128);
+    unsigned int r, g, b, a;
+    for (int y = 0; y < 128; ++y)
+        for (int x = 0; x < 32; ++x) {
+            small->getPixel(x / 2, y / 2, r, g, b, a);
+            img->putPixel(x, y, r, g, b, IM_OPAQUE);
+        }
+    delete small;
+    return img;
+}
+
 static Image* loadImage_nes(U4FILE* file, int ftype)
 {
     std::vector<uint8_t> data(file->length());
@@ -528,6 +821,14 @@ static Image* loadImage_nes(U4FILE* file, int ftype)
             return nesTiles(data);
         case FTYPE_NESFONT:
             return nesFont(data);
+        case FTYPE_NESTITLE:
+            return nesTitle(data);
+        case FTYPE_NESGYPSY:
+            return nesGypsy(data);
+        case FTYPE_NESCARDS:
+            return nesCards(data);
+        case FTYPE_NESBEASTS:
+            return nesBeasts(data);
     }
     return NULL;
 }
