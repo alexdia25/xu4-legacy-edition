@@ -78,14 +78,19 @@ enum MusicTrack {
     MUSIC_CODEX,        // The chamber of the Codex.
     MUSIC_ENDING,       // The end of the game.
     MUSIC_DEATH,        // The party is dead.
+    // Short tunes played once (musicJingle), then the music goes on.
+    MUSIC_LEVEL_UP,     // A party member goes up a level.
+    MUSIC_JOINED,       // A companion joins the party.
+    MUSIC_INN,          // Morning at an inn.
 
     // A tune for one place, in place of the tune of its kind: MUSIC_PLACE
     // plus the map id (see mapmgr.h).
-    MUSIC_PLACE = 70,
+    MUSIC_PLACE = 80,
     MUSIC_PLACE_END = MUSIC_PLACE + 64
 };
 
 bool musicAvailable(int track);
+bool musicJingle(int track);
 
 int soundInit(void);
 void soundDelete(void);

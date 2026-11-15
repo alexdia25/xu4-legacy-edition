@@ -823,6 +823,29 @@ void musicPlayLocale()
     musicPlay(localeTrack());
 }
 
+/*
+ * Play a short tune once, if the music module has it, waiting until it ends
+ * (or a key is pressed); then the music of the place starts again.
+ * Return false if there is no such tune.
+ */
+bool musicJingle(int track)
+{
+    if (! musicEnabled || musicVolume <= 0.0f || ! musicAvailable(track))
+        return false;
+    TEST_SOUND_EVENT('m', track);
+    currentTrack = MUSIC_NONE;
+    if (! music_start(track, PLAY_ONCE))
+        return false;
+    uint64_t end = SDL_GetTicks() + 10000;
+    while (music.playing && SDL_GetTicks() < end) {
+        if (EventHandler::wait_msecs(50))
+            break;
+    }
+    currentTrack = MUSIC_NONE;
+    musicPlayLocale();
+    return true;
+}
+
 void musicStop()
 {
     TEST_SOUND_EVENT('x', 0);

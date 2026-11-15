@@ -16,7 +16,9 @@ module [
 ; & character creation, which the intro plays as its title & story tunes.
 ; Where each tune plays was read from the game's music table (bank 14,
 ; $8000 & $8712): tunes 14 & 15 follow the balloon & ship, 12 the fights in
-; dungeons, 13 the altar rooms & 3 the hall of the Codex.
+; dungeons, 13 the altar rooms & 3 the hall of the Codex.  The jingles were
+; placed by their code: 20 is next to the experience table (level up), 22
+; reads the party size (joined) and 23 is with the inn.
 music: [
     "nes/music:5"   ; Outside
     "nes/music:6"   ; Towns
@@ -37,13 +39,16 @@ music: [
     "nes/music:3"   ; Codex chamber; the NES plays it in the hall before it
     "nes/music:4"   ; Ending (MUSIC_ENDING)
     "nes/music:19"  ; Death (MUSIC_DEATH)
-    ; Places with their own tune (MUSIC_PLACE 70 + map id).  The villages
+    "nes/music:20"  ; Level up (MUSIC_LEVEL_UP)
+    "nes/music:22"  ; Joined party (MUSIC_JOINED)
+    "nes/music:23"  ; Inn (MUSIC_INN)
+    ; Places with their own tune (MUSIC_PLACE 80 + map id).  The villages
     ; have the village tune and the Abyss its own dungeon tune.
-    82
+    92
     "nes/music:7"   ; Paws (13)
-    84
+    94
     "nes/music:7"   ; Vesper (15)
     "nes/music:7"   ; Cove (16)
-    93
+    103
     "nes/music:11"  ; The Abyss (24)
 ]

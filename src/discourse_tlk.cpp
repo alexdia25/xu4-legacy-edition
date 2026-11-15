@@ -922,6 +922,7 @@ tell_name:
                                        ts->startVoiceLn + VP_JOIN);
                         message("I am honored to join thee!\n");
                         c->location->map->removeObject(ts->person);
+                        musicJingle(MUSIC_JOINED);
                         break;
                     }
                     message("Thou art not %s enough for me to join thee.\n",

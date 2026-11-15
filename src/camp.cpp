@@ -150,7 +150,8 @@ void InnController::beginCombat() {
     screenMessage("\nMorning!\n");
     screenPrompt();
 
-    musicFadeIn(INN_FADE_IN_TIME, true);
+    if (! musicJingle(MUSIC_INN))
+        musicFadeIn(INN_FADE_IN_TIME, true);
 }
 
 void InnController::maybeMeetIsaac()

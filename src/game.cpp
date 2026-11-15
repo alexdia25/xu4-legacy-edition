@@ -1124,7 +1124,8 @@ void GameController::gameNotice(int sender, void* eventData, void* user) {
             screenMessage("\n%c%s\nThou art now Level %d%c\n", FG_YELLOW,
                     ev->player->getName(),
                     ev->player->getRealLevel(), FG_WHITE);
-            gameSpellEffect('r', -1, SOUND_MAGIC); // Same as resurrect spell
+            if (! musicJingle(MUSIC_LEVEL_UP))
+                gameSpellEffect('r', -1, SOUND_MAGIC); // Same as resurrect spell
             break;
 
         case PartyEvent::STARVING:
