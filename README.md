@@ -391,8 +391,11 @@ Getting Started
 Every download is on the [releases page].  The next version is tested
 first as a pre-release, now [1.3-pre1], with the CGA look, quick
 spells in fights and the other features listed in its release notes.
-The 1.3 release will also bring the NES modules and the console window
-frames described under [Graphics & Music Modules](#graphics--music-modules).
+The 1.3 release will also bring the NES modules, the console window
+frames described under [Graphics & Music Modules](#graphics--music-modules),
+and an Android fix: the status and navigation bars are hidden so they no
+longer cover the bottom of the game, and nothing is left over in the
+margins beside it.
 The game data
 (`ultima4.zip`, or the files of the GOG release) goes in one of the
 [data folders](#data-folders).  The Steam release is found by itself
