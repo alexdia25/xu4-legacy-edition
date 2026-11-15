@@ -405,16 +405,20 @@ static Image* smsTitle(const std::vector<uint8_t>& data)
     for (y = 0; y < rows; ++y) {
         int ty = SMS_FRAME_Y + y * 8;
         for (i = 0; i < cols; ++i) {
+            // The bottom left corner, the bottom & the left side (with
+            // their white inner line) flipped for the other corners &
+            // sides, so the white line goes all round the inside.
+            const int H = 0x200, V = 0x400;     // Flip bits of a name.
             int n;
+            bool last = (i == cols - 1);
             if (y == 0)
-                n = (i == 0) ? 0xE9 : (i == cols - 1) ? 0xEB : 0xEA;
+                n = (i == 0) ? 0xEF | V : last ? 0xEF | V | H : 0xF0 | V;
             else if (y == rows - 1)
-                n = (i == 0) ? 0xEF : (i == cols - 1) ? 0xF2 :
-                    (i == cols - 2) ? 0xF1 : 0xF0;
+                n = (i == 0) ? 0xEF : last ? 0xEF | H : 0xF0;
             else if (i == 0)
-                n = (y == 1) ? 0xEC : 0xEE;
-            else if (i == cols - 1)
-                n = 0xED;
+                n = 0xEE;
+            else if (last)
+                n = 0xEE | H;
             else
                 continue;
             vram->draw(img, i * 8, ty, n, pal);
