@@ -284,9 +284,16 @@ void testAudioTour(const char* dir)
 #include "gpu.h"
 #include "gui.h"
 
+#include "textpage.h"
+
+// The screen dimmed, with "Paused" in a box framed & written as the game's
+// own windows are (in the font & frame of the graphics module).
 static void renderPause(ScreenState* ss, void* data)
 {
     gpu_drawGui(xu4.gpu, GPU_DLIST_GUI, WID_NONE, 0);
+    TextPage* page = (TextPage*) data;
+    page->upload();
+    page->draw(ss);
 }
 #endif
 
@@ -310,18 +317,26 @@ bool EventHandler::runPause() {
 #ifdef GPU_PAUSE
     static uint8_t pauseGui[] = {
         LAYOUT_V, BG_COLOR_CI, 128,
-        MARGIN_V_PER, 42, FONT_VSIZE, 38, LABEL_DT_S,
         LAYOUT_END
     };
-    const void* guiData[1];
-    guiData[0] = "\x13\xAPaused";
     TxfDrawState ds;
     ds.fontTable = screenState()->fontTable;
     float* attr = gpu_beginTris(xu4.gpu, GPU_DLIST_GUI);
-    attr = gui_layout(attr, NULL, &ds, pauseGui, guiData);
+    attr = gui_layout(attr, NULL, &ds, pauseGui, NULL);
     gpu_endTris(xu4.gpu, GPU_DLIST_GUI, attr);
 
-    screenSetLayer(LAYER_TOP_MENU, renderPause, this);
+    TextPage page;
+    if (page.begin()) {
+        page.clear(TextPage::CLEAR);
+        const char* word = "Paused";
+        int tw = page.textWidth(6, 2);
+        int w = tw + 2 * 40, h = 8 * 2 + 2 * 32;
+        int x = (page.width() - w) / 2, y = (page.height() - h) / 2;
+        page.fill(x, y, w, h, TextPage::BLACK);
+        page.frame(x, y, w, h, 14);
+        page.text(x + 40, y + 32, word, TextPage::WHITE, 2);
+    }
+    screenSetLayer(LAYER_TOP_MENU, renderPause, &page);
 #else
     screenTextAt(16, 12, "( Paused )");
     screenUploadToGPU();
