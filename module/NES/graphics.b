@@ -156,17 +156,17 @@ graphics: [
         at 0,1120 tile_fire_phantom 2
     ]
     image (name: charset filename: "nes/0,40000" filetype: nesfont tiles: 256)
-    ; The title: the NES book cover with its logo is the "Ultima IV" of the
-    ; intro; a frame of NES windows goes round the map.
+    ; The title: the NES book cover with its logo panel as the "Ultima IV"
+    ; of the intro, and a panel like it round the map and the menu.
     image (name: title filename: "nes/0,40000" filetype: nestitle fixup: smsintro) [
         options_top  0, 32, 320,128
-        options_btm  0,112, 320, 80
+        options_btm  0,120, 320, 80
         t_signature  0,  0,   1,  1
         t_and        0,  0,   1,  1
         t_bar        0,  0,   1,  1
         t_origin     0,  0,   1,  1
         t_present    0,  0,   1,  1
-        t_title     40,  0, 240, 96
+        t_title      0,  0, 320, 88
         t_subtitle   0,  0,   1,  1
         t_map        0, 96, 320, 96
     ]
@@ -174,8 +174,8 @@ graphics: [
     image (name: beasties filename: "nes/0,40000" filetype: nesbeasts) [
         at 0,0  size 32,32 beast0frame00 2
         at 0,64 size 32,32 beast1frame00 2
-        beast0_pos    4,8, 1,1
-        beast1_pos  284,8, 1,1
+        beast0_pos   32,12, 1,1
+        beast1_pos  256,12, 1,1
         beast_steps   0,0, 2,400
     ]
     ; The gypsy's table and abacus.  A bead of the chosen (white) and the

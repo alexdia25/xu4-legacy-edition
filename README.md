@@ -592,8 +592,9 @@ drawn by running the NES game's own drawing code on the dungeon in
 front of you, with its walls, doors, ladders, chests, orbs, fountains and
 altars; monsters there are the NES sprites.  On the world map, grass,
 brush, hills and water take the NES shore edges where land meets water.  The title is the NES book
-cover with its logo, with a daemon and a dragon at its sides and the map
-in a frame of NES windows, and the gypsy deals the NES cards on its green
+cover widened to the screen, with its chain framed logo panel (a daemon
+and a dragon at the logo's sides) above a panel like it for the map and
+the menu, and the gypsy deals the NES cards on its green
 table with the NES abacus and beads.  The NES game has no story pictures,
 so those stay the DOS ones, and the game itself stays the DOS one.
 
