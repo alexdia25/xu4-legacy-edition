@@ -255,6 +255,8 @@ static void mouseButtonHandler(const SDL_MouseButtonEvent* ev)
 //----------------------------------------------------------------------------
 // Gamepad
 
+static void readPadState(SDL_Gamepad*, PadState*);
+
 static void openGamepad(ScreenSDL* ss, SDL_JoystickID id)
 {
     if (ss->gamepad)
@@ -262,7 +264,12 @@ static void openGamepad(ScreenSDL* ss, SDL_JoystickID id)
     ss->gamepad = SDL_OpenGamepad(id);
     if (ss->gamepad && xu4.verbose)
         printf("Gamepad: %s\n", SDL_GetGamepadName(ss->gamepad));
-    gamepad_reset();
+    if (ss->gamepad) {
+        PadState ps;
+        readPadState(ss->gamepad, &ps);
+        gamepad_opened(&ps);
+    } else
+        gamepad_reset();
 }
 
 static void closeGamepad(ScreenSDL* ss, SDL_JoystickID id)
@@ -282,7 +289,7 @@ static void closeGamepad(ScreenSDL* ss, SDL_JoystickID id)
     }
 }
 
-static void readGamepad(SDL_Gamepad* gp)
+static void readPadState(SDL_Gamepad* gp, PadState* out)
 {
     static const SDL_GamepadButton map[PAD_BUTTON_COUNT] = {
         SDL_GAMEPAD_BUTTON_SOUTH,       // PAD_A
@@ -298,7 +305,7 @@ static void readGamepad(SDL_Gamepad* gp)
         SDL_GAMEPAD_BUTTON_DPAD_LEFT,
         SDL_GAMEPAD_BUTTON_DPAD_RIGHT
     };
-    PadState ps;
+    PadState& ps = *out;
 
     ps.buttons = 0;
     for (int i = 0; i < PAD_BUTTON_COUNT; ++i) {
@@ -307,7 +314,12 @@ static void readGamepad(SDL_Gamepad* gp)
     }
     ps.axisX = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
     ps.axisY = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
+}
 
+static void readGamepad(SDL_Gamepad* gp)
+{
+    PadState ps;
+    readPadState(gp, &ps);
     gamepad_update(&ps, (uint32_t) SDL_GetTicks(), dispatchKey);
 }
 
@@ -510,9 +522,21 @@ void screenInit_sys(const Settings* settings, ScreenState* state, int reset)
         errorFatal("Unable to obtain OpenGL resource (%s)", gpuError);
 }
 
+// A held key repeated by the game (Held Key Pace), not by the system, so a
+// held direction walks at a steady pace with no backlog of repeats.
+static SDL_KeyboardEvent heldKey;
+static bool heldDown = false;
+static uint32_t heldNext;
+static uint32_t heldScene;      // EventHandler::sceneCount at the press.
+
 void screenDelete_sys()
 {
     ScreenSDL* ss = SGL;
+
+    // SDL_Quit drops the release of a key still held (the Enter that
+    // picked other modules at the title), which would then repeat on the
+    // title after the restart and continue the saved game.
+    heldDown = false;
 
     gpu_free(&ss->gpu);
 
@@ -637,12 +661,6 @@ void screenShowMouseCursor(bool visible)
  *                 Otherwise EventHandler::getController() (the currently
  *                 active one) will be used.
  */
-// A held key repeated by the game (Held Key Pace), not by the system, so a
-// held direction walks at a steady pace with no backlog of repeats.
-static SDL_KeyboardEvent heldKey;
-static bool heldDown = false;
-static uint32_t heldNext;
-static uint32_t heldScene;      // EventHandler::sceneCount at the press.
 
 void EventHandler::handleInputEvents(Controller* waitCon,
                                      updateScreenCallback update)

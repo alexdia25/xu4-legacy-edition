@@ -129,6 +129,17 @@ void gamepad_reset() {
 }
 
 /*
+ * Take the buttons down on a gamepad just opened as held, so they press
+ * nothing until let go.  After a restart (other modules picked at the
+ * title) the A button that picked them would otherwise press Enter again
+ * on the title and continue the saved game.
+ */
+void gamepad_opened(const PadState* ps) {
+    gamepad_reset();
+    gamepad_update(ps, 0, NULL);
+}
+
+/*
  * Turn the current pad state into key presses.  Call once per input poll.
  */
 void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
@@ -150,6 +161,8 @@ void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey)
 
     uint32_t pressed = buttons & ~pad.held;
     pad.held = buttons;
+    if (! sendKey)
+        return;     // Just note what is held (gamepad_opened).
 
     for (int b = 0; b < PAD_BUTTON_COUNT; ++b) {
         if (pressed & PAD_BIT(b)) {

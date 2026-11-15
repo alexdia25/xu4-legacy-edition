@@ -70,6 +70,7 @@ void gamepad_defaultMap(uint8_t* map);
 int  gamepad_playKey(int key, const uint8_t* map);
 
 void gamepad_reset();
+void gamepad_opened(const PadState* ps);
 void gamepad_update(const PadState* ps, uint32_t msec, PadKeyFunc sendKey);
 bool gamepad_inUse();
 bool gamepad_prompts();
