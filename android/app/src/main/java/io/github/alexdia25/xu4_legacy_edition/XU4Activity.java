@@ -8,12 +8,19 @@ import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.provider.OpenableColumns;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -204,6 +211,205 @@ public class XU4Activity extends SDLActivity {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    /**
+     * SDL_ShowMessageBox().  SDL's own box puts the text & buttons in a plain
+     * layout, so a long text (such as the first run's request for the game
+     * files) runs off the bottom of a phone screen with the buttons, and
+     * nothing can be chosen.  Here the text scrolls (drag, or up & down on a
+     * gamepad or keyboard) and the buttons always stay on screen.  A gamepad
+     * moves between the buttons with left & right, presses one with A and
+     * takes the Escape button (Quit, Cancel) with B or Back.
+     */
+    @Override
+    protected void messageboxCreateAndShow(Bundle args) {
+        final int[] buttonFlags = args.getIntArray("buttonFlags");
+        final int[] buttonIds = args.getIntArray("buttonIds");
+        final String[] buttonTexts = args.getStringArray("buttonTexts");
+        final int count = buttonTexts.length;
+        final boolean column = count > 3;
+        final int pad = dp(20);
+
+        final AlertDialog dialog = new AlertDialog.Builder(this).create();
+        dialog.setTitle(args.getString("title"));
+        dialog.setCancelable(false);
+        dialog.setOnDismissListener(d -> {
+            synchronized (messageboxSelection) {
+                messageboxSelection.notify();
+            }
+        });
+
+        TextView message = new TextView(this);
+        message.setText(args.getString("message"));
+        message.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        message.setPadding(pad, dp(8), pad, dp(8));
+        final ScrollView textScroll = new ScrollView(this);
+        textScroll.setFocusable(false);
+        textScroll.setVerticalScrollBarEnabled(true);
+        textScroll.setScrollbarFadingEnabled(false);
+        textScroll.addView(message);
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(column ? LinearLayout.VERTICAL
+                                      : LinearLayout.HORIZONTAL);
+        buttons.setGravity(buttonGravity(column));
+        buttons.setPadding(dp(12), dp(4), dp(12), dp(8));
+
+        Button enterButton = null, escapeButton = null;
+        final Button[] all = new Button[count];
+        for (int i = 0; i < count; ++i) {
+            final int id = buttonIds[i];
+            Button b = new Button(this, null, android.R.attr.buttonBarButtonStyle);
+            b.setText(buttonTexts[i]);
+            b.setOnClickListener(v -> {
+                messageboxSelection[0] = id;
+                dialog.dismiss();
+            });
+            if ((buttonFlags[i] & 1) != 0)      // RETURNKEY_DEFAULT
+                enterButton = b;
+            if ((buttonFlags[i] & 2) != 0)      // ESCAPEKEY_DEFAULT
+                escapeButton = b;
+            all[i] = b;
+            buttons.addView(b, new LinearLayout.LayoutParams(
+                    column ? ViewGroup.LayoutParams.MATCH_PARENT
+                           : ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        final Button defaultButton = (enterButton != null) ? enterButton
+                                   : (count > 0 ? all[0] : null);
+        final Button cancelButton = escapeButton;
+
+        // The text takes what room is left by the buttons; a long list of
+        // buttons scrolls too.
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.addView(textScroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        if (column) {
+            ScrollView buttonScroll = new ScrollView(this);
+            buttonScroll.addView(buttons);
+            content.addView(buttonScroll, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        } else {
+            content.addView(buttons, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        // Weights only share out a known height: make the content as tall
+        // as it needs, up to what fits on the screen under the title.
+        final LinearLayout frame = new LinearLayout(this) {
+            @Override
+            protected void onMeasure(int wSpec, int hSpec) {
+                int screen = getResources().getDisplayMetrics().heightPixels;
+                int max = Math.max(dp(120), screen - dp(110));
+                int mode = MeasureSpec.getMode(hSpec);
+                int size = MeasureSpec.getSize(hSpec);
+                if (mode == MeasureSpec.UNSPECIFIED || size > max)
+                    size = max;
+                int natural = naturalHeight(content, wSpec);
+                int h = Math.min(natural, size);
+                super.onMeasure(wSpec, MeasureSpec.makeMeasureSpec(h,
+                                MeasureSpec.EXACTLY));
+            }
+        };
+        frame.setOrientation(LinearLayout.VERTICAL);
+        frame.addView(content, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        dialog.setView(frame);
+
+        dialog.setOnKeyListener((d, keyCode, event) -> {
+            boolean up = event.getAction() == KeyEvent.ACTION_UP;
+            View focus = dialog.getCurrentFocus();
+            switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_B:
+            case KeyEvent.KEYCODE_BACK:
+            case KeyEvent.KEYCODE_ESCAPE:
+                if (cancelButton == null)
+                    return keyCode != KeyEvent.KEYCODE_BACK;
+                if (up)
+                    cancelButton.performClick();
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_A:
+            case KeyEvent.KEYCODE_BUTTON_START:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                if (up) {
+                    if (focus instanceof Button)
+                        focus.performClick();
+                    else if (defaultButton != null)
+                        defaultButton.performClick();
+                }
+                return true;
+            case KeyEvent.KEYCODE_PAGE_UP:
+            case KeyEvent.KEYCODE_BUTTON_L1:
+                if (! up)
+                    textScroll.pageScroll(View.FOCUS_UP);
+                return true;
+            case KeyEvent.KEYCODE_PAGE_DOWN:
+            case KeyEvent.KEYCODE_BUTTON_R1:
+                if (! up)
+                    textScroll.pageScroll(View.FOCUS_DOWN);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (! column) {
+                    // Up & down scroll the text; the buttons are in a row.
+                    if (! up) {
+                        int step = Math.max(dp(40), textScroll.getHeight() / 3);
+                        textScroll.smoothScrollBy(0,
+                            keyCode == KeyEvent.KEYCODE_DPAD_UP ? -step : step);
+                    }
+                    return true;
+                }
+                // fall through
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_TAB:
+                // The first press picks the default button.
+                if (! (focus instanceof Button) && defaultButton != null) {
+                    if (! up)
+                        defaultButton.requestFocusFromTouch();
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        });
+
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            // Keep the game's full screen (no status or navigation bar).
+            dialog.getWindow().getDecorView().setSystemUiVisibility(
+                    getWindow().getDecorView().getSystemUiVisibility());
+        }
+        if (defaultButton != null)
+            defaultButton.requestFocus();
+    }
+
+    private static int buttonGravity(boolean column) {
+        return column ? android.view.Gravity.FILL_HORIZONTAL
+                      : android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL;
+    }
+
+    private static int naturalHeight(LinearLayout content, int wSpec) {
+        int h = content.getPaddingTop() + content.getPaddingBottom();
+        for (int i = 0; i < content.getChildCount(); ++i) {
+            View c = content.getChildAt(i);
+            View inner = (c instanceof ScrollView && ((ScrollView) c).getChildCount() > 0)
+                       ? ((ScrollView) c).getChildAt(0) : c;
+            int w = View.MeasureSpec.getSize(wSpec);
+            inner.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+                          View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            h += inner.getMeasuredHeight();
+        }
+        return h;
+    }
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
     }
 
     /**
