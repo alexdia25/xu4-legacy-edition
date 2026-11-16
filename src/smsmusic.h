@@ -10,6 +10,6 @@
 #include <vector>
 
 bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
-                     bool fm = false);
+                     bool fm = false, bool pal = false);
 
 #endif

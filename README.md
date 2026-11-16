@@ -326,7 +326,8 @@ module is only listed when the files it needs are found.  Besides XU4's own Ulti
    the gypsy's cards, the shrine visions and the endgame pictures, and
    the music of the Sega Master System release, read from its ROM (see
    [SMS ROM](#sms-rom)).  **SMS-FM-Music** is the game's second
-   soundtrack, for the FM Sound Unit.
+   soundtrack, for the FM Sound Unit.  **SMS-Music-50Hz** and
+   **SMS-FM-Music-50Hz** play them as on a 50 Hz (PAL) console.
  - **NES** and **NES-Music**: the title (the NES book, with the menu on
    its cover), map tiles with the NES shore edges, character sprites,
    font, the first-person dungeon view drawn by the NES game's own code,
@@ -595,7 +596,9 @@ version of every tune for the FM Sound Unit (the YM2413 chip of the Japanese
 Master System and the Mark III's add-on); the SMS-FM-Music soundtrack plays
 those by telling the driver the unit is fitted, on Mitsutaka Okazaki's
 [emu2413](https://github.com/digital-sound-antiques/emu2413) model of the
-chip (MIT licence).  The dungeons still use
+chip (MIT licence).  The 50 Hz soundtracks run the driver as a PAL console
+does: it switches to its PAL tempo table, and the chips run on the slightly
+slower PAL clock, so the tunes sound a little lower.  The dungeons still use
 the DOS pictures, and the game itself (maps, dungeons, talk) stays the DOS
 one.
 

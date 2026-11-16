@@ -34,7 +34,7 @@ if [ ! -d ${DEPS}/boron ]; then
     git clone -q --depth 1 -b v${BORON_VER} https://github.com/0branch/boron ${DEPS}/boron
 fi
 
-MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod SMS-FM-Music.mod CGA.mod NES.mod NES-Music.mod"
+MODULES="render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod SMS-FM-Music.mod SMS-Music-50Hz.mod SMS-FM-Music-50Hz.mod CGA.mod NES.mod NES-Music.mod"
 for f in ${MODULES}; do
     # Rebuilt when out of date; kept as is if boron is not installed.
     make -s -C ${TOP} $f || [ -f ${TOP}/$f ]

@@ -28,8 +28,10 @@
 #include "smsz80.h"
 #include "support/emu2413.h"
 
-#define SMS_CPU_HZ      3579545     // NTSC
-#define FRAME_CYCLES    59736       // 262 lines of 228 cycles.
+#define NTSC_CPU_HZ     3579545
+#define NTSC_FRAME      59736       // 262 lines of 228 cycles.
+#define PAL_CPU_HZ      3546893
+#define PAL_FRAME       71364       // 313 lines of 228 cycles.
 #define MAX_FRAMES      (60 * 60 * 6)
 
 // The driver's entry points.
@@ -172,13 +174,16 @@ static uint64_t stateHash(const uint8_t* mem)
  * frames.  The loop is found by comparing the state at the ticks only, so
  * its length is rounded to whole frames.
  */
-static int runDriver(uint8_t* mem, int tune, bool fm,
+static int runDriver(uint8_t* mem, int tune, bool fm, bool pal,
                      std::vector<Frame>& frames, std::vector<PsgWrite>& writes)
 {
     Z80Cpu cpu(mem);
     cpu.writes = &writes;
+    const uint32_t frameCycles = pal ? PAL_FRAME : NTSC_FRAME;
 
-    mem[0xC001] = 1;            // NTSC timing.
+    // On a 50 Hz (PAL) console the driver speeds up the tempo of each
+    // channel by its table at $8C6F.
+    mem[0xC001] = pal ? 0 : 1;
     mem[0xC002] = fm ? 1 : 0;   // The FM sound unit is fitted.
 
     // Start the tune as sound_reset ($05C7) & play_music ($0621) do; the
@@ -200,7 +205,7 @@ static int runDriver(uint8_t* mem, int tune, bool fm,
         Frame fr;
         fr.first = writes.size();
         cpu.cycles = 0;
-        if (! cpu.call(SND_FRAME, FRAME_CYCLES))
+        if (! cpu.call(SND_FRAME, frameCycles))
             return -1;
         frames.push_back(fr);
 
@@ -242,7 +247,7 @@ static void chipWrite(Psg& psg, OPLL* opll, const PsgWrite& w)
  * Render the loop of a tune to 16-bit stereo samples.
  */
 static bool renderTune(const std::vector<uint8_t>* rom, int tune, int rate,
-                       bool fm, std::vector<int16_t>& samples)
+                       bool fm, bool pal, std::vector<int16_t>& samples)
 {
     // Banks 0 & 1 in the first two slots, the driver's bank in the third.
     std::vector<uint8_t> mem(0x10000, 0);
@@ -251,21 +256,25 @@ static bool renderTune(const std::vector<uint8_t>* rom, int tune, int rate,
 
     std::vector<Frame> frames;
     std::vector<PsgWrite> writes;
-    int loopStart = runDriver(mem.data(), tune, fm, frames, writes);
+    // The sound chips run on the console's clock, which is a little slower
+    // on a PAL console.
+    const uint32_t cpuHz = pal ? PAL_CPU_HZ : NTSC_CPU_HZ;
+    const uint32_t frameCycles = pal ? PAL_FRAME : NTSC_FRAME;
+    int loopStart = runDriver(mem.data(), tune, fm, pal, frames, writes);
     if (loopStart < 0 || loopStart >= (int) frames.size())
         return false;
 
     Psg psg;
     OPLL* opll = NULL;
     if (fm) {
-        opll = OPLL_new(SMS_CPU_HZ, rate);
+        opll = OPLL_new(cpuHz, rate);
         if (! opll)
             return false;
         OPLL_setChipType(opll, 0);      // YM2413
         OPLL_resetPatch(opll, OPLL_2413_TONE);
         OPLL_reset(opll);
     }
-    const double clocksPerSample = double(SMS_CPU_HZ) / 16.0 / rate;
+    const double clocksPerSample = double(cpuHz) / 16.0 / rate;
     double pending = 0.0;       // PSG clocks not yet rendered.
     double acc = 0.0;           // PSG clocks of the current sample.
     int sum = 0, count = 0;
@@ -284,9 +293,9 @@ static bool renderTune(const std::vector<uint8_t>* rom, int tune, int rate,
         uint32_t at = 0;
 
         for (size_t w = frames[t].first; w <= end; ++w) {
-            uint32_t next = (w < end) ? writes[w].cycle : FRAME_CYCLES;
-            if (next > FRAME_CYCLES)
-                next = FRAME_CYCLES;
+            uint32_t next = (w < end) ? writes[w].cycle : frameCycles;
+            if (next > frameCycles)
+                next = frameCycles;
             if (next > at) {
                 pending += (next - at) / 16.0;
                 at = next;
@@ -337,7 +346,7 @@ static bool renderTune(const std::vector<uint8_t>* rom, int tune, int rate,
 struct CachedTune {
     const uint8_t* rom;
     int tune, rate;
-    bool fm;
+    bool fm, pal;
     std::vector<int16_t> mono;
 };
 
@@ -345,10 +354,11 @@ static std::vector<CachedTune> cache;   // The most recent first.
 
 /*
  * Render the loop of a tune to 16-bit stereo samples.  With fm, the tune
- * is the version for the FM Sound Unit.
+ * is the version for the FM Sound Unit; with pal, it is played as on a
+ * 50 Hz console.
  */
 bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
-                     bool fm)
+                     bool fm, bool pal)
 {
     const std::vector<uint8_t>* rom = sms_rom();
     if (! rom || tune < 1 || tune > 0x7F)
@@ -358,11 +368,11 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
     for (i = 0; i < cache.size(); ++i) {
         const CachedTune& ct = cache[i];
         if (ct.rom == rom->data() && ct.tune == tune && ct.rate == rate &&
-            ct.fm == fm)
+            ct.fm == fm && ct.pal == pal)
             break;
     }
     if (i == cache.size()) {
-        if (! renderTune(rom, tune, rate, fm, samples))
+        if (! renderTune(rom, tune, rate, fm, pal, samples))
             return false;
         if (cache.size() >= CACHE_TUNES)
             cache.pop_back();
@@ -372,6 +382,7 @@ bool sms_renderMusic(int tune, int rate, std::vector<int16_t>& samples,
         ct.tune = tune;
         ct.rate = rate;
         ct.fm = fm;
+        ct.pal = pal;
         ct.mono.resize(samples.size() / 2);
         for (size_t n = 0; n < ct.mono.size(); ++n)
             ct.mono[n] = samples[n * 2];

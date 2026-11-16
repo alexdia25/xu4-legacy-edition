@@ -6,7 +6,7 @@ MFILE_OS=Makefile
 DESTDIR ?= /usr/local
 
 MODULES=render.pak Ultima-IV.mod U4-Upgrade.mod Apple-II.mod Apple-II-Music.mod \
-	C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod SMS-FM-Music.mod CGA.mod NES.mod NES-Music.mod
+	C64.mod C64-Music.mod C64-Remastered.mod SMS.mod SMS-Music.mod SMS-FM-Music.mod SMS-Music-50Hz.mod SMS-FM-Music-50Hz.mod CGA.mod NES.mod NES-Music.mod
 BORON=boron
 REND=module/render
 
@@ -49,6 +49,12 @@ SMS-Music.mod: module/SMS-Music/*.b
 
 SMS-FM-Music.mod: module/SMS-FM-Music/*.b
 	$(BORON) -s tools/pack-xu4.b module/SMS-FM-Music
+
+SMS-Music-50Hz.mod: module/SMS-Music-50Hz/*.b
+	$(BORON) -s tools/pack-xu4.b module/SMS-Music-50Hz
+
+SMS-FM-Music-50Hz.mod: module/SMS-FM-Music-50Hz/*.b
+	$(BORON) -s tools/pack-xu4.b module/SMS-FM-Music-50Hz
 
 NES.mod: module/NES/*.b
 	$(BORON) -s tools/pack-xu4.b module/NES

@@ -691,8 +691,12 @@ static bool music_playApple2(const CDIEntry* ent, int mode)
     std::vector<int16_t> samples;
     if (spec.compare(0, 4, "sms/") == 0) {
         // The tune is played by the game's sound driver; sms/fm is the
-        // version for the FM Sound Unit.
-        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples, spec == "sms/fm"))
+        // version for the FM Sound Unit, and a name ending in 50 plays as
+        // on a 50 Hz console.
+        bool fm = spec.compare(0, 6, "sms/fm") == 0;
+        bool pal = spec.size() > 2 &&
+                   spec.compare(spec.size() - 2, 2, "50") == 0;
+        if (! sms_renderMusic(tune, A2MUSIC_RATE, samples, fm, pal))
             return false;
     } else if (spec.compare(0, 4, "nes/") == 0) {
         // The tune is played by the game's sound driver.
