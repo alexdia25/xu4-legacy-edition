@@ -23,6 +23,12 @@ Fixes:
 
 - Android: the NES and NES-Music modules are now included in the APK
   (they were missing from the 1.3 Android build).
+- Android: the first-run box asking for the Ultima IV files now fits
+  the screen.  Its text scrolls (drag it, or up and down on a gamepad)
+  and the Choose Files, Choose Folder and Quit buttons always stay on
+  screen; a gamepad picks a button with left and right and A, and B
+  quits.  Before, on a phone the text ran off the screen with the
+  buttons, leaving nothing to choose.
 
 ## New in 1.3
 
