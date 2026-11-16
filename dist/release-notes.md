@@ -2,6 +2,28 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.3.1
+
+Music:
+
+- **SMS-FM-Music**: the Master System game's second soundtrack, the
+  version of every tune it plays on the FM Sound Unit (the YM2413 chip
+  of the Japanese Master System and the Mark III's add-on), read from
+  your own ROM like SMS-Music.  The game's own sound driver is told the
+  unit is fitted and the chip is played on Mitsutaka Okazaki's emu2413
+  (MIT licence).  Pick it in Graphics & Music.
+- **SMS-Music-50Hz** and **SMS-FM-Music-50Hz**: both SMS soundtracks as
+  on a PAL (50 Hz) console, where the driver uses its PAL tempo table
+  and the chips run on the slightly slower PAL clock, so the tunes sound
+  a little lower.
+- Moving between places with an SMS soundtrack no longer renders the
+  same tune again: the last three are kept.
+
+Fixes:
+
+- Android: the NES and NES-Music modules are now included in the APK
+  (they were missing from the 1.3 Android build).
+
 ## New in 1.3
 
 Most of what is new is optional: the new options are in Settings,
