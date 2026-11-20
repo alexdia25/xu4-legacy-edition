@@ -467,7 +467,8 @@ IntroController::IntroController() :
     moreMenu4.add(MI_MORE_PLACES, new BoolMenuItem("Heard-Of Places On Map   %s", 2,  3,/*'h'*/  0, &lo.mapPlaces));
     moreMenu4.add(MI_MORE_FOES, new BoolMenuItem("Creatures On Mini Map    %s", 2,  4,/*'r'*/  1, &lo.mapCreatures));
     moreMenu4.add(MI_MORE_STEP, new BoolMenuItem("Step Onto To Use         %s", 2,  5,/*'t'*/ 10, &lo.stepOnto));
-    moreMenu4.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  6,/*'p'*/  2);
+    moreMenu4.add(MI_MORE_TOWNFIX, new BoolMenuItem("Fix Town Data Mistakes   %s", 2,  6,/*'x'*/  2, &lo.townFixes));
+    moreMenu4.add(MI_LEGACY_PREV,                 "\010 Previous Page",          2,  7,/*'p'*/  2);
     moreMenu4.add(USE_SETTINGS,                   "\010 Use These Settings",     2, 11,/*'u'*/  2);
     moreMenu4.add(CANCEL,                         "\010 Cancel",                 2, 12,/*'c'*/  2);
     moreMenu4.addShortcutKey(CANCEL, ' ');
@@ -2196,6 +2197,7 @@ void IntroController::initMenuHelp() {
         { &moreMenu3, MI_MORE_GUIDE, "Adds the Guide, a walkthrough of the whole quest, to the Books." },
         { &moreMenu3, MI_MORE_PERCHAR, "With Keep Characters, each character keeps their own play options." },
         { &moreMenu3, MI_MORE_STEP, "With Walk Into To Act, a chest or ladder stepped on offers to be used." },
+        { &moreMenu3, MI_MORE_TOWNFIX, "Serpent's Hold gate guards say their own lines, not Sentri's (as SMS)." },
         { &moreMenu3, MI_MORE_UPDATE, "Once a day, ask GitHub if a newer release is out (Windows, Mac, Linux)." },
         { &moreMenu3, MI_MORE_QUICKFX, "Spell flashes are brief and storms don't wait for their sound." },
         { &moreMenu2, MI_MORE_SPELL, "Spell lists show mana and mixtures made, castable spells first." },

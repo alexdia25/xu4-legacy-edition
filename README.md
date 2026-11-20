@@ -236,6 +236,7 @@ below).  Pages 4 to 7 hold these, most starting on:
 | Heard-Of Places On Map     | The in-game world map (not the books' cloth map) names in yellow the towns, castles, villages and dungeons the party has been to, and in grey, with a box where the land is still unexplored, those someone has named in conversation |
 | Creatures On Mini Map      | The dungeon mini map marks a creature in a cell the party can see |
 | Step Onto To Use           | With Walk Into To Act on, stepping onto a chest offers to open it, and onto a ladder to climb or descend it (off at first) |
+| Fix Town Data Mistakes     | The gate guards of Serpent's Hold say their own lines, as on the Master System, not Sentri's as in the DOS data (on at first; off is the DOS game) |
 
 Keyboard Options also has **Stop At New Scene**: a held key, direction or
 touch stops repeating at a fight, a new map or a moongate until it is
@@ -390,7 +391,7 @@ Getting Started
 
 ### Installing
 
-Every download is on the [releases page]; the latest is [1.3.1], with
+Every download is on the [releases page]; the latest is [1.3.2], with
 the NES modules, the SMS FM and 50 Hz soundtracks, the CGA look, the
 console window frames and the other features listed in its release notes.
 The game data
@@ -698,7 +699,7 @@ The original XU4 readme follows.
 [Codeberg]: https://codeberg.org/xU4/xu4
 [GOG]: https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar
 [releases page]: https://github.com/alexdia25/xu4-legacy-edition/releases/latest
-[1.3.1]: https://github.com/alexdia25/xu4-legacy-edition/releases/tag/legacy-1.3.1
+[1.3.2]: https://github.com/alexdia25/xu4-legacy-edition/releases/tag/legacy-1.3.2
 [Flatpak repository]: https://alexdia25.github.io/xu4-legacy-edition/
 [Obtainium]: https://github.com/ImranR98/Obtainium
 [play in the browser]: https://alexdia25.github.io/xu4-legacy-edition/play/

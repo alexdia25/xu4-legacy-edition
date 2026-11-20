@@ -325,6 +325,7 @@ bool Settings::read() {
     legacy.quickFx      = true;
     legacy.updateNotice = true;
     legacy.stepOnto     = false;
+    legacy.townFixes    = true;
     legacy.perCharacter = true;
     legacy.mapPlaces    = true;
     legacy.spoilerGuide = false;
@@ -546,6 +547,8 @@ bool Settings::read() {
             legacy.updateNotice = toInt(val);
         else if (VALUE("stepOnto="))
             legacy.stepOnto = toInt(val);
+        else if (VALUE("townFixes="))
+            legacy.townFixes = toInt(val);
         else if (VALUE("perCharacter="))
             legacy.perCharacter = toInt(val);
         else if (VALUE("mapPlaces="))
@@ -845,6 +848,7 @@ bool Settings::write() {
             "quickFx=%d\n"
             "updateNotice=%d\n"
             "stepOnto=%d\n"
+            "townFixes=%d\n"
             "perCharacter=%d\n"
             "mapPlaces=%d\n"
             "spoilerGuide=%d\n"
@@ -912,6 +916,7 @@ bool Settings::write() {
             legacy.quickFx,
             legacy.updateNotice,
             legacy.stepOnto,
+            legacy.townFixes,
             legacy.perCharacter,
             legacy.mapPlaces,
             legacy.spoilerGuide,

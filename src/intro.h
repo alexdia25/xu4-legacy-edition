@@ -276,6 +276,7 @@ private:
         MI_MORE_QUICKFX,
         MI_MORE_UPDATE,
         MI_MORE_STEP,
+        MI_MORE_TOWNFIX,
         MI_MORE_PERCHAR,
         MI_MORE_PLACES,
         MI_MORE_GUIDE,

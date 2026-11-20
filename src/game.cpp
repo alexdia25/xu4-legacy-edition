@@ -4193,6 +4193,23 @@ void peer(bool useGem) {
     gameSetViewMode(VIEW_NORMAL);
 }
 
+
+/*
+ * Fix Town Data Mistakes: the DOS SERPENT.ULT gives the two gate guards of
+ * Serpent's Hold Sentri's dialogue (0), so the gate guard's own dialogue (1)
+ * is never heard.  The SMS version gives them the gate guard's talk.  With
+ * the option off they say Sentri's lines, as in DOS.
+ */
+static void fixTownTalk(const City* city, Person* p) {
+    const Coords& pos = p->getStart();
+    if (pos.y == 25 && (pos.x == 13 || pos.x == 17) &&
+        strcmp(xu4.config->confString(city->tlk_fname), "serpent.tlk") == 0 &&
+        city->disc.convCount > 1) {
+        uint16_t want = xu4.settings->legacy.townFixes ? 1 : 0;
+        if (p->discourseId() <= 1 && p->discourseId() != want)
+            p->setDiscourseId(want);
+    }
+}
 /**
  * Begins a conversation with the NPC at map coordinates x,y.  If no
  * NPC is present at that point, zero is returned.
@@ -4273,6 +4290,7 @@ static bool talkAt(const Coords &coords, int distance) {
         return discourse_run(dis, npcType - NPC_LORD_BRITISH, speaker);
     }
 
+    fixTownTalk(city, speaker);
     return discourse_run(&city->disc, speaker->discourseId(), speaker);
 }
 

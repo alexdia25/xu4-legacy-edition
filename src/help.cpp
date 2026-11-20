@@ -238,6 +238,8 @@ static const char helpText[] =
 "  Creatures On Mini Map  Creatures show on the dungeon mini map.\n"
 "  Step Onto To Use       A chest or ladder stepped on offers to be\n"
 "                         used.\n"
+"  Fix Town Data Mistakes  Serpent's Hold's gate guards have their own\n"
+"                         talk, not Sentri's (as on the SMS).\n"
 "\n"
 "Elsewhere in Settings\n"
 "\n"

@@ -241,25 +241,11 @@ static bool loadCityMap(Map *map, U4FILE *ult) {
     }
 
     {
-    uint8_t* conv_idx = data + PD_CONV;
-    const char* tlkName = xu4.config->confString(city->tlk_fname);
+    const uint8_t* conv_idx = data + PD_CONV;
     const char* err;
     int count;
 
-    /*
-     * DOS data fix: the two gate guards of Serpent's Hold (slots 28 and 29)
-     * point to Sentri's dialogue, so the gate guard's own dialogue (2) is
-     * never heard.  The SMS version gives them the gate guard's talk.
-     */
-    if (strcmp(tlkName, "serpent.tlk") == 0) {
-        for (j = 28; j <= 29; j++) {
-            per = people[j];
-            if (per && conv_idx[j] == 1 && per->getStart().y == 25)
-                conv_idx[j] = 2;
-        }
-    }
-
-    err = discourse_load(&city->disc, tlkName);
+    err = discourse_load(&city->disc, xu4.config->confString(city->tlk_fname));
     if (err)
         errorFatal(err);
 

@@ -192,6 +192,7 @@ struct LegacyOptions {
     bool quickFx;           // Spell flashes & storm sounds don't hold play.
     bool updateNotice;      // Desktop: say when a newer release is out.
     bool stepOnto;          // Walk Into To Act: chests & ladders stepped on.
+    bool townFixes;         // Fix mistakes in the DOS town data.
     bool perCharacter;      // Keep Characters: each has their own options.
     bool mapPlaces;         // The world map names places visited or heard of.
     bool spoilerGuide;      // Books of Britannia has the Guide (walkthrough).

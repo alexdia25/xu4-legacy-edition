@@ -2,6 +2,20 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.3.2
+
+Fixes:
+
+- Serpent's Hold: the two gate guards now say the gate guard's own
+  lines ("Guard the gates, of course", with GATE and GUARD), as on the
+  Master System.  The DOS town data gives them Sentri's lines by
+  mistake, so they said their name was Sentri and gave out his
+  syllable of the Word of Passage, and the gate guard's talk was never
+  heard; XU4 had always copied this.  Sentri himself, on the throne, is
+  unchanged.  The new option **Fix Town Data Mistakes** (Legacy Edition
+  Options, page 7, on at first) turns this off for the DOS game as it
+  was.
+
 ## New in 1.3.1
 
 Music:
