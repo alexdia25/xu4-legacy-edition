@@ -1949,6 +1949,10 @@ void IntroController::endInGame() {
  * reloaded, which can only be done from the title screen.
  */
 void IntroController::settingsFromGameMenu() {
+    // The game menu may have changed the settings (such as the soundtrack
+    // picked in Graphics & Music) since the copy was made.
+    settingsChanged = *xu4.settings;
+
     MenuItem* videoItem = confMenu.getItemById(MI_CONF_VIDEO);
     MenuItem* backItem  = confMenu.getItemById(CANCEL);
     videoItem->setVisible(false);
@@ -2391,6 +2395,10 @@ void IntroController::updateConfMenu(MenuEvent &event) {
             xu4.gameBrowser->openSettings = false;
             xu4.eventHandler->runController(xu4.gameBrowser);
             xu4.gameBrowser->openSettings = false;  // Already here.
+            // The module list saves the game & soundtrack picked.  Take
+            // them into the copy, or leaving these menus would put the old
+            // ones back.
+            settingsChanged = *xu4.settings;
             break;
         case CANCEL:
             // discard settings
