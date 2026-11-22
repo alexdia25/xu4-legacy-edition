@@ -10,11 +10,13 @@
  * disk carries the same music files, which is used to tell the images apart.
  *
  * Ultima IV Remastered (2.2.1, by Per Olofsson & Vanja Utne) is also read,
- * from its .d81 image or its first .d64.  Its files are normal files of the
- * disk directory: the loader (a two stage self-extracting program holding
- * the tiles, font & title screen) and GAM, which holds the other files of
- * the game, each one packed.  The loader is unpacked by running it on a
- * 6502 model until it starts the game.
+ * from its .d81 image, its first .d64 or its EasyFlash cartridge (.crt).
+ * The files of the disks are normal files of the disk directory: the loader
+ * (a two stage self-extracting program holding the tiles, font & title
+ * screen) and GAM, which holds the other files of the game, each one packed.
+ * The loader is unpacked by running it on a 6502 model until it starts the
+ * game.  The cartridge holds the same loader unpacked (in banks 2-5) and
+ * the same packed files in its own file system (from bank 6).
  *
  * The images are looked for in the resource paths (and their u4, ultima4,
  * c64 & commodore subdirectories).
@@ -37,6 +39,7 @@ using std::vector;
 #define IMAGE_SIZE      174848      // 683 sectors.
 #define IMAGE_SIZE_ERR  175531      // With a sector error table.
 #define D81_SIZE        819200
+#define CRT_MAX_SIZE    (64 * 0x4000 + 64 * 2 * 0x10 + 0x40)
 #define DISK_SIDES      0x0F
 
 /*
@@ -227,9 +230,102 @@ static const char* remasterLoader(const vector<uint8_t>& image)
     return (image.size() == D81_SIZE) ? "ULTIMA IV" : "ULTIMA IV 1541";
 }
 
+/*
+ * The EasyFlash cartridge of Ultima IV Remastered.
+ */
+#define EF_BANK         0x4000      // ROML ($8000) & ROMH ($A000/$E000).
+#define EF_GAME_BANK    2           // The loader, copied to $0400.
+#define EF_GAME_SIZE    (0x10000 - 0x0400)
+#define EF_GAM_BANK     6           // The packed GAM files.
+#define EF_GAM_FILES    256
+
+static inline uint32_t be32(const uint8_t* p)
+{
+    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+/*
+ * Lay out the chips of an EasyFlash .crt file as banks of 16K.  Return false
+ * if this is not an EasyFlash cartridge.
+ */
+static bool crtBanks(const vector<uint8_t>& image, vector<uint8_t>& rom)
+{
+    size_t size = image.size();
+    if (size < 0x40 || memcmp(image.data(), "C64 CARTRIDGE   ", 16) != 0)
+        return false;
+    const uint8_t* hdr = image.data();
+    if (((hdr[0x16] << 8) | hdr[0x17]) != 32)       // EasyFlash.
+        return false;
+    rom.assign(64 * EF_BANK, 0xFF);
+    size_t pos = be32(hdr + 0x10);
+    int chips = 0;
+    while (pos + 16 <= size) {
+        const uint8_t* chip = &image[pos];
+        if (memcmp(chip, "CHIP", 4) != 0)
+            return false;
+        uint32_t plen = be32(chip + 4);
+        int bank = (chip[10] << 8) | chip[11];
+        int addr = (chip[12] << 8) | chip[13];
+        int len  = (chip[14] << 8) | chip[15];
+        if (plen < 16 || pos + plen > size || len > int(plen - 16) ||
+            bank >= 64 || len > 0x4000)
+            return false;
+        size_t off = bank * EF_BANK + ((addr == 0x8000) ? 0 : 0x2000);
+        if (off + len > rom.size())
+            return false;
+        memcpy(&rom[off], chip + 16, len);
+        pos += plen;
+        ++chips;
+    }
+    return chips > EF_GAM_BANK;
+}
+
+/*
+ * Read the packed GAM files from the cartridge file system.  Its directory
+ * starts at $8000 of the first bank (bank, offset low, offset high, length
+ * low & length high tables of 256 entries) and the files follow, using only
+ * the ROML half of each bank.
+ */
+static bool crtGamFiles(const vector<uint8_t>& rom,
+                        vector< vector<uint8_t> >& files)
+{
+    vector<uint8_t> roml;
+    for (size_t b = EF_GAM_BANK * EF_BANK; b < rom.size(); b += EF_BANK)
+        roml.insert(roml.end(), rom.begin() + b, rom.begin() + b + 0x2000);
+
+    const uint8_t* dir = roml.data();
+    const int N = EF_GAM_FILES;
+    files.clear();
+    for (int i = 0; i < N; ++i) {
+        size_t len = dir[3*N + i] | (dir[4*N + i] << 8);
+        if (! len)
+            break;
+        size_t off = dir[i] * 0x2000 + ((dir[N + i] | (dir[2*N + i] << 8))
+                                        - 0x8000);
+        if (off < size_t(5 * N) || off + len > roml.size())
+            return false;
+        files.push_back(vector<uint8_t>(roml.begin() + off,
+                                        roml.begin() + off + len));
+    }
+    return files.size() >= 20;
+}
+
+static bool crtRemaster(const vector<uint8_t>& image)
+{
+    vector<uint8_t> rom;
+    vector< vector<uint8_t> > files;
+    // The cartridge name is "Ultima IV Remastered".
+    if (image.size() < 0x40 || memcmp(&image[0x20], "Ultima IV", 9) != 0)
+        return false;
+    return crtBanks(image, rom) && crtGamFiles(rom, files) &&
+           rom[EF_GAME_BANK * EF_BANK + 0x2000 - 0x0400] != 0xFF;
+}
+
 static bool remasterImage(const vector<uint8_t>& image)
 {
     vector<uint8_t> data;
+    if (crtRemaster(image))
+        return true;
     if (image.size() != D81_SIZE && image.size() != IMAGE_SIZE &&
         image.size() != IMAGE_SIZE_ERR)
         return false;
@@ -337,6 +433,29 @@ static bool remasterPrepare()
         return ! remasterMem.empty();
     remasterTried = true;
 
+    vector<uint8_t> rom;
+    if (crtBanks(remaster, rom)) {
+        // The cartridge copies its loader, already unpacked, to $0400 and
+        // starts it at $2000.
+        vector< vector<uint8_t> > packed;
+        if (! crtGamFiles(rom, packed))
+            return false;
+        vector<uint8_t> mem(0x10000, 0);
+        memcpy(&mem[0x0400], &rom[EF_GAME_BANK * EF_BANK], EF_GAME_SIZE);
+        remasterGam.clear();
+        for (size_t i = 0; i < packed.size(); ++i) {
+            vector<uint8_t> file;
+            const vector<uint8_t>& p = packed[i];
+            if (p.size() < 3 || ! unpack(&p[2], p.size() - 2, file))
+                break;
+            remasterGam.push_back(file);
+        }
+        if (remasterGam.size() < 20)
+            return false;
+        remasterMem.swap(mem);
+        return true;
+    }
+
     vector<uint8_t> prg, gam;
     if (! directoryFile(remaster, remasterLoader(remaster), prg) ||
         prg.size() < 16 || ! directoryFile(remaster, "GAM", gam))
@@ -424,7 +543,7 @@ static bool hasImageExtension(const char* name)
     string e(ext + 1);
     for (size_t i = 0; i < e.size(); ++i)
         e[i] = tolower((unsigned char) e[i]);
-    return e == "d64" || e == "d81";
+    return e == "d64" || e == "d81" || e == "crt";
 }
 
 static int scanImage(const char* name, int type, void* user)
@@ -436,7 +555,7 @@ static int scanImage(const char* name, int type, void* user)
     FILE* fp = fopen(path.c_str(), "rb");
     if (! fp)
         return PDIR_CONTINUE;
-    vector<uint8_t> image(D81_SIZE + 1);
+    vector<uint8_t> image(CRT_MAX_SIZE + 1);
     size_t n = fread(image.data(), 1, image.size(), fp);
     fclose(fp);
 
