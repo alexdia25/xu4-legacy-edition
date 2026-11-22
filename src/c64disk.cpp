@@ -10,7 +10,8 @@
  * disk carries the same music files, which is used to tell the images apart.
  *
  * Ultima IV Remastered (2.2.1, by Per Olofsson & Vanja Utne) is also read,
- * from its .d81 image, its first .d64 or its EasyFlash cartridge (.crt).
+ * from its .d81 or .d71 image, its first .d64 or its EasyFlash cartridge
+ * (.crt).
  * The files of the disks are normal files of the disk directory: the loader
  * (a two stage self-extracting program holding the tiles, font & title
  * screen) and GAM, which holds the other files of the game, each one packed.
@@ -38,6 +39,8 @@ using std::vector;
 
 #define IMAGE_SIZE      174848      // 683 sectors.
 #define IMAGE_SIZE_ERR  175531      // With a sector error table.
+#define D71_SIZE        349696      // 1366 sectors (both sides).
+#define D71_SIZE_ERR    351062
 #define D81_SIZE        819200
 #define CRT_MAX_SIZE    (64 * 0x4000 + 64 * 2 * 0x10 + 0x40)
 #define DISK_SIDES      0x0F
@@ -161,6 +164,11 @@ static long sectorOffset(size_t size, int track, int sec)
             return -1;
         n = (track - 1) * 40 + sec;
     } else {
+        if ((size == D71_SIZE || size == D71_SIZE_ERR) && track > 35 &&
+            track <= 70) {
+            n = 683;            // The second side of a .d71.
+            track -= 35;
+        }
         if (track < 1 || track > 35)
             return -1;
         for (int t = 1; t < track; ++t)
@@ -227,7 +235,9 @@ static bool directoryFile(const vector<uint8_t>& image, const char* name,
 
 static const char* remasterLoader(const vector<uint8_t>& image)
 {
-    return (image.size() == D81_SIZE) ? "ULTIMA IV" : "ULTIMA IV 1541";
+    size_t size = image.size();
+    return (size == IMAGE_SIZE || size == IMAGE_SIZE_ERR) ? "ULTIMA IV 1541"
+                                                          : "ULTIMA IV";
 }
 
 /*
@@ -327,7 +337,8 @@ static bool remasterImage(const vector<uint8_t>& image)
     if (crtRemaster(image))
         return true;
     if (image.size() != D81_SIZE && image.size() != IMAGE_SIZE &&
-        image.size() != IMAGE_SIZE_ERR)
+        image.size() != IMAGE_SIZE_ERR && image.size() != D71_SIZE &&
+        image.size() != D71_SIZE_ERR)
         return false;
     return directoryFile(image, remasterLoader(image), data) &&
            directoryFile(image, "GAM", data);
@@ -485,15 +496,21 @@ static bool remasterPrepare()
     mem.resize(0x10000);
 
     // GAM is the packed files, one after another, each with its load
-    // address.
+    // address.  Files left out of a disk are empty, so they take no space.
+    // The first .d64 of the 1541 version leaves out the second file (141,
+    // the tiles, which its loader holds).
     vector<uint8_t> file;
     size_t pos = 0;
     remasterGam.clear();
+    bool d64 = (remaster.size() == IMAGE_SIZE ||
+                remaster.size() == IMAGE_SIZE_ERR);
     while (pos + 2 < gam.size()) {
         size_t used = unpack(&gam[pos + 2], gam.size() - pos - 2, file);
         if (! used)
             break;
         remasterGam.push_back(file);
+        if (d64 && remasterGam.size() == 1)
+            remasterGam.push_back(vector<uint8_t>());
         pos += 2 + used;
     }
     if (remasterGam.size() < 20)
@@ -543,7 +560,7 @@ static bool hasImageExtension(const char* name)
     string e(ext + 1);
     for (size_t i = 0; i < e.size(); ++i)
         e[i] = tolower((unsigned char) e[i]);
-    return e == "d64" || e == "d81" || e == "crt";
+    return e == "d64" || e == "d71" || e == "d81" || e == "crt";
 }
 
 static int scanImage(const char* name, int type, void* user)

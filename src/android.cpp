@@ -243,8 +243,8 @@ static bool isDocFile(const std::string& name) {
 // A disk image or ROM of another version, which the modules look for.
 static bool isImageFile(const std::string& name) {
     std::string ext = extension(name);
-    return ext == "dsk" || ext == "do" || ext == "d64" || ext == "d81" ||
-           ext == "crt" || ext == "sms" || ext == "nes";
+    return ext == "dsk" || ext == "do" || ext == "d64" || ext == "d71" ||
+           ext == "d81" || ext == "crt" || ext == "sms" || ext == "nes";
 }
 
 static std::string baseName(const std::string& path) {
@@ -468,8 +468,8 @@ static const char* gogHelp =
     "(ultima4.zip works too).";
 
 static const char* extrasHelp =
-    "u4upgrad.zip (the VGA upgrade), Apple II (.dsk) or C64 (.d64, .d81, .crt) "
-    "disk images, the Sega Master System ROM (.sms) and the NES ROM (.nes) "
+    "u4upgrad.zip (the VGA upgrade), Apple II (.dsk) or C64 (.d64, .d71, "
+    ".d81, .crt) disk images, the Sega Master System ROM (.sms) and the NES ROM (.nes) "
     "can be added too, on their own or in zip files.";
 
 /*

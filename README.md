@@ -577,8 +577,9 @@ The images must be plain 35 track `.d64` files.
 The C64-Remastered module uses the graphics of
 [Ultima IV Remastered](https://github.com/MagerValp/u4remastered) 2.2.1 by
 Per Olofsson & Vanja Utne: the more colorful tiles and the new intro
-pictures and cards.  It reads them from `u4remastered.d81`, from
-`u4remastered-a.d64` or from the EasyFlash cartridge `u4remastered.crt`.
+pictures and cards.  It reads them from `u4remastered.d81`, `u4remastered.d71`,
+`u4remastered-a.d64` or the EasyFlash cartridge `u4remastered.crt` (any one
+of them is enough; `u4remastered-b.d64` is not needed).
 
 Put the images in any of the [data folders](#data-folders), or in a `c64` folder
 inside one of them, such as `%LOCALAPPDATA%\xu4\c64\` on Windows.  The

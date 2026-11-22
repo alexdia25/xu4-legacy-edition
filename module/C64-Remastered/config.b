@@ -2,9 +2,9 @@ module [
     about: {{
         Ultima IV with the graphics of Ultima IV Remastered for the
         Commodore 64 (tiles from Ultima V & new intro art by Vanja Utne).
-        Requires the u4remastered.d81 disk image (or u4remastered-a.d64,
-        or the u4remastered.crt cartridge) of version 2.2.1 in the xu4
-        data folder.
+        Requires the u4remastered.d81 disk image (or u4remastered.d71,
+        u4remastered-a.d64 or the u4remastered.crt cartridge) of version
+        2.2.1 in the xu4 data folder.
     }}
     author: "XU4 Legacy Edition"
     version: "0.1"
