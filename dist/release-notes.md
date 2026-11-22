@@ -2,6 +2,27 @@ XU4 Legacy Edition is a fork of [XU4](https://xu4.sourceforge.net/) that
 makes Ultima IV easier to play on modern systems, especially with the free
 [GOG](https://www.gog.com/en/game/ultima_iv_quest_of_the_avatar) release.
 
+## New in 1.3.3
+
+C64 Remastered:
+
+- The C64-Remastered graphics now load from any of the files of
+  [Ultima IV Remastered](https://github.com/MagerValp/u4remastered)
+  2.2.1: the EasyFlash cartridge `u4remastered.crt` and the 1571 disk
+  `u4remastered.d71` are now read too, besides `u4remastered.d81`.
+  `u4remastered-a.d64` (the first 1541 disk), which the README listed
+  before, was in fact never used: it now works.  Any one of these files
+  is enough; `u4remastered-b.d64` is not needed.  They are also taken
+  from zip files, on Android and on the web page.
+
+Fixes:
+
+- The music picked in Graphics & Music opened from Settings was put
+  back to the old choice when leaving Settings, so the new music played
+  only until the game was restarted.  It is now kept.  (The same could
+  happen to music picked from the game menu if Settings was opened
+  afterwards.)
+
 ## New in 1.3.2
 
 Fixes:
